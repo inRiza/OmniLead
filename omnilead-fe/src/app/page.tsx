@@ -1,19 +1,17 @@
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Gauge, LayoutGrid, MessageCircleQuestion, ShieldCheck, Sparkles, Workflow } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { AnnouncementBar, HeroStage, LandingHeader, Reveal, UseCases } from "@/components/landing/Interactive";
-import { ControlPanel, FeatureTabs, SkillsExplorer, WhyToggle } from "@/components/landing/Sections";
-import { LandingChannelIcon, type LandingChannel } from "@/components/landing/channels";
+import { AnnouncementBar, HeroStage, LandingHeader, Reveal } from "@/components/landing/Interactive";
+import { SkillsExplorer, WhyToggle } from "@/components/landing/Sections";
 import { cn } from "@/lib/utils";
 
-type Icon = ComponentType<SVGProps<SVGSVGElement>>;
-
-const CHANNELS: { channel: LandingChannel; name: string; path: string }[] = [
-  { channel: "whatsapp", name: "WhatsApp", path: "Terhubung langsung" },
-  { channel: "instagram", name: "Instagram", path: "Komentar dan DM" },
-  { channel: "facebook", name: "Facebook", path: "Komentar Page dan Messenger" },
-  { channel: "email", name: "Gmail", path: "Terhubung langsung" },
+const INTEGRATIONS = [
+  { slug: "whatsapp", name: "WhatsApp" },
+  { slug: "gmail", name: "Gmail" },
+  { slug: "instagram", name: "Instagram" },
+  { slug: "facebook", name: "Facebook" },
 ];
 
 const FAQ: { q: string; a: ReactNode }[] = [
@@ -43,59 +41,109 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
 ];
 
+const CONTOURS = [
+  "M-40 120 C 120 60 220 260 380 220 S 600 40 760 140 S 980 360 1160 260 S 1400 120 1500 200",
+  "M-60 520 C 140 460 260 640 460 600 S 720 420 900 500 S 1160 700 1500 560",
+  "M180 -40 C 160 120 320 180 300 320 S 160 520 260 660 S 420 860 380 900",
+  "M1080 -40 C 1020 120 1180 220 1120 380 S 980 600 1100 720 S 1260 860 1240 900",
+];
+
+function HeroContours({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1440 800"
+      preserveAspectRatio="xMidYMid slice"
+      className={cn("pointer-events-none absolute inset-0 h-full w-full", className)}
+    >
+      <g fill="none" stroke="white" strokeOpacity="0.09" strokeWidth="1">
+        {CONTOURS.map((d) =>
+          Array.from({ length: 9 }, (_, i) => <path key={`${d}-${i}`} d={d} transform={`translate(${i * 2.5} ${i * 3})`} />),
+        )}
+      </g>
+    </svg>
+  );
+}
+
+function Bar({ className }: { className?: string }) {
+  return <span className={cn("block h-2.5 rounded-sm bg-rc-border", className)} />;
+}
+
+function HeroDashboard() {
+  return (
+    <div
+      aria-hidden
+      className="flex h-[22rem] overflow-hidden rounded-t-lg border border-b-0 border-rc-border bg-rc-bg sm:h-[30rem] lg:h-[36rem]"
+    >
+      <aside className="hidden w-56 shrink-0 flex-col gap-6 border-r border-rc-border bg-rc-surface p-5 md:flex">
+        <Logo />
+        <div className="flex flex-col gap-4">
+          {["w-24", "w-28", "w-20", "w-32", "w-24", "w-16"].map((w, i) => (
+            <span key={i} className="flex items-center gap-3">
+              <span className="h-4 w-4 rounded-sm bg-rc-border" />
+              <Bar className={w} />
+            </span>
+          ))}
+        </div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-14 items-center justify-between border-b border-rc-border bg-rc-surface px-5">
+          <Bar className="w-40" />
+          <span className="flex items-center gap-3">
+            <Bar className="hidden w-24 sm:block" />
+            <span className="h-8 w-8 rounded-full bg-rc-border" />
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col gap-4 p-5">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col gap-3 rounded-md border border-rc-border bg-rc-surface p-4">
+                <Bar className="w-20" />
+                <Bar className="h-5 w-14" />
+              </div>
+            ))}
+          </div>
+          <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="flex flex-col gap-4 rounded-md border border-rc-border bg-rc-surface p-4">
+              <Bar className="w-32" />
+              <div className="flex-1 rounded-sm bg-rc-bg" />
+            </div>
+            <div className="hidden flex-col gap-4 rounded-md border border-rc-border bg-rc-surface p-4 lg:flex">
+              <Bar className="w-24" />
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span key={i} className="flex items-center gap-3">
+                  <span className="h-7 w-7 shrink-0 rounded-full bg-rc-border" />
+                  <span className="flex flex-1 flex-col gap-1.5">
+                    <Bar className="w-3/4" />
+                    <Bar className="h-2 w-1/2" />
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Lebar konten section di bawah hero. */
 const container = "mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8";
 /** Pita section: latar berbeda + garis atas supaya batas antarsection jelas. */
 const band = "border-t border-rc-border py-20 lg:py-28";
 
-const dotGrid = {
-  backgroundImage: "radial-gradient(var(--rc-border-strong) 1px, transparent 1px)",
-  backgroundSize: "22px 22px",
-};
-
-/** Tag judul section: pil dengan ikon dalam lingkaran berwarna. */
-function Eyebrow({ icon: I, children, dark }: { icon: Icon; children: ReactNode; dark?: boolean }) {
-  return (
-    <p
-      className={cn(
-        "inline-flex items-center gap-2.5 rounded-full border py-1.5 pr-4 pl-1.5",
-        dark
-          ? "border-white/15 bg-white/[0.06]"
-          : "border-rc-accent/20 bg-rc-surface shadow-[0_6px_18px_-10px_rgba(47,91,234,0.55)]",
-      )}
-    >
-      <span
-        className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-full",
-          dark ? "bg-rc-highlight text-rc-navy" : "bg-rc-accent text-rc-accent-fg",
-        )}
-      >
-        <I className="h-4 w-4" aria-hidden />
-      </span>
-      <span className={cn("text-[15px] font-semibold tracking-tight", dark ? "text-white" : "text-rc-fg")}>{children}</span>
-    </p>
-  );
-}
-
 function SectionHead({
-  icon,
-  eyebrow,
   title,
   sub,
   dark,
 }: {
-  icon: Icon;
-  eyebrow: string;
   title: ReactNode;
   sub?: string;
   dark?: boolean;
 }) {
   return (
     <Reveal className="mx-auto max-w-3xl text-center">
-      <Eyebrow icon={icon} dark={dark}>
-        {eyebrow}
-      </Eyebrow>
-      <h2 className={cn("mt-5 text-3xl font-semibold tracking-tight text-balance sm:text-5xl", dark && "text-white")}>
+      <h2 className={cn("text-3xl font-semibold tracking-tight text-balance sm:text-5xl", dark && "text-white")}>
         {title}
       </h2>
       {sub && (
@@ -105,13 +153,15 @@ function SectionHead({
   );
 }
 
-/** Sorotan saffron di bawah kata kunci, seperti stabilo. */
-function Mark({ children }: { children: ReactNode }) {
+function Mark({ children, solid }: { children: ReactNode; solid?: boolean }) {
   return (
     <span className="relative whitespace-nowrap">
       <span
         aria-hidden
-        className="absolute inset-x-[-0.08em] bottom-[0.08em] h-[0.32em] rounded-sm bg-rc-highlight/70"
+        className={cn(
+          "absolute inset-x-[-0.08em] rounded-sm",
+          solid ? "bottom-[0.02em] h-[0.12em] bg-rc-highlight" : "bottom-[0.08em] h-[0.32em] bg-rc-highlight/70",
+        )}
       />
       <span className="relative">{children}</span>
     </span>
@@ -131,36 +181,21 @@ export default function Landing() {
       <LandingHeader />
 
       <main id="konten">
-        {/* Hero (gaya wafer): latar full-bleed, isi di tengah */}
-        <section className="relative -mt-[4.5rem] overflow-hidden bg-gradient-to-b from-rc-accent-soft via-rc-bg to-rc-bg pt-[4.5rem]">
-          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70" style={dotGrid} />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-48 right-[-12%] h-[42rem] w-[42rem] rounded-full bg-rc-accent/20 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute bottom-[-14rem] left-[-10%] h-[32rem] w-[32rem] rounded-full bg-rc-highlight/20 blur-3xl"
-          />
-          <div className="relative mx-auto w-full max-w-[1320px] px-4 pt-14 pb-16 sm:px-6 sm:pt-20 lg:px-8 lg:pb-24">
+        <section className="relative -mt-[4.5rem] overflow-hidden bg-rc-hero pt-[4.5rem] text-white">
+          <HeroContours />
+          <div className="relative mx-auto w-full max-w-[1320px] px-4 pt-16 pb-14 sm:px-6 sm:pt-24 lg:px-8 lg:pb-20">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="rc-enter inline-flex items-center gap-2 rounded-full border border-rc-border bg-rc-surface/80 px-3 py-1 text-sm font-medium text-rc-fg-muted backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-rc-accent" aria-hidden />
-                Asisten penjualan untuk UMKM
-              </p>
               <h1
-                className="rc-enter mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-6xl"
+                className="rc-enter mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl"
                 style={{ animationDelay: "80ms" }}
               >
-                AI yang menyiapkan. Pemilik yang <Mark>memutuskan.</Mark>
+                AI yang menyiapkan. Pemilik yang <Mark solid>memutuskan.</Mark>
               </h1>
               <p
-                className="rc-enter mx-auto mt-6 max-w-2xl text-base text-rc-fg-muted sm:text-lg"
+                className="rc-enter mx-auto mt-6 max-w-2xl text-base text-white/80 sm:text-lg"
                 style={{ animationDelay: "160ms" }}
               >
-                Pesan pelanggan dari WhatsApp, Instagram, Facebook, dan email terkumpul di satu tempat. AI menyiapkan
-                balasan, mencatat data pelanggan, dan mengingatkan Anda untuk menindaklanjuti. Tidak ada pesan yang
-                terkirim sebelum Anda setujui.
+                Multi kanal lead agent yang dapat membawa menuju ke decision-close maker.
               </p>
               <div
                 className="rc-enter mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
@@ -168,42 +203,46 @@ export default function Landing() {
               >
                 <Link
                   href="/dashboard/inbox"
-                  className="group inline-flex min-h-12 items-center gap-2 rounded-full bg-rc-accent px-6 text-sm font-medium text-rc-accent-fg shadow-[0_10px_24px_-10px_rgba(47,91,234,0.7)] transition-colors hover:bg-rc-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent"
+                  className="group inline-flex min-h-12 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-rc-hero transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Coba demo
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                 </Link>
                 <a
-                  href="#kasus"
-                  className="inline-flex min-h-12 items-center rounded-full border border-rc-border bg-rc-surface/80 px-6 text-sm font-medium text-rc-fg backdrop-blur transition-colors hover:border-rc-accent hover:text-rc-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent"
+                  href="#agen"
+                  className="inline-flex min-h-12 items-center rounded-md border border-white/40 px-6 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Lihat cara kerja
                 </a>
               </div>
             </div>
-            <div className="rc-enter mt-14 lg:mt-20" style={{ animationDelay: "380ms" }}>
-              <HeroStage />
+          </div>
+          <div className="relative mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">
+            <div
+              className="rc-enter rounded-t-2xl bg-rc-surface p-2 pb-0 sm:p-3 sm:pb-0"
+              style={{ animationDelay: "380ms" }}
+            >
+              <HeroDashboard />
             </div>
           </div>
         </section>
 
-        {/* Kanal (pengganti "Trusted by" Halo AI) — pita putih */}
-        <section aria-label="Kanal yang didukung" className="border-y border-rc-border bg-rc-surface py-10">
-          <p className="text-center text-sm text-rc-fg-muted">
-            Terhubung ke kanal yang <span className="font-medium text-rc-fg">sudah dipakai pelanggan Anda</span>
-          </p>
-          <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
-            <ul className="rc-marquee flex w-max gap-3">
-              {[...CHANNELS, ...CHANNELS].map((c, i) => (
-                <li
-                  key={`${c.channel}-${i}`}
-                  aria-hidden={i >= CHANNELS.length || undefined}
-                  className="flex items-center gap-3 rounded-2xl border border-rc-border bg-rc-bg px-5 py-3"
-                >
-                  <LandingChannelIcon channel={c.channel} size="md" />
-                  <span>
-                    <span className="block text-sm font-medium">{c.name}</span>
-                    <span className="block text-sm whitespace-nowrap text-rc-fg-muted">{c.path}</span>
+        <section aria-label="Integrasi" className="bg-rc-surface py-14">
+          <div className={container}>
+            <p className="text-center text-lg font-semibold text-rc-fg-mute opcity-40">Terintegrasi dengan</p>
+            <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-14 gap-y-8 sm:gap-x-20">
+              {INTEGRATIONS.map((i) => (
+                <li key={i.slug} className="group flex items-center gap-3">
+                  <Image
+                    src={`https://cdn.simpleicons.org/${i.slug}`}
+                    alt=""
+                    width={32}
+                    height={32}
+                    unoptimized
+                    className="h-8 w-8 opacity-50 grayscale transition-[filter,opacity] duration-300 group-hover:opacity-100 group-hover:grayscale-0"
+                  />
+                  <span className="text-xl font-semibold tracking-tight text-rc-fg-subtle transition-colors duration-300 group-hover:text-rc-fg">
+                    {i.name}
                   </span>
                 </li>
               ))}
@@ -211,12 +250,22 @@ export default function Landing() {
           </div>
         </section>
 
+        <section id="agen" className={cn(band, "scroll-mt-24")}>
+          <div className={container}>
+            <SectionHead
+              title="Agent bekerja 24/7"
+              sub="Pilih kanal, lalu lihat AI membaca pesan, mengerti konteks, mengecek katalog, memberi balasan, dan mengikat preferensi pelanggan."
+            />
+            <Reveal className="mt-12">
+              <HeroStage />
+            </Reveal>
+          </div>
+        </section>
+
         {/* Kenapa — latar halaman */}
         <section id="kenapa" className="scroll-mt-24 py-20 lg:py-28">
           <div className={container}>
             <SectionHead
-              icon={Sparkles}
-              eyebrow="Kenapa OmniLead"
               title="Bukan sekadar chatbot"
               sub="Pesan yang sama, dua cara membalas. Coba bandingkan."
             />
@@ -226,12 +275,9 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Kemampuan — pita putih */}
-        <section className={cn(band, "bg-rc-surface")}>
+        <section id="kemampuan" className={cn(band, "scroll-mt-24 bg-rc-surface")}>
           <div className={container}>
             <SectionHead
-              icon={Gauge}
-              eyebrow="Kemampuan"
               title="Bekerja seperti admin terbaik Anda"
               sub="Klik salah satu untuk melihat contohnya."
             />
@@ -241,133 +287,82 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Fitur — pita biru muda */}
-        <section id="fitur" className={cn(band, "scroll-mt-24 bg-rc-accent-soft")}>
-          <div className={container}>
-            <SectionHead
-              icon={LayoutGrid}
-              eyebrow="Fitur"
-              title="Semua urusan membalas pelanggan, di satu layar"
-              sub="Balas, setujui, dan pantau pelanggan dari semua kanal tanpa pindah aplikasi."
-            />
-            <Reveal className="mt-12">
-              <FeatureTabs />
-            </Reveal>
-          </div>
-        </section>
-
-        {/* Kasus — latar halaman */}
-        <section id="kasus" className={cn(band, "scroll-mt-24")}>
-          <div className={container}>
-            <SectionHead
-              icon={Workflow}
-              eyebrow="Contoh kasus"
-              title="Dari tanya harga sampai pesan mencurigakan"
-              sub="Situasi yang sering dihadapi UMKM, dan cara OmniLead menanganinya."
-            />
-            <Reveal className="mt-12">
-              <UseCases />
-            </Reveal>
-          </div>
-        </section>
-
-        {/* Kendali — pita navy */}
-        <section id="kendali" className="relative scroll-mt-24 overflow-hidden bg-rc-navy py-20 lg:py-28">
-          <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[50rem] -translate-x-1/2 rounded-full bg-rc-accent/30 blur-3xl" />
-          <div className={cn(container, "relative")}>
-            <SectionHead
-              dark
-              icon={ShieldCheck}
-              eyebrow="Kendali"
-              title="Anda tetap memegang kemudi"
-              sub="Coba sendiri: hentikan AI, atau matikan pengiriman di kanal tertentu."
-            />
-            <Reveal className="mt-12">
-              <ControlPanel />
-            </Reveal>
-          </div>
-        </section>
-
-        {/* FAQ — pita putih */}
         <section id="faq" className="scroll-mt-24 bg-rc-surface py-20 lg:py-28">
           <div className={container}>
-            <SectionHead icon={MessageCircleQuestion} eyebrow="FAQ" title="Pertanyaan yang sering diajukan" />
-            <Reveal className="mx-auto mt-12 flex max-w-4xl flex-col gap-3">
+            <SectionHead title="Pertanyaan yang sering diajukan" />
+            <Reveal className="mx-auto mt-12 flex max-w-3xl flex-col gap-2">
               {FAQ.map((f) => (
                 <details
                   key={f.q}
-                  className="group rounded-2xl border border-rc-border bg-rc-bg px-5 transition-colors open:border-rc-accent/40 open:bg-rc-accent-soft/60 hover:border-rc-border-strong"
+                  className="group rounded-lg bg-rc-bg px-5 transition-colors duration-300 open:bg-rc-accent-soft hover:bg-rc-surface-hover"
                 >
-                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-md text-base font-medium focus-visible:outline-2 focus-visible:outline-rc-accent [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-lg text-base font-medium focus-visible:outline-2 focus-visible:outline-rc-accent [&::-webkit-details-marker]:hidden">
                     {f.q}
-                    <span
+                    <ChevronDown
                       aria-hidden
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rc-surface text-lg text-rc-fg-muted shadow-sm transition-[transform,background-color,color] duration-300 group-open:rotate-45 group-open:bg-rc-accent group-open:text-rc-accent-fg"
-                    >
-                      +
-                    </span>
+                      className="h-5 w-5 shrink-0 text-rc-fg-muted transition-[transform,color] duration-300 group-open:rotate-180 group-open:text-rc-accent group-hover:text-rc-fg"
+                    />
                   </summary>
-                  <p className="pr-12 pb-5 text-rc-fg-muted">{f.a}</p>
+                  <p className="pr-10 pb-5 text-rc-fg-muted">{f.a}</p>
                 </details>
               ))}
             </Reveal>
           </div>
         </section>
-
-        {/* CTA — latar halaman */}
-        <section className="border-t border-rc-border py-20">
-          <div className={container}>
-            <Reveal className="relative overflow-hidden rounded-[2rem] border border-rc-border bg-gradient-to-br from-[#dfe7ff] via-rc-surface to-[#ffeccc] px-6 py-16 text-center sm:px-12 lg:py-24">
-              <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={dotGrid} />
-              <div className="relative">
-                <Eyebrow icon={Sparkles}>Mulai sekarang</Eyebrow>
-                <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
-                  Setiap pesan terjawab. Setiap pembeli <Mark>tertangani.</Mark>
+      <section aria-label="Mulai" className="bg-rc-surface pt-10">
+        <div className={container}>
+          <div className="relative overflow-hidden rounded-t-2xl bg-rc-hero px-6 pt-16 pb-14 text-center text-white sm:px-12 lg:pt-24 lg:pb-20">
+            <HeroContours className="[mask-image:linear-gradient(to_bottom,#000_40%,transparent)]" />
+            <div className="relative">
+              <Reveal>
+                <h2 className="mx-auto max-w-3xl text-3xl font-bold tracking-tight text-balance sm:text-5xl">
+                  Setiap pesan terjawab. Setiap pembeli <Mark solid>tertangani.</Mark>
                 </h2>
-                <p className="mx-auto mt-4 max-w-xl text-base text-rc-fg-muted sm:text-lg">
+                <p className="mx-auto mt-5 max-w-xl text-base text-white/80 sm:text-lg">
                   Anda tetap yang menentukan apa yang dikirim atas nama usaha Anda.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link
                     href="/dashboard/inbox"
-                    className="group inline-flex min-h-12 items-center gap-2 rounded-full bg-rc-accent px-6 text-sm font-medium text-rc-accent-fg shadow-[0_10px_24px_-10px_rgba(47,91,234,0.7)] transition-colors hover:bg-rc-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent"
+                    className="group inline-flex min-h-12 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-rc-hero transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
                     Coba demo
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                   </Link>
                   <Link
                     href="/dashboard/integrasi"
-                    className="inline-flex min-h-12 items-center rounded-full border border-rc-border bg-rc-surface px-6 text-sm font-medium transition-colors hover:border-rc-accent hover:text-rc-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent"
+                    className="inline-flex min-h-12 items-center rounded-md border border-white/40 px-6 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
                     Hubungkan kanal
                   </Link>
                 </div>
-              </div>
-            </Reveal>
+              </Reveal>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
       </main>
 
-      <footer className="bg-rc-navy text-white [--rc-accent:#8ea8ff] [--rc-border:#1f2d52] [--rc-fg-muted:#aab4cc] [--rc-fg-subtle:#7d89a6] [--rc-fg:#ffffff] [--rc-primary-fg:#0b1a3a] [--rc-primary:#ffffff]">
-        <div className={cn(container, "flex flex-col gap-8 py-12 sm:flex-row sm:items-start sm:justify-between")}>
-          <div>
-            <Logo accent />
-            <p className="mt-3 max-w-xs text-sm text-rc-fg-muted">AI yang menyiapkan, pemilik yang memutuskan.</p>
+      <footer className="relative overflow-hidden bg-rc-hero text-white [--rc-fg:#ffffff] [--rc-primary:#ffffff] [--rc-primary-fg:var(--rc-hero)]">
+        <div className={cn(container, "relative")}>
+          <div className="flex flex-col gap-10 py-12 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <Logo accent />
+              <p className="mt-3 max-w-xs text-sm text-white/70">AI yang menyiapkan, pemilik yang memutuskan.</p>
+            </div>
+            <nav aria-label="Tautan footer" className="grid grid-cols-2 gap-x-16 gap-y-3 text-sm">
+              <span className="font-medium text-white">Produk</span>
+              <span className="font-medium text-white">Aplikasi</span>
+              <a href="#agen" className="text-white/70 transition-colors hover:text-white">Agen AI</a>
+              <Link href="/dashboard" className="text-white/70 transition-colors hover:text-white">Beranda aplikasi</Link>
+              <a href="#kenapa" className="text-white/70 transition-colors hover:text-white">Kenapa OmniLead</a>
+              <Link href="/dashboard/inbox" className="text-white/70 transition-colors hover:text-white">Kotak masuk</Link>
+              <a href="#kemampuan" className="text-white/70 transition-colors hover:text-white">Kemampuan</a>
+              <Link href="/dashboard/integrasi" className="text-white/70 transition-colors hover:text-white">Kanal</Link>
+            </nav>
           </div>
-          <nav aria-label="Tautan footer" className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
-            <span className="text-rc-fg-subtle">Produk</span>
-            <span className="text-rc-fg-subtle">Aplikasi</span>
-            <a href="#kenapa" className="text-rc-fg-muted hover:text-white">Kenapa OmniLead</a>
-            <Link href="/dashboard" className="text-rc-fg-muted hover:text-white">Beranda aplikasi</Link>
-            <a href="#fitur" className="text-rc-fg-muted hover:text-white">Fitur</a>
-            <Link href="/dashboard/inbox" className="text-rc-fg-muted hover:text-white">Kotak masuk</Link>
-            <a href="#kendali" className="text-rc-fg-muted hover:text-white">Kendali</a>
-            <Link href="/dashboard/integrasi" className="text-rc-fg-muted hover:text-white">Kanal</Link>
-          </nav>
+          <p className="border-t border-white/15 py-6 text-sm text-white/60">© 2026 Tim OmniLead · Agentic AI Hackathon 2026</p>
         </div>
-        <p className={cn(container, "border-t border-rc-border py-6 text-sm text-rc-fg-subtle")}>
-          © 2026 Tim OmniLead · Agentic AI Hackathon 2026
-        </p>
       </footer>
     </div>
   );
