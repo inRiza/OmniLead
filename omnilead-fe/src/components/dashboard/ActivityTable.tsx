@@ -60,7 +60,7 @@ export function ActivityTable({
                       <div className="truncate font-medium text-rc-fg">
                         {a.authorName}
                       </div>
-                      <div className="text-xs text-rc-fg-muted">
+                      <div className="text-sm text-rc-fg-muted">
                         {channelLabel[a.channel]} · {a.kind}
                       </div>
                     </div>
@@ -77,7 +77,7 @@ export function ActivityTable({
                 <TableCell className="hidden sm:table-cell">
                   <span
                     className={cn(
-                      "text-xs capitalize",
+                      "text-sm capitalize",
                       a.urgency === "tinggi"
                         ? "font-medium text-rc-fg"
                         : "text-rc-fg-muted",
@@ -86,7 +86,7 @@ export function ActivityTable({
                     {a.urgency}
                   </span>
                 </TableCell>
-                <TableCell className="text-right text-xs text-rc-fg-subtle">
+                <TableCell className="text-right text-sm text-rc-fg-subtle">
                   <TimeAgo iso={a.receivedAt} />
                 </TableCell>
               </TableRow>

@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OmniLead Frontend
 
-## Getting Started
+UI OmniLead (Next.js 16, React 19, Tailwind 4). Satu workspace untuk pesan dari semua kanal, antrean
+persetujuan, profil lead, dan kendali agen. Data berasal dari `omnilead-be`; tidak ada data mock.
 
-First, run the development server:
+## Menjalankan
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd omnilead-fe
+cp .env.example .env.local     # NEXT_PUBLIC_API_URL, NEXT_PUBLIC_API_KEY (opsional)
+bun install                    # atau npm install
+bun run dev                    # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Urutan menjalankan seluruh sistem: agen (8100) → BE (8000) → FE (3000); lihat `../README.md`.
+Jika BE mati, FE menampilkan banner dan data bisa usang.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`NEXT_PUBLIC_*` ikut ke bundle browser. Untuk produksi, lewatkan API key lewat proxy server-side.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Halaman
 
-## Learn More
+| Rute | Isi |
+|---|---|
+| `/dashboard` | Beranda: hal yang perlu ditangani hari ini, statistik, volume pesan 7 hari, kanal |
+| `/dashboard/inbox` | Workspace: aktivitas berprioritas, filter kanal dan jenis, **Tempel pesan** (teks/screenshot), panel detail dengan rencana, langkah agen, hasil Guard, dan antrean persetujuan |
+| `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan |
+| `/dashboard/integrasi` | Status kanal, kapabilitas, saklar per kanal, dry-run, status service agen |
+| `/dashboard/audit` | Jejak aksi: pelaksana, kanal, hasil |
+| `/dashboard/konten` | Ide konten (contoh statis, berlabel SIMULASI) |
 
-To learn more about Next.js, take a look at the following resources:
+Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul dan aksi ditahan.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Struktur data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/lib/api.ts`: klien REST dan tipe respons BE (`Be*`).
+- `src/lib/adapt.ts`: satu-satunya tempat yang mengubah bentuk JSON BE ke tipe FE (`types.ts`).
+- `src/components/dashboard/DashboardContext.tsx`: provider data, polling 3 detik, mutasi (setujui, tolak,
+  coba ulang, Pause, saklar kanal).
 
-## Deploy on Vercel
+## Pemeriksaan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bun run lint
+npx tsc --noEmit
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Lint masih melaporkan 1 error dan 3 warning lama di `TimeAgo.tsx` dan `button.tsx`. Belum ada tes otomatis FE;
+verifikasi dilakukan manual di browser (lihat `../TESTING.md`).
