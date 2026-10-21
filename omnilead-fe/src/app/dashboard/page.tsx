@@ -80,7 +80,7 @@ export default function HomePage() {
       />
 
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-5 pb-10 md:p-7 md:pb-12">
+        <div className="flex w-full max-w-[1400px] flex-col gap-6 pt-1 pb-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-medium text-rc-fg-muted">

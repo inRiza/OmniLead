@@ -7,11 +7,9 @@ import { Button } from "@/components/action/button";
 import { ChannelIcon, Dot } from "@/components/primitives";
 import { useDashboard } from "./DashboardContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { useAccount } from "./AccountProvider";
 
 export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
   const { paused, togglePause, channels, error, agent, loaded } = useDashboard();
-  const { session } = useAccount();
   const [busy, setBusy] = useState(false);
 
   async function onToggle() {
@@ -29,7 +27,6 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
     <header className="shrink-0 bg-rc-bg">
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-3 pr-1 pl-1 md:pl-0">
         <div className="min-w-0 space-y-0.5">
-          {session.user && <p className="mb-1 flex flex-wrap items-baseline gap-x-2 text-sm"><span className="text-rc-fg-muted">Bisnis aktif</span><strong className="min-w-0 max-w-full font-semibold text-rc-fg [overflow-wrap:anywhere]">{session.user.business}</strong></p>}
           <h1 className="text-lg font-semibold tracking-tight text-rc-fg">
             {title}
           </h1>

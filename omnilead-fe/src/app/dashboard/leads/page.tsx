@@ -35,7 +35,7 @@ export default function LeadsPage() {
         subtitle="Pelanggan yang sudah terhubung lintas kanal"
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="p-5 md:p-6">
+        <div className="max-w-[1400px] pt-1 pb-10">
           {loaded && rows.length === 0 ? (
             <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">
               Belum ada lead. Lead dibuat otomatis saat pesan pertama masuk.

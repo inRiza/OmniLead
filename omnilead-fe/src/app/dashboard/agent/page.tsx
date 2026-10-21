@@ -52,7 +52,7 @@ export default function AgentPage() {
   return <>
     <Topbar title="Aktivitas agen" subtitle="Ikuti proses pesan, tool yang dijalankan, dan usulan balasan untuk bisnis ini." />
     <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="space-y-5 p-4 md:p-6">
+      <div className="max-w-[1400px] space-y-5 pt-1 pb-10">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rc-border bg-rc-surface p-4">
           <div>
             <p role="status" className="flex items-center gap-2 text-sm font-semibold text-rc-fg"><span className={`h-2 w-2 rounded-full ${d.error || !d.agent?.reachable ? "bg-rc-danger" : "bg-rc-fg"}`} />{state}</p>

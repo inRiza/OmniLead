@@ -74,7 +74,7 @@ function LeadProfile() {
         subtitle={lead?.company ?? "Riwayat lintas kanal"}
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 pb-8 md:p-6">
+        <div className="flex w-full max-w-[1400px] flex-col gap-4 pt-1 pb-10">
           <Link
             href="/dashboard/leads"
             className="text-sm font-medium text-rc-fg-muted transition-colors hover:text-rc-fg"

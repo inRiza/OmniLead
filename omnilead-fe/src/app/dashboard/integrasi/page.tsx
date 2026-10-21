@@ -115,10 +115,11 @@ export default function IntegrasiPage() {
   return <>
     <Topbar title="Akun & Integrasi" subtitle="Hubungkan kanal dan atur akun bisnis Anda" />
     <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 pb-8 md:p-6">
+      <div className="flex w-full max-w-[1400px] flex-col gap-4 pt-1 pb-10">
         <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
           <h2 className="text-lg font-semibold">Kanal untuk {session.user?.business ?? "bisnis Anda"}</h2>
           <p className="mt-2 text-base text-rc-fg-muted">Klik Hubungkan, masuk ke akun Anda, lalu izinkan akses. OmniLead mengelola koneksinya secara otomatis. Setiap pengiriman tetap menunggu persetujuan Anda.</p>
+          {connections.some((c) => !c.configured && c.status !== "connected") && <p className="mt-3 rounded-lg bg-rc-highlight-soft px-3 py-2 text-sm text-[#8a5300]">Sebagian kanal menunggu pengaturan dari pengelola OmniLead. Sementara itu, tempel pesan pelanggan dan kirim balasan lewat Salin &amp; buka.</p>}
           <div className="mt-4"><Button purpose="nav" href="/dashboard/knowledge">Atur pengetahuan & tone agen</Button></div>
           {!session.enabled && <p className="mt-3 text-sm text-rc-fg-muted">Mode demo lokal aktif. Pengelola perlu mengaktifkan login untuk menghubungkan akun bisnis.</p>}
         </section>
@@ -168,13 +169,12 @@ export default function IntegrasiPage() {
             </div>
             {connection?.label && <p className="mt-3 text-base font-medium">{connection.label}</p>}
             {connection?.error && <p className="mt-2 text-sm text-rc-danger">{connection.error}</p>}
-            {connection && !connection.configured && <p className="mt-3 text-sm text-rc-fg-muted">Koneksi sedang disiapkan oleh pengelola OmniLead. Anda tetap dapat menempel pesan dan mengirim balasan secara manual.</p>}
             <div className="mt-4 flex flex-wrap gap-2">
-              {provider && <Button purpose="action" style={connected ? "secondary" : "primary"} disabled={busy !== null || !connection.configured} onClick={() => void connect(provider)}>{busy === provider ? "Menghubungkan…" : connected || connection.status === "reconnect_required" ? "Hubungkan ulang / ganti akun" : `Hubungkan ${channelLabel[channel.channel]}`}</Button>}
+              {provider && connection.configured && <Button purpose="action" style={connected ? "secondary" : "primary"} disabled={busy !== null} onClick={() => void connect(provider)}>{busy === provider ? "Menghubungkan…" : connected || connection.status === "reconnect_required" ? "Hubungkan ulang / ganti akun" : `Hubungkan ${channelLabel[channel.channel]}`}</Button>}
               {provider && connection.status !== "disconnected" && <Button purpose="action" disabled={busy !== null} onClick={() => setConfirm(confirm === provider ? null : provider)}>Putuskan koneksi</Button>}
               <Button purpose="action" disabled={busy !== null} onClick={() => void perform(channel.channel, () => d.setChannelEnabled(channel.channel, !enabled))}>{enabled ? "Jeda kanal" : "Aktifkan kanal"}</Button>
               {provider === "whatsapp" && connection?.manual &&<Button purpose="action" disabled={busy !== null} onClick={() => setManualOpen(!manualOpen)}>Hubungkan nomor uji</Button>}
-              {!connected && <Button purpose="nav" href="/dashboard/inbox">Tempel pesan</Button>}
+              {!connected && <Button purpose="nav" style={connection?.configured ? "secondary" : "primary"} href="/dashboard/inbox">Tempel pesan</Button>}
             </div>
             {provider === "whatsapp" && manualOpen && <form className="mt-4 grid gap-4 rounded-lg border border-rc-border bg-rc-bg p-4" onSubmit={connectManual}>
               <p className="text-sm text-rc-fg-muted">Salin dari dashboard Meta, menu WhatsApp, API Setup. Token disimpan terenkripsi dan tidak ditampilkan lagi.</p>

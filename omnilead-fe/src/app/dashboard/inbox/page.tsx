@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { Channel } from "@/lib/types";
 import { channelLabel, cn } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
@@ -62,17 +61,7 @@ export default function InboxPage() {
         subtitle="Pesan masuk dari semua kanal. Anda yang putuskan balasannya."
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="flex flex-col gap-3 p-5 md:p-6">
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link href="/dashboard/agent" className="rounded-md border border-rc-border px-3 py-2 text-sm font-medium text-rc-fg hover:bg-rc-surface-hover">Aktivitas agen</Link>
-            <Button
-              purpose="action"
-              style={pasting ? "primary" : "secondary"}
-              onClick={() => setPasting((v) => !v)}
-            >
-              {pasting ? "Tutup" : "Tempel pesan"}
-            </Button>
-          </div>
+        <div className="flex max-w-[1400px] flex-col gap-3 pt-1 pb-10">
           {pasting ? (
             <PasteMessage
               onCreated={(id) => {
@@ -84,7 +73,8 @@ export default function InboxPage() {
             />
           ) : null}
 
-          <div className="rc-scrollbar -mx-1 flex items-center gap-3 overflow-x-auto px-1 pb-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="rc-scrollbar -mx-1 flex min-w-0 flex-1 items-center gap-3 overflow-x-auto px-1 pb-1">
           <div className="flex shrink-0 gap-1.5" role="group" aria-label="Filter jenis aktivitas">
             {(["all", "komentar", "dm", "email"] as const).map((k) => (
               <button
@@ -124,6 +114,17 @@ export default function InboxPage() {
               ))}
             </div>
           ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button purpose="nav" href="/dashboard/agent">Aktivitas agen</Button>
+            <Button
+              purpose="action"
+              style={pasting ? "secondary" : "primary"}
+              onClick={() => setPasting((v) => !v)}
+            >
+              {pasting ? "Tutup" : "Tempel pesan"}
+            </Button>
+          </div>
           </div>
 
           {d.loaded && rows.length === 0 ? (
