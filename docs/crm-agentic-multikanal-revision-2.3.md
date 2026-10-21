@@ -8,6 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
+version: 2.3
 ---
 
 Label sumber data di dokumen ini:
@@ -771,6 +772,91 @@ checklist ini setiap hari tampil:
 - [ ] Hotspot HP siap sebagai cadangan Wi-Fi venue.
 - [ ] Video cadangan terbuka di tab terpisah.
 
+## Repository dan Starter untuk Development
+
+Semua repository di bawah sudah dicek ada (21 Okt 2026). Aturan yang
+harus diikuti:
+
+- **TOR §6.1:** scaffolding dari starter baru boleh dijalankan **setelah
+  countdown 13.00**. Sebelum itu hanya boleh install tools dan membaca
+  dokumentasi.
+- **TOR §6.2:** setiap template, contoh kode, atau library yang dipakai
+  dicatat di "Catatan sumber dan AI", dengan pemisahan jelas antara
+  komponen yang sudah ada dan kontribusi tim selama hackathon.
+
+### Agen dan Google Cloud
+
+| Repository | Kegunaan untuk OmniLead | Dipakai oleh |
+|---|---|---|
+| [google/adk-python](https://github.com/google/adk-python) | Source dan issue ADK 2.x. Rujukan utama jika dokumentasi kurang jelas. Install: `pip install google-adk`. | AI |
+| [google/adk-docs](https://github.com/google/adk-docs) / [adk.dev](https://adk.dev/) | Dokumentasi ADK: multi-agent, `McpToolset`, callbacks, eval, deploy. Arahkan coding agent ke sini supaya tidak memakai contoh ADK 1.x. | AI, BE |
+| [google/adk-recipes](https://github.com/google/adk-recipes) (dulu `adk-samples`) | Kumpulan contoh agen ADK. Ambil pola struktur proyek, tools, dan eval, bukan kode utuh. | AI |
+| [google/adk-web](https://github.com/google/adk-web) | Dev UI ADK (`adk web`): tampilan events, trace, dan tab Eval. Untuk debug agen dan bukti evaluasi, bukan UI produk. | AI |
+| [google/agents-cli](https://github.com/google/agents-cli) | CLI dan *skills* untuk coding assistant: scaffold agen ADK (`agents-cli create`) dan deploy ke Google Cloud. Install: `uvx google-agents-cli setup`. Pengganti Agent Starter Pack. | AI, BE |
+| [GoogleCloudPlatform/agent-starter-pack](https://github.com/GoogleCloudPlatform/agent-starter-pack) | Template agen dengan deploy Cloud Run/Agent Engine, CI/CD, dan eval. Statusnya **maintenance mode**, jadi gunakan hanya sebagai referensi. | BE |
+| [GoogleCloudPlatform/generative-ai](https://github.com/GoogleCloudPlatform/generative-ai) | Notebook dan contoh Gemini di Vertex AI (structured output, multimodal untuk fitur screenshot). | AI |
+| [googleapis/mcp-toolbox](https://github.com/googleapis/mcp-toolbox) (dulu `genai-toolbox`) | MCP Toolbox for Databases. Mendukung **Firestore**, sehingga tools baca CRM bisa didefinisikan lewat konfigurasi, bukan kode. Alternatif dari MCP server buatan sendiri. | AI, BE |
+| [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | SDK resmi MCP Python untuk membuat MCP server CRM, katalog, dan mock IG. Install: `pip install "mcp[cli]"`. | AI, BE |
+| [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) | Contoh implementasi server MCP sebagai acuan pola. | AI |
+
+### Kanal dan integrasi
+
+| Repository | Kegunaan untuk OmniLead | Dipakai oleh |
+|---|---|---|
+| [fbsamples/whatsapp-api-examples](https://github.com/fbsamples/whatsapp-api-examples) | Contoh resmi Meta untuk WhatsApp Cloud API: kirim pesan, template, **webhook dan validasi signature**. Mayoritas Node.js, jadi ambil polanya lalu tulis ulang di Python. | BE |
+| [googleworkspace/python-samples](https://github.com/googleworkspace/python-samples) (folder `gmail/`) | Quickstart OAuth Gmail dan snippet Gmail API resmi. | BE |
+| [googleapis/google-api-python-client](https://github.com/googleapis/google-api-python-client) | Client Python untuk Gmail API (`users.messages.send`, `users.watch`, `users.history.list`). | BE |
+| [googleapis/google-cloud-python](https://github.com/googleapis/google-cloud-python) | Library Firestore, Pub/Sub, Secret Manager, dan Cloud Scheduler untuk Python. | BE |
+
+Instagram tidak punya SDK resmi yang praktis untuk Graph API messaging
+dan komentar. Panggil endpoint REST langsung dengan `httpx`/`requests`,
+mengikuti [dokumentasi Instagram Platform](https://developers.facebook.com/docs/instagram-platform).
+
+### Frontend
+
+| Repository | Kegunaan untuk OmniLead | Dipakai oleh |
+|---|---|---|
+| [ag-ui-protocol/ag-ui](https://github.com/ag-ui-protocol/ag-ui) | Protokol event agen ke UI. Google ADK tercantum sebagai integrasi *first-party* yang didukung. Cocok untuk men-*stream* trace agen (rencana, tool call, hasil) ke panel agen dan untuk alur human-in-the-loop. Opsional: kalau setup-nya makan waktu, cukup baca koleksi `audit_logs`/`actions` dari Firestore secara realtime. | FE |
+
+Untuk stack FE sendiri (misalnya React/Next.js dengan komponen UI siap
+pakai), ikuti stack yang paling dikuasai developer FE. Kecepatan lebih
+penting daripada pilihan framework.
+
+### Proyek serupa sebagai referensi
+
+Proyek open-source yang use case-nya mirip dengan OmniLead. Gunanya untuk
+**mempelajari pola** (model data, alur persetujuan, penanganan webhook,
+desain UI), **bukan untuk disalin**:
+
+- TOR §6.2 melarang menyerahkan karya lain sebagai hasil hacking.
+- Beberapa lisensinya copyleft (AGPL).
+
+Semua repo sudah dicek ada pada 21 Okt 2026.
+
+| Repository | Kemiripan dengan OmniLead | Yang bisa dipelajari | Catatan |
+|---|---|---|---|
+| [chatwoot/chatwoot](https://github.com/chatwoot/chatwoot) | Inbox omnichannel open-source (WhatsApp, Instagram, email, Facebook, Telegram, dll.) dengan agen AI "Captain" | Model data contact–conversation–inbox, penanganan webhook per kanal, pola handoff AI ke manusia, UI inbox | MIT; Rails + Vue. Pembanding fitur terdekat. |
+| [twentyhq/twenty](https://github.com/twentyhq/twenty) | CRM open-source "designed for AI" dengan agen dan workflow | Model objek CRM (person, company, opportunity), desain tampilan pipeline dan profil | TypeScript (NestJS + React). Cek file lisensi sebelum memakai apa pun. |
+| [elie222/inbox-zero](https://github.com/elie222/inbox-zero) | Asisten AI untuk Gmail/Outlook yang menyiapkan draf balasan dan aturan dalam bahasa alami | Integrasi Gmail (OAuth, sinkronisasi), alur draf AI → dikirim pengguna, pelacakan "perlu dibalas" | Next.js + Prisma. Cek file lisensi. |
+| [langchain-ai/executive-ai-assistant](https://github.com/langchain-ai/executive-ai-assistant) | Agen email yang memilah (abaikan/beri tahu/buat draf), menyusun balasan, dan belajar dari umpan balik | Aturan triage di `config.yaml`, ingest Gmail terjadwal, memori dari koreksi pengguna (mirip fitur "belajar dari penolakan") | MIT; LangGraph. **Diarsipkan Jul 2026.** Baca saja. |
+| [langchain-ai/agent-inbox](https://github.com/langchain-ai/agent-inbox) | UI inbox untuk agen human-in-the-loop: setujui, edit, balas, atau abaikan sebelum agen lanjut | Desain UI antrean persetujuan dan skema interupsi | MIT; Next.js. **Diarsipkan Sep 2026.** Rujukan desain antrean Setujui/Edit/Tolak. |
+| [langchain-ai/social-media-agent](https://github.com/langchain-ai/social-media-agent) | Agen yang membuat draf post LinkedIn/X dengan alur edit/terima/tolak | Pola human-in-the-loop untuk konten (relevan untuk fitur Could "ide konten") | MIT; LangGraph. |
+| [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app) | Penjadwal media sosial "agentic" yang mendukung Instagram, LinkedIn, TikTok, dll. | Cara proyek nyata menangani OAuth dan API Instagram/LinkedIn/TikTok; berguna untuk roadmap kanal | **AGPL-3.0:** jangan menyalin kode, cukup pelajari alurnya. |
+| [moj-analytical-services/splink](https://github.com/moj-analytical-services/splink) | Library *entity resolution* probabilistik (Fellegi-Sunter) | Konsep skor kecocokan dan bukti untuk identity resolution lintas kanal | MIT; Python. Terlalu berat untuk demo; cocok untuk roadmap dan untuk menjelaskan skor keyakinan merge ke juri. |
+
+**Celah yang kami temukan:** pencarian tidak menemukan repo publik yang
+menggabungkan Google ADK + WhatsApp/Instagram + antrean persetujuan
+manusia di Cloud Run. Proyek terdekat memakai LangGraph (EAIA, Agent
+Inbox) atau Rails (Chatwoot). Ini bisa disebut di pitch sebagai
+kontribusi orisinal tim, sekaligus berarti integrasi webhook dan ADK
+dibangun sendiri berdasarkan contoh resmi di bagian sebelumnya.
+
+### Rujukan evaluasi
+
+| Repository | Kegunaan |
+|---|---|
+| [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench) | Rujukan metodologi evaluasi agen customer service (domain retail, metrik pass^k). Dipakai sebagai acuan cara menyusun evalset, bukan dijalankan. |
+
 ## Scope 24 Jam
 
 Coding agent mempercepat penulisan kode. Bottleneck-nya pindah ke setup
@@ -789,20 +875,73 @@ dokumentasi. Scope yang lebar tetap berisiko karena:
 | **Should** | IG API asli (Standard Access) + private reply komentar → DM; lead scoring dengan alasan; pengingat Cloud Scheduler; belajar dari penolakan; `adk eval` dengan pass^3 |
 | **Could (prioritas atas)** | Kanal tanpa API untuk TikTok/LinkedIn: screenshot/teks → event (Gemini multimodal), draf → Salin & buka → Sudah dikirim (±2–3 jam) |
 | **Could** | Persona P2 sebagai konfigurasi; agen menyarankan 3 ide konten dari pertanyaan yang paling sering muncul (draf saja; publikasi IG hanya setelah disetujui). Dikerjakan hanya jika semua Must selesai sebelum Kamis 05.00. |
-| **Won't (roadmap)** | Integrasi API TikTok (Business Messaging, Comment, Content Posting) dan LinkedIn (Company Page, Messaging); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md). |
+| **Won't (roadmap)** | Integrasi API TikTok (Business Messaging, Comment, Content Posting) dan LinkedIn (Company Page, Messaging); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](../../feasibility-ig-linkedin-tiktok.md). |
 
-| Waktu (WIB) | Target |
-|---|---|
-| Rab 13–14 | Kunci scope, skema data (Lead, Event, Action, AuditLog), kontrak API, repo + Cloud Run hello world |
-| 14–16 | Paralel: webhook WA + Gmail Pub/Sub; ADK agent + tools + MCP server CRM; UI workspace + approval; wawancara UMKM, seed data, deck awal |
-| 16–19 | Integrasi ujung ke ujung pertama: event → draf → approve → email terkirim |
-| **19.00** | Checkpoint: IG API asli atau mock; WA pesan bebas dari nomor uji berhasil atau tidak (jika gagal: pasang metode pembayaran, tetap gratis dalam jatah 1.000, atau pakai template `hello_world` dan pindahkan pesan bebas ke email) |
-| 19–24 | Guard, identity merge, trace panel, Pause, scoring; private reply IG jika API asli berhasil |
-| Kam 00–05 | Evalset + `adk eval`, perbaikan bug, belajar dari penolakan; kanal tanpa API hanya jika semua Must stabil (tidur bergantian) |
-| 05–09 | Polish UI dan narasi demo, rekam video cadangan |
-| 09–12 | Uji skenario demo 5x; TESTING.md, README, catatan AI |
-| 12–13 | **Freeze:** tag `v1.0-freeze`, matikan resource yang tidak perlu |
-| 13–15 | Unggah luaran; deck seleksi (pitch 2 menit + demo) |
+### Pembagian peran (tim 3 orang)
+
+Pembagian mengikuti **batas aliran data**, bukan jenis teknologi. GCP
+dipakai oleh semua bagian (Vertex AI oleh agen; Cloud Run, Firestore,
+Pub/Sub oleh backend), sehingga "integrasi GCP" tidak dijadikan peran
+tersendiri.
+
+| Peran | Lingkup | GCP yang dipegang | Luaran dokumen |
+|---|---|---|---|
+| **FE** (UI + presentasi) | Workspace, daftar prioritas, profil, antrean Setujui/Edit/Tolak, panel trace, tombol Pause, halaman integrasi, label SIMULASI; setelah UI stabil: deck dan video cadangan | Hosting UI (Cloud Run atau static hosting) | Deck, video, screenshot di README |
+| **AI Engineer** (agen) | Triage, Identity (bagian LLM), Orchestrator, Guard; prompt dan output terstruktur; MCP server CRM/katalog; katalog tools `propose_*`; preferensi dari penolakan; evalset + `adk eval` | Vertex AI (Gemini), service `omnilead-agent` di Cloud Run | TESTING.md, bagian arsitektur agen di README |
+| **Backend & Integrasi** (platform) | Webhook WA/IG, Gmail Pub/Sub, ingest + dedup, identity rules deterministik, Firestore schema + REST API untuk FE, executor + flag Pause, audit log, Cloud Scheduler | Cloud Run `omnilead-api`, Firestore, Pub/Sub, Secret Manager, Scheduler, IAM, budget alert | README instalasi, `.env.example`, catatan sumber |
+
+**Kenapa bukan "BE + AI" di satu orang dan "integrasi GCP" di orang
+lain:**
+
+- Backend di proyek ini **adalah** integrasi kanal (webhook, OAuth,
+  executor), dan justru bagian paling berisiko: setup Meta dan Gmail
+  sering makan waktu tak terduga. Kalau digabung dengan AI, satu orang
+  memegang dua jalur kritis sekaligus.
+- Infrastruktur GCP murni (aktivasi API, Cloud Run, Firestore) hanya
+  butuh beberapa jam. Kalau dijadikan peran tersendiri, orang itu akan
+  menganggur atau ikut menulis backend juga.
+- Dengan pembagian di atas, AI Engineer bisa bekerja penuh di agen
+  memakai seed event, tanpa menunggu webhook jalan.
+
+**Pekerjaan non-kode:** wawancara UMKM, data dampak, dan narasi pitch
+dipegang bersama. FE memimpin deck mulai Kamis pagi. Ketiganya ikut
+latihan demo.
+
+### Kontrak antar peran (dikunci Rab 13–14)
+
+Supaya tiga orang bisa bekerja paralel sejak jam pertama:
+
+1. **Skema Firestore:** `events`, `leads`, `actions` (status: `pending`
+   → `approved`/`edited`/`rejected` → `sent`/`failed`), `audit_logs`,
+   `settings` (flag Pause, preferensi, persona).
+2. **Format `Event`** yang dihasilkan ingest dan dibaca agen.
+3. **Format `Action`** yang ditulis agen (`propose_*`) dan dibaca FE dan
+   executor.
+4. **Endpoint REST** untuk FE: daftar aktivitas, profil, antrean,
+   approve/edit/reject, toggle Pause.
+
+Mulai dengan **mock-first**:
+
+- FE membangun UI dengan JSON contoh sesuai skema.
+- AI Engineer menjalankan agen dengan seed event, tanpa webhook.
+- Backend menguji executor dengan `Action` buatan tangan.
+
+Integrasi ujung ke ujung dilakukan jam 16–19.
+
+### Timeline per peran
+
+| Waktu (WIB) | FE | AI Engineer | Backend & Integrasi |
+|---|---|---|---|
+| Rab 13–14 | Kontrak data, kerangka UI | Kontrak data, struktur proyek ADK | Kontrak data, project GCP, Cloud Run hello world, aktivasi API |
+| 14–16 | Workspace + antrean persetujuan (mock) | Triage + Orchestrator + MCP server CRM dengan seed event | Webhook WA (verify + signature), OAuth Gmail + Pub/Sub, Firestore schema |
+| 16–19 | Sambung ke API asli | Guard + `propose_*` menulis ke `actions` | Executor Gmail/WA, endpoint REST, audit log |
+| **19.00** | Checkpoint bersama: event → draf → approve → email terkirim; IG asli atau mock; WA pesan bebas dari nomor uji berhasil atau tidak (jika gagal: pasang metode pembayaran, tetap gratis dalam jatah 1.000, atau pakai template `hello_world` dan pindahkan pesan bebas ke email) | | |
+| 19–24 | Panel trace, profil + bukti merge, tombol Pause | Identity LLM (kasus ambigu), scoring, revisi dari penolakan | Flag Pause di executor, IG webhook + private reply, identity rules |
+| Kam 00–05 | Polish UI, state kosong/error (tidur bergantian) | Evalset + `adk eval` + pass^3 (tidur bergantian) | Cloud Scheduler follow-up, deploy final, bug fix (tidur bergantian) |
+| 05–09 | Rekam video cadangan, mulai deck | Kanal tanpa API (jika Must stabil), TESTING.md | Uji kestabilan end-to-end, README instalasi |
+| 09–12 | Deck, latihan demo | Latihan demo, catatan AI | Uji skenario demo 5x, `.env.example`, catatan sumber |
+| 12–13 | **Freeze:** tag `v1.0-freeze`, matikan resource yang tidak perlu | | |
+| 13–15 | Unggah luaran; deck seleksi (pitch 2 menit + demo) | | |
 
 ## Strategi Penilaian
 
