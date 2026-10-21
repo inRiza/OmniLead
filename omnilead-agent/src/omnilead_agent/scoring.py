@@ -20,11 +20,14 @@ def score_lead(req: AnalyzeRequest, tri: TriageResult, catalog: Catalog) -> Lead
     score = 0
     reasons: list[str] = []
 
+    cfg = catalog.scoring
+    big = int(cfg.get("big_value", 1_500_000))
+    mid = int(cfg.get("mid_value", 500_000))
     value = estimate_value(tri, catalog, req.event.text)
-    if value >= 1_500_000:
+    if value >= big:
         score += 30
         reasons.append(f"Nilai order besar (±{rupiah(value)})")
-    elif value >= 500_000:
+    elif value >= mid:
         score += 18
         reasons.append(f"Nilai order menengah (±{rupiah(value)})")
     elif value > 0:
@@ -38,6 +41,10 @@ def score_lead(req: AnalyzeRequest, tri: TriageResult, catalog: Catalog) -> Lead
     elif isinstance(days_left, int) and days_left <= 30:
         score += 10
         reasons.append(f"Ada tenggat ({days_left} hari)")
+
+    if tri.entities.get("customer_type") == "reseller":
+        score += int(cfg.get("reseller_bonus", 15))
+        reasons.append("Reseller atau pembeli grosir")
 
     company = tri.entities.get("company") or (req.lead.company if req.lead else None)
     if company:

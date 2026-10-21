@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 
 from pydantic import BaseModel
 
+from omnilead_agent.content_ideas import ContentIdeasRequest, ContentIdeasResponse, suggest
 from omnilead_agent.extract import (
     ExtractResult,
     ExtractUnavailable,
@@ -72,6 +73,13 @@ def create_app() -> FastAPI:
             return extractor.extract(image, req.mime_type, req.channel)
         except ExtractUnavailable as exc:
             raise HTTPException(status_code=503, detail=str(exc))
+
+    @app.post(
+        "/v1/content-ideas", response_model=ContentIdeasResponse, dependencies=[Depends(require_key)]
+    )
+    def content_ideas(req: ContentIdeasRequest) -> ContentIdeasResponse:
+        """Ide konten (draf saja) dari pertanyaan pelanggan yang sering muncul."""
+        return suggest(req.messages)
 
     return app
 

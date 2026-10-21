@@ -177,6 +177,34 @@ class TemplateDrafter:
             return default
         return hits[0]
 
+    # ---- stok / reseller (persona fashion) ----
+    @staticmethod
+    def _stock_text(ctx: DraftContext, pkg: Package | None) -> str:
+        if pkg is None or not pkg.stock:
+            return ""
+        size = ctx.tri.entities.get("size")
+        if "tanya_stok" not in ctx.tri.intents and not size:
+            return ""
+        ready = [f"{k} ({v})" for k, v in pkg.stock.items() if v > 0]
+        if not size:
+            return f"Ukuran ready untuk {pkg.name}: {', '.join(ready)}." if ready else f"{pkg.name} sedang habis."
+        left = pkg.stock.get(str(size))
+        if left is None:
+            return f"Size {size} belum tersedia untuk {pkg.name}. Ukuran yang ada: {', '.join(pkg.stock)}."
+        if left > 0:
+            return f"Size {size} ready (sisa {left} {pkg.unit})."
+        return f"Size {size} sedang habis. Yang ready: {', '.join(ready) or 'belum ada'}."
+
+    @staticmethod
+    def _reseller_text(ctx: DraftContext) -> str:
+        cfg = ctx.catalog.policies.get("reseller")
+        if ctx.tri.entities.get("customer_type") != "reseller" or not cfg:
+            return ""
+        return (
+            f"Untuk reseller, ada diskon {int(cfg['discount_percent'])}% untuk pembelian mulai "
+            f"{int(cfg['min_qty'])} pcs."
+        )
+
     # ---- badan pesan ----
     def quote_text(self, ctx: DraftContext, pkg: Package | None, st: Style) -> str:
         e = ctx.tri.entities
@@ -192,6 +220,7 @@ class TemplateDrafter:
         parts.append(self._greet(ctx, st) + (", terima kasih sudah menghubungi " + ctx.catalog.business + "." if "komplain" not in ctx.tri.intents else ""))
 
         wants_price = bool({"tanya_harga", "minta_penawaran", "order"} & set(ctx.tri.intents))
+        stock_text = self._stock_text(ctx, pkg)
         if wants_price:
             if pkg is None:
                 parts.append("Untuk harga paket tersebut kami cek dulu ya kak, nanti kami kabari.")
@@ -223,7 +252,15 @@ class TemplateDrafter:
                         parts.append(f"Karena pemesanan idealnya H-{lead_days}, kami cek dulu ketersediaannya ya kak.")
         else:
             faq = ctx.catalog.faq_answer(ctx.req.event.text)
-            parts.append(faq or "Terima kasih, pesan kakak sudah kami terima. Kami cek dulu ya kak.")
+            if faq:
+                parts.append(faq)
+            elif not stock_text:
+                parts.append("Terima kasih, pesan kakak sudah kami terima. Kami cek dulu ya kak.")
+        if stock_text:
+            parts.append(stock_text)
+        reseller = self._reseller_text(ctx)
+        if reseller:
+            parts.append(reseller)
         if "diskon_tidak_wajar" in ctx.tri.risk_flags:
             parts.append(
                 f"Untuk diskon, batas yang bisa kami berikan maksimal {ctx.catalog.max_discount_percent}% sesuai kebijakan."
@@ -248,7 +285,7 @@ class TemplateDrafter:
             ctx.tools.get_timeline()
             wants_price = bool({"tanya_harga", "minta_penawaran", "order"} & set(tri.intents))
             hits = ctx.tools.search_catalog_faq(ev.text)
-            if not wants_price:
+            if not (wants_price or "tanya_stok" in tri.intents):
                 hits = []
             ctx.tools.check_channel_window(ev.channel)
             ctx.score = ctx.tools.score_lead()
@@ -334,7 +371,7 @@ class TemplateDrafter:
         if role == "public_stub":
             new.text = self.public_stub(st)
         elif role in ("quote", "answer"):
-            hits = ctx.catalog.search(ctx.req.event.text) if role == "quote" else []
+            hits = ctx.catalog.search(ctx.req.event.text) if role in ("quote", "answer") else []
             new.text = self.quote_text(ctx, self._pick_package(ctx, hits), st)
         for n in issues:
             if n.check == "batas_panjang":

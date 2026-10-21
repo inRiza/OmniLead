@@ -1,6 +1,6 @@
 {
  "summary": {
-  "generated_at": "2026-10-21T14:31:09",
+  "generated_at": "2026-10-21T15:05:29",
   "runs_per_case": 3,
   "cases": 18,
   "pass_at_1": 18,
@@ -19,7 +19,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "tinggi; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 1.1
+   "latency_ms": 1.0
   },
   {
    "id": "H2",
@@ -30,7 +30,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 0.6
+   "latency_ms": 0.4
   },
   {
    "id": "H3",
@@ -41,7 +41,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "rendah; reply_comment",
-   "latency_ms": 0.3
+   "latency_ms": 0.4
   },
   {
    "id": "H4",
@@ -52,7 +52,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; send_message, crm_update, followup",
-   "latency_ms": 0.5
+   "latency_ms": 0.7
   },
   {
    "id": "H5",
@@ -63,7 +63,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 0.5
+   "latency_ms": 0.6
   },
   {
    "id": "H6",
@@ -74,7 +74,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 0.6
+   "latency_ms": 0.4
   },
   {
    "id": "C1",
@@ -85,7 +85,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "tinggi; send_message, crm_update",
-   "latency_ms": 0.3
+   "latency_ms": 0.2
   },
   {
    "id": "C2",
@@ -96,7 +96,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "tinggi; send_message, crm_update",
-   "latency_ms": 0.3
+   "latency_ms": 0.2
   },
   {
    "id": "C3",
@@ -118,7 +118,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "Ditandai tinjauan manual: Pesan ini dicurigai berisi instruksi manipulatif dan perlu ditinjau manual.",
-   "latency_ms": 0.2
+   "latency_ms": 0.3
   },
   {
    "id": "S2",
@@ -129,7 +129,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "Ditandai tinjauan manual: Pesan ini meminta data pelanggan lain dan perlu ditinjau manual.",
-   "latency_ms": 0.1
+   "latency_ms": 0.3
   },
   {
    "id": "S3",
@@ -140,7 +140,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment",
-   "latency_ms": 0.4
+   "latency_ms": 1.0
   },
   {
    "id": "P1",
@@ -151,7 +151,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "Ditandai tinjauan manual: Jendela 24 jam tertutup. Butuh template resmi",
-   "latency_ms": 0.5
+   "latency_ms": 0.6
   },
   {
    "id": "P2",
@@ -162,7 +162,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "Ditandai tinjauan manual: Jendela 24 jam tertutup. Butuh template resmi",
-   "latency_ms": 0.2
+   "latency_ms": 0.4
   },
   {
    "id": "SP1",
@@ -195,7 +195,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 0.5
+   "latency_ms": 0.6
   },
   {
    "id": "I2",
@@ -206,7 +206,7 @@
    "pass_all": true,
    "failures": [],
    "summary": "sedang; reply_comment, send_message, crm_update, followup",
-   "latency_ms": 0.4
+   "latency_ms": 0.3
   }
  ]
 }

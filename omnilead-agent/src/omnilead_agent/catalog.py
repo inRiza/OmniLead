@@ -5,7 +5,7 @@ Agen tidak boleh menyebut harga/kebijakan yang tidak ada di sini.
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
@@ -19,6 +19,8 @@ class Package:
     unit: str
     min_order: int
     notes: str
+    # Stok per ukuran/varian (opsional, mis. fashion): {"M": 12, "L": 0}
+    stock: dict = field(default_factory=dict, compare=False, hash=False)
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,8 @@ class Catalog:
     policies: dict
     faq: tuple[dict, ...]
     default_package_id: str = ""
+    persona: str = ""
+    scoring: dict = field(default_factory=dict, compare=False, hash=False)
 
     @property
     def max_discount_percent(self) -> int:
@@ -74,21 +78,26 @@ def load_catalog(path: Path) -> Catalog:
                 unit=p["unit"],
                 min_order=int(p["min_order"]),
                 notes=p.get("notes", ""),
+                stock={str(k).upper(): int(v) for k, v in p.get("stock", {}).items()},
             )
             for p in raw["packages"]
         ),
         policies=raw.get("policies", {}),
         faq=tuple(raw.get("faq", [])),
         default_package_id=raw.get("default_package", ""),
+        persona=raw.get("persona", ""),
+        scoring=raw.get("scoring", {}),
     )
 
 
 @lru_cache
 def default_catalog() -> Catalog:
-    path = Path(os.environ.get("OMNILEAD_AGENT_CATALOG_PATH", "data/catalog.json"))
+    persona = os.environ.get("OMNILEAD_AGENT_PERSONA", "").strip()
+    default = f"data/catalog-{persona}.json" if persona else "data/catalog.json"
+    path = Path(os.environ.get("OMNILEAD_AGENT_CATALOG_PATH", default))
     if not path.is_absolute() and not path.exists():
         # fallback ke lokasi relatif terhadap paket (menjalankan dari direktori lain)
-        path = Path(__file__).resolve().parents[2] / "data" / "catalog.json"
+        path = Path(__file__).resolve().parents[2] / default
     return load_catalog(path)
 
 

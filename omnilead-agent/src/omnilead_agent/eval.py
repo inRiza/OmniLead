@@ -14,6 +14,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from omnilead_agent.catalog import load_catalog
 from omnilead_agent.pipeline import analyze
 from omnilead_agent.schemas import AnalyzeRequest, AnalyzeResponse
 
@@ -97,13 +98,17 @@ def summarize(res: AnalyzeResponse) -> str:
 def run(path: Path, runs: int) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     ref = data["reference_time"]
+    # Evalset persona memakai katalog sendiri (path relatif terhadap folder agen).
+    catalog = (
+        load_catalog(DEFAULT_SET.parents[1] / data["catalog"]) if data.get("catalog") else None
+    )
     results = []
     for case in data["cases"]:
         attempts, latencies = [], []
         last = None
         for _ in range(runs):
             t0 = time.perf_counter()
-            res = analyze(build_request(case, ref))
+            res = analyze(build_request(case, ref), catalog=catalog)
             latencies.append((time.perf_counter() - t0) * 1000)
             attempts.append(check(case, res))
             last = res

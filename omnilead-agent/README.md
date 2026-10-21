@@ -49,8 +49,14 @@ Dokumentasi interaktif: http://localhost:8100/docs. Tes: `uv run pytest` (termas
 
 Jika `OMNILEAD_AGENT_API_KEY` diisi, BE wajib mengirim header `X-API-Key` (di BE: `OMNILEAD_AGENT_API_KEY`).
 
+## Persona dan ide konten
+
+- Persona = konfigurasi katalog: `OMNILEAD_AGENT_PERSONA=fashion` memuat `data/catalog-fashion.json` (stok per ukuran,
+  diskon reseller, ambang skor). Engine tetap sama. Evalset: `eval/omnilead-fashion.evalset.json`.
+- `POST /v1/content-ideas`: ide konten (draf saja) dari pesan yang sering ditanyakan; harga caption hanya dari katalog;
+  tanpa data yang cukup hasilnya kosong.
+
 ## Belum ada
 
-- Triage dan Guard masih berbasis aturan (belum LLM).
-- Identity LLM untuk kasus ambigu (`propose_merge`), MCP server/gateway.
-- Evalset `adk eval` dan pass^3.
+- Guard berbasis LLM (kini aturan); triage LLM sudah ada tetapi belum diuji dengan model sungguhan.
+- `adk eval` dengan model sungguhan (evalset kini format sendiri, hanya engine rule).

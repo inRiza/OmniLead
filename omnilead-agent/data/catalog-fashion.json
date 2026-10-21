@@ -1,0 +1,23 @@
+{
+  "business": "Hijabi Corner",
+  "persona": "fashion-muslim",
+  "default_package": "gamis-aisha",
+  "packages": [
+    {"id": "gamis-aisha", "name": "Gamis Aisha", "keywords": ["gamis", "aisha", "dress", "baju muslim"], "unit_price": 189000, "unit": "pcs", "min_order": 1, "notes": "Bahan ceruty premium, busui friendly.", "stock": {"S": 4, "M": 12, "L": 0, "XL": 6}},
+    {"id": "hijab-pashmina", "name": "Hijab Pashmina Plisket", "keywords": ["hijab", "pashmina", "jilbab", "kerudung"], "unit_price": 49000, "unit": "pcs", "min_order": 1, "notes": "Plisket, tidak perlu setrika."},
+    {"id": "set-koko", "name": "Set Koko Keluarga", "keywords": ["koko", "couple", "sarimbit", "seragam keluarga"], "unit_price": 259000, "unit": "set", "min_order": 1, "notes": "Koko ayah + gamis ibu.", "stock": {"M": 5, "L": 8, "XL": 2}}
+  ],
+  "scoring": {"big_value": 1000000, "mid_value": 300000, "reseller_bonus": 20},
+  "policies": {
+    "max_discount_percent": 10,
+    "delivery_area": ["Seluruh Indonesia"],
+    "lead_time_days": 2,
+    "payment": "Transfer sebelum dikirim. COD tidak tersedia.",
+    "reseller": {"discount_percent": 10, "min_qty": 10}
+  },
+  "faq": [
+    {"keywords": ["po", "pre order", "preorder"], "answer": "Produk ready stock dikirim 1-2 hari kerja. Pre-order dikabari estimasinya saat order."},
+    {"keywords": ["ongkir", "kirim", "ekspedisi", "resi"], "answer": "Kami kirim ke seluruh Indonesia. Resi diberikan setelah pembayaran dikonfirmasi."},
+    {"keywords": ["tukar", "retur", "salah ukuran"], "answer": "Tukar ukuran maksimal 3 hari setelah barang diterima, selama label belum dilepas."}
+  ]
+}

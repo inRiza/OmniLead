@@ -53,6 +53,9 @@ INFORMAL = ("kak", "gan", "brp", "ga ", "gak", "yg", "dong", "nih", "ya?", "tgl"
 
 REFUND_WORDS = ("refund", "kembalikan uang", "uang kembali", "salah kirim", "salah menu", "ga sesuai pesanan", "tidak sesuai pesanan")
 
+SIZE_RE = re.compile(r"\b(?:size|ukuran|sz)\s*([sml]|xs|xl{1,2}|xxl|\d{2})\b", re.I)
+RESELLER_RE = re.compile(r"\b(reseller|dropship(?:per)?|grosir|agen)\b", re.I)
+
 QTY_RE = re.compile(r"(\d{1,5})\s*(orang|org|pax|porsi|pcs|box|paket|buah)\b", re.I)
 PHONE_RE = re.compile(r"(?<!\d)(?:\+62|62|0)8\d{8,11}(?!\d)")
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -106,6 +109,10 @@ def extract_entities(text: str, now: datetime) -> dict[str, object]:
         ent["company"] = m.group(0).strip()
     if m := PHONE_RE.search(text):
         ent["phone"] = m.group(0)
+    if m := SIZE_RE.search(text):
+        ent["size"] = m.group(1).upper()
+    if RESELLER_RE.search(text):
+        ent["customer_type"] = "reseller"
     if m := EMAIL_RE.search(text):
         ent["email"] = m.group(0)
     if m := BUDGET_RE.search(text):
