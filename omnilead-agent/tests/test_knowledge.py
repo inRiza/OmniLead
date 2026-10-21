@@ -51,3 +51,33 @@ def test_adk_read_tool_receives_documents_and_workspace_catalog(monkeypatch):
 def test_empty_business_context_never_inherits_another_catalog():
     catalog = business_catalog(BusinessContext(business="Empty", channel="instagram"))
     assert catalog.packages == () and catalog.allowed_amounts(60) == set()
+
+
+def test_order_with_quantity_on_empty_knowledge_base_still_drafts():
+    # Akun baru belum mengisi produk: pesan berisi jumlah pesanan tidak boleh membuat agen gagal.
+    req = AnalyzeRequest.model_validate({
+        "event": {"id": "kosong", "channel": "whatsapp", "kind": "message", "sender": {"phone": "0812", "name": "Dewi"},
+                  "text": "Kak, mau pesan nasi box 50 pax buat Sabtu, harganya berapa ya?"},
+        "business_context": {"business": "Toko Baru", "channel": "whatsapp"}})
+    result = analyze(req, drafter=TemplateDrafter())
+    assert any(p.kind == "send_message" for p in result.proposals)
+    assert not any("Rp" in p.text for p in result.proposals if p.kind == "send_message")
+
+
+def test_time_question_answers_faq_and_formal_greeting_drops_honorific():
+    products = [{"id": "a", "name": "Paket A", "unit_price": 25000, "unit": "pax", "min_order": 30},
+                {"id": "b", "name": "Paket B", "unit_price": 35000, "unit": "pax", "min_order": 30}]
+    docs = [{"id": "faq", "name": "FAQ", "content": "Pengiriman: kami melayani antar dan kirim di area Bandung dan Cimahi."}]
+    req = AnalyzeRequest.model_validate({
+        "event": {"id": "fb", "channel": "facebook", "kind": "message", "sender": {"name": "Sari"},
+                  "text": "bisa kirim ke Cimahi ga kak? buka jam berapa?"},
+        "business_context": {"business": "Dapur", "channel": "facebook", "documents": docs, "products": products}})
+    assert "tanya_harga" not in triage(req).intents
+    text = " ".join(p.text for p in analyze(req, drafter=TemplateDrafter()).proposals)
+    assert "Cimahi" in text and "cek dulu" not in text
+
+    email = request(products=products)
+    email.event.sender.name = "Pak Budi"
+    email.event.text = "Mohon penawaran katering untuk acara kantor."
+    text = " ".join(p.text for p in analyze(email, drafter=TemplateDrafter()).proposals)
+    assert "Bapak/Ibu Budi" in text and "Paket A" in text and "Paket B" in text and " kak" not in text
