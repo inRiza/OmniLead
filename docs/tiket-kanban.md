@@ -1,10 +1,12 @@
 ---
 title: Tiket Kanban (salinan board 2ndbrain)
-related: ../plan.md, crm-agentic-multikanal-3.0.md
+related: ../plan.md, crm-agentic-multikanal-4.0.md
 updated: 2026-10-21
 ---
 
 # Tiket Kanban
+
+Disesuaikan dengan PRD 4.0 (MVP: WhatsApp, email, Instagram, Facebook).
 
 Salinan board **Planning · HACKTHON AI ITB** (2ndbrain, ide "CRM Agentic Multi-Kanal") per 21 Okt 2026 16.35:
 35 tiket, 0 di kolom Done. Kolom **Board** adalah status di board. Kolom **Kondisi repo** adalah hasil cek ke kode
@@ -26,7 +28,8 @@ Keterangan kondisi repo:
 | Ada, belum uji nyata | 3 | TSK-33, TSK-37, TSK-38 |
 | Sebagian | 14 | TSK-1, TSK-8, TSK-9, TSK-16, TSK-17, TSK-19, TSK-21, TSK-22, TSK-23, TSK-24, TSK-25, TSK-26, TSK-27, TSK-34 |
 | Belum | 7 | TSK-3, TSK-18, TSK-20, TSK-28, TSK-29, TSK-30, TSK-6* |
-| Beda arah | 6 | TSK-7, TSK-10, TSK-11, TSK-12, TSK-13, TSK-31 |
+| Beda arah | 4 | TSK-7, TSK-10, TSK-11, TSK-31 |
+| Pengembangan lanjutan (PRD 4.0) | 2 | TSK-12, TSK-13 |
 
 \* TSK-6 juga beda arah: data masuk dari kanal dan seed, bukan impor CSV.
 
@@ -52,7 +55,7 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | TSK-8 | Bangun daftar pelanggan dengan alasan rekomendasi | frontend | Sebagian | Halaman Lead dan profil menampilkan skor + alasan; Workspace mengurutkan aktivitas dengan alasan prioritas. |
 | TSK-9 | Implementasi segmentasi kebutuhan follow-up | ai | Sebagian | Follow-up jatuh tempo (`scheduler.py`), batal bila pelanggan sudah membalas; label Hot/Warm/Cold. Tidak ada segmentasi tersendiri. |
 | TSK-10 | Setup login sesi dan simpan cookie aman per kanal | integration | Beda arah | Sengaja tidak dikerjakan: hanya API resmi (lihat `gateway.py` dan [feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md)). Usul: tutup. |
-| TSK-13 | Bangun connector TikTok komentar dan DM tanpa API resmi | integration | Beda arah | Diganti jalur handoff: tempel teks/screenshot → draf → **Salin & buka** → **Sudah dikirim**. |
+| TSK-13 | Bangun connector TikTok komentar dan DM tanpa API resmi | integration | Pengembangan lanjutan | PRD 4.0: TikTok bukan kanal MVP; kode TikTok dihapus 21 Okt 2026. API resmi butuh review developer. |
 | TSK-14 | Satukan connector di balik kontrak tool yang sama | backend | Selesai | `connectors/base.py` + `capabilities()`; jalur `official_api` atau `handoff`. |
 | TSK-15 | Bangun executor dan antrean persetujuan lintas kanal | backend | Selesai | `approvals/queue.py`, `approvals/executor.py`; status machine, retry, Pause, batas kirim per jam. |
 | TSK-16 | Tarik sinyal tren dari post dan interaksi tiap kanal | data | Sebagian | Ide konten menghitung topik dari pesan masuk. Belum menarik data post dari kanal. |
@@ -80,7 +83,7 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | TSK-31 | Pilih dan uji dataset e-commerce nyata | data | Beda arah | Repo memakai data contoh: 30 lead dummy + Ani, katalog katering (P1 lama) dan fashion wanita. Sesuai TOR §15 (utamakan data contoh). PRD 3.0 mengganti P1 menjadi olahan buah; katalog belum diganti (lihat tiket baru). |
 | TSK-32 | Bangun agent analisis konteks dan draf pesan | ai | Selesai | Triage → Orchestrator (Google ADK) → Guard. Gemini `gemini-3.8-flash` di Vertex (location `global`) terverifikasi 21 Okt. Eval: engine aturan 18/18, engine Gemini 14/18 (gagal H1, H3, H6, S3), ±41 dtk per kasus. |
 | TSK-11 | Bangun connector Instagram komentar dan DM via instagrapi | integration | Beda arah | Diganti Instagram Graph API resmi (`connectors/instagram.py`): balasan publik, DM, private reply. Belum diuji ke akun asli. |
-| TSK-12 | Bangun connector LinkedIn pesan dan komentar via linkedin-api | integration | Beda arah | Diganti Share on LinkedIn resmi (komentar) + handoff untuk pesan. Izin produk belum diverifikasi. |
+| TSK-12 | Bangun connector LinkedIn pesan dan komentar via linkedin-api | integration | Pengembangan lanjutan | PRD 4.0: LinkedIn bukan kanal MVP; kode LinkedIn dihapus 21 Okt 2026. Messaging API hanya untuk partner. |
 | TSK-4 | Rancang wireframe dashboard dan detail pelanggan | design | Selesai | UI dashboard sudah diimplementasi; tidak ada file wireframe terpisah di repo. |
 
 ## Pekerjaan di repo yang belum punya tiket
@@ -93,16 +96,16 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | Server MCP baca-saja + gateway | `omnilead-agent/src/omnilead_agent/mcp_server.py`, `gateway.py` |
 | Ekstraksi screenshot (Gemini multimodal) | `omnilead-agent/src/omnilead_agent/extract.py` |
 | Persona fashion wanita (P2) sebagai konfigurasi katalog | `omnilead-agent/data/catalog-fashion.json` |
-| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-3.0.md](crm-agentic-multikanal-3.0.md) |
+| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-4.0.md](crm-agentic-multikanal-4.0.md) |
 | Evalset 18 kasus + pass^3, evaluasi identitas | `omnilead-agent/eval/`, `omnilead-be/eval/` |
-| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-3.0.md#lampiran-b-deploy-ke-google-cloud) |
+| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-4.0.md#lampiran-b-deploy-ke-google-cloud) |
 | Landing page dan logo | `omnilead-fe/src/app/page.tsx`, `src/components/brand/Logo.tsx` |
 
 ## Usulan perubahan board
 
 1. Pindahkan ke **Done**: TSK-4, TSK-5, TSK-14, TSK-15, TSK-32.
-2. Tutup atau tulis ulang tiket beda arah: TSK-10 (tutup), TSK-11 → "Uji Instagram Graph API di akun tim", TSK-12 →
-   "Verifikasi izin Share on LinkedIn", TSK-13 → "Uji alur handoff TikTok", TSK-6/TSK-7/TSK-31 (tutup; data contoh).
+2. Tutup atau tulis ulang tiket beda arah: TSK-10 (tutup), TSK-11 → "Uji Instagram API di akun tim",
+   TSK-12 dan TSK-13 → pindah ke kolom/label "Pengembangan lanjutan" (PRD 4.0), TSK-6/TSK-7/TSK-31 (tutup; data contoh).
 3. Gabungkan TSK-33 ke TSK-37 dan TSK-38, lalu ubah keduanya menjadi "uji ke akun nyata".
 4. Tambah tiket untuk sisa wajib TOR: kontribusi anggota di README, bagian AI di SOURCES.md, hasil eval Gemini di
    TESTING.md, freeze, deck, video.
@@ -110,7 +113,9 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 
    | Usulan tiket | Label | Alasan |
    |---|---|---|
-   | Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah (rujak, es teler) | data, frontend | PRD 3.0 P1 sudah olahan buah; demo masih katering |
+   | **Bangun connector Facebook Page: komentar, Messenger, private reply** | integration | Kanal MVP sejak PRD 4.0; belum ada di kode |
+   | Tampilkan Facebook di landing page dan halaman Integrasi | frontend | Landing dan Integrasi baru menampilkan WA, IG, email |
+   | Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah (rujak, es teler) | data, frontend | PRD 4.0 P1 sudah olahan buah; demo masih katering |
    | Jalur hybrid triage dan draf: aturan dulu, Gemini hanya bila perlu | ai | Gemini ±41 dtk per pesan terlalu lambat untuk live demo |
    | Evalset "pesan sulit" (10–15 kasus) untuk membandingkan aturan vs Gemini | ai | Bukti kenapa LLM dibutuhkan; evalset sekarang ditulis bersama aturan |
    | Perbarui SOURCES.md (model terverifikasi, bagian bantuan AI) | docs | Wajib TOR §6.2–6.3 |
