@@ -185,7 +185,7 @@ function InstagramMock({ sc, count, typing }: MockProps) {
                 </p>
                 <p className="mt-1 flex gap-3 text-xs font-semibold text-[#737373]">
                   <span>Baru saja</span>
-                  <span>Dibalas OmniLead</span>
+                  <span>Disetujui pemilik</span>
                 </p>
               </div>
             </div>
@@ -260,6 +260,7 @@ function WhatsAppMock({ sc, count, typing }: MockProps) {
               <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[#027eb5]">
                 <LogoMark size={14} accent />
                 OmniLead
+                <span className="font-normal text-[#667781]">disetujui pemilik</span>
               </span>
               {m.text}
               <span className="float-right mt-2 ml-3 inline-flex items-center gap-1 text-[11px] text-[#667781]">
@@ -328,7 +329,9 @@ function GmailMock({ sc, count, typing }: MockProps) {
                     <span className="text-xs text-[#5e5e5e]">
                       {agent ? "<omnilead@gmail.com>" : "<procurement@nusacorp.co.id>"}
                     </span>
-                    <span className="block text-xs text-[#5e5e5e]">kepada {agent ? sc.customer : "saya"}</span>
+                    <span className="block text-xs text-[#5e5e5e]">
+                      kepada {agent ? `${sc.customer}, disetujui pemilik` : "saya"}
+                    </span>
                   </p>
                   <span className="text-xs text-[#5e5e5e]">09.1{i}</span>
                   <Star className="h-4 w-4 text-[#5e5e5e]" aria-hidden />
@@ -445,7 +448,7 @@ function FacebookMock({ sc, count, typing }: MockProps) {
                 </p>
                 <p className="mt-0.5 flex gap-3 px-3 text-xs font-semibold text-[#65676b]">
                   <span>Baru saja</span>
-                  <span>Dibalas OmniLead</span>
+                  <span>Disetujui pemilik</span>
                 </p>
               </div>
             </div>

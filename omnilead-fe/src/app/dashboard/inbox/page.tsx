@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { Channel } from "@/lib/types";
 import { channelLabel, cn } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
@@ -62,17 +61,7 @@ export default function InboxPage() {
         subtitle="Pesan masuk dari semua kanal. Anda yang putuskan balasannya."
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="flex flex-col gap-3 p-5 md:p-6">
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link href="/dashboard/agent" className="rounded-md border border-rc-border px-3 py-2 text-sm font-medium text-rc-fg hover:bg-rc-surface-hover">Aktivitas agen</Link>
-            <Button
-              purpose="action"
-              style={pasting ? "primary" : "secondary"}
-              onClick={() => setPasting((v) => !v)}
-            >
-              {pasting ? "Tutup" : "Tempel pesan"}
-            </Button>
-          </div>
+        <div className="flex mx-auto w-full max-w-6xl flex-col gap-3 pt-1 pb-10">
           {pasting ? (
             <PasteMessage
               onCreated={(id) => {
@@ -84,7 +73,9 @@ export default function InboxPage() {
             />
           ) : null}
 
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter jenis aktivitas">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="rc-scrollbar -mx-1 flex min-w-0 flex-1 items-center gap-3 overflow-x-auto px-1 pb-1">
+          <div className="flex shrink-0 gap-1.5" role="group" aria-label="Filter jenis aktivitas">
             {(["all", "komentar", "dm", "email"] as const).map((k) => (
               <button
                 key={k}
@@ -92,9 +83,9 @@ export default function InboxPage() {
                 onClick={() => setKind(k)}
                 aria-pressed={kind === k}
                 className={cn(
-                  "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                  "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-sm transition-colors",
                   kind === k
-                    ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                    ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                     : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
                 )}
               >
@@ -104,7 +95,7 @@ export default function InboxPage() {
           </div>
 
           {channelsInUse.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter kanal">
+            <div className="flex shrink-0 gap-1.5 border-l border-rc-border pl-3" role="group" aria-label="Filter kanal">
               {(["all", ...channelsInUse] as const).map((c) => (
                 <button
                   key={c}
@@ -112,17 +103,29 @@ export default function InboxPage() {
                   onClick={() => setChannel(c)}
                   aria-pressed={channel === c}
                   className={cn(
-                    "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                    "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-sm transition-colors",
                     channel === c
-                      ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                      ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                       : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
                   )}
                 >
-                  {c === "all" ? "Semua" : channelLabel[c]}
+                  {c === "all" ? "Semua kanal" : channelLabel[c]}
                 </button>
               ))}
             </div>
           ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button purpose="nav" href="/dashboard/agent">Aktivitas agen</Button>
+            <Button
+              purpose="action"
+              style={pasting ? "secondary" : "primary"}
+              onClick={() => setPasting((v) => !v)}
+            >
+              {pasting ? "Tutup" : "Tempel pesan"}
+            </Button>
+          </div>
+          </div>
 
           {d.loaded && rows.length === 0 ? (
             <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">

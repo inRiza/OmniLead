@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 export function LogoMark({
   size = 32,
   className,
-  accent = false,
+  accent = true,
 }: {
   size?: number;
   className?: string;
-  /** Titik memakai saffron (dipakai di landing); default mengikuti warna goresan. */
+  /** Titik saffron, sama di landing dan aplikasi. */
   accent?: boolean;
 }) {
   return (
@@ -33,7 +33,7 @@ export function LogoMark({
   );
 }
 
-export function Logo({ className, accent = false }: { className?: string; accent?: boolean }) {
+export function Logo({ className, accent = true }: { className?: string; accent?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark accent={accent} />

@@ -40,7 +40,7 @@ export function ActivityTable({
             <TableHead className="hidden md:table-cell">Pesan</TableHead>
             <TableHead>Skor</TableHead>
             <TableHead className="hidden sm:table-cell">Urgensi</TableHead>
-            <TableHead className="text-right">Waktu</TableHead>
+            <TableHead className="hidden text-right sm:table-cell">Waktu</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -62,7 +62,9 @@ export function ActivityTable({
                       </div>
                       <div className="text-sm text-rc-fg-muted">
                         {channelLabel[a.channel]} · {a.kind}
+                        <span className="sm:hidden"> · <TimeAgo iso={a.receivedAt} /></span>
                       </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-rc-fg-muted md:hidden">{a.text}</p>
                     </div>
                   </div>
                 </TableCell>
@@ -77,16 +79,16 @@ export function ActivityTable({
                 <TableCell className="hidden sm:table-cell">
                   <span
                     className={cn(
-                      "text-sm capitalize",
+                      "rounded-md px-2 py-0.5 text-sm capitalize",
                       a.urgency === "tinggi"
-                        ? "font-medium text-rc-fg"
+                        ? "bg-rc-highlight-soft font-medium text-[#8a5300]"
                         : "text-rc-fg-muted",
                     )}
                   >
                     {a.urgency}
                   </span>
                 </TableCell>
-                <TableCell className="text-right text-sm text-rc-fg-subtle">
+                <TableCell className="hidden text-right text-sm text-rc-fg-subtle sm:table-cell">
                   <TimeAgo iso={a.receivedAt} />
                 </TableCell>
               </TableRow>

@@ -291,13 +291,38 @@ const AUDIT_LABEL: Record<string, string> = {
   proposal_skipped: "Usulan dilewati",
 };
 
+const ACTION_WORD: Record<string, string> = {
+  send_message: "Balasan pesan",
+  send_email: "Balasan email",
+  reply_comment: "Balasan komentar",
+  post_comment: "Komentar baru",
+  followup: "Follow-up",
+  crm_update: "Update CRM",
+  merge: "Gabung profil",
+};
+
+const ACTOR_LABEL: Record<string, string> = { agent: "Agen", ingest: "Sistem", system: "Sistem", owner: "Pemilik" };
+
+// Detail audit dari backend memakai istilah internal; tampilkan dalam bahasa awam.
+function auditDetail(detail: string): string {
+  const action = detail.match(/^(\w+) di (\w+)(?: untuk (.+))?$/);
+  if (action && ACTION_WORD[action[1]]) {
+    const channel = channelLabel[action[2] as keyof typeof channelLabel] ?? action[2];
+    const target = action[3] && action[3] !== "-" ? ` untuk ${action[3]}` : "";
+    return `${ACTION_WORD[action[1]]} di ${channel}${target}`;
+  }
+  const score = detail.match(/^skor=(\d+)\s*(\w*)$/);
+  if (score) return `Skor ${score[1]}${score[2] ? ` (${score[2]})` : ""}`;
+  return detail;
+}
+
 export function adaptAudit(a: BeAudit): AuditEntry {
   return {
     id: a.id,
     ts: a.ts,
     event: AUDIT_LABEL[a.event] ?? a.event,
-    detail: a.detail,
-    actor: a.actor,
+    detail: auditDetail(a.detail),
+    actor: ACTOR_LABEL[a.actor] ?? a.actor,
     channel: a.channel,
   };
 }

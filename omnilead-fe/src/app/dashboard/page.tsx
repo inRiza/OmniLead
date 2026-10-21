@@ -7,7 +7,7 @@ import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, SectionTitle } from "@/components/dashboard/Card";
 import { BarChart, type Bar } from "@/components/dashboard/BarChart";
-import { ChannelIcon, Dot, ScoreBadge } from "@/components/primitives";
+import { ChannelIcon, ScoreBadge } from "@/components/primitives";
 import { ArrowIcon } from "@/components/dashboard/icons";
 import { TimeAgo } from "@/components/TimeAgo";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
@@ -80,7 +80,8 @@ export default function HomePage() {
       />
 
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-5 pb-10 md:p-7 md:pb-12">
+        <div className="flex w-full mx-auto w-full max-w-6xl flex-col gap-6 pt-1 pb-10">
+          <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-medium text-rc-fg-muted">
               Halo{session.user?.name ? <>, <span className="font-semibold text-rc-fg [overflow-wrap:anywhere]">{session.user.name}</span></> : "!"}
@@ -88,8 +89,20 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-rc-fg-muted">
               {error
                 ? "Data belum bisa dimuat dari backend."
-                : `Ada ${pending} aksi yang sudah disiapkan agen, tinggal Anda putuskan.`}
+                : pending > 0
+                  ? `Ada ${pending} aksi yang sudah disiapkan agen, tinggal Anda putuskan.`
+                  : "Belum ada usulan baru. Agen akan menyiapkan balasan saat pesan masuk."}
             </p>
+          </div>
+          {pending > 0 && (
+            <Link
+              href="/dashboard/inbox"
+              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-rc-hero px-4 text-sm font-semibold text-white transition-colors hover:bg-rc-hero-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent"
+            >
+              Tinjau {pending} usulan
+              <ArrowIcon className="h-4 w-4" />
+            </Link>
+          )}
           </div>
 
           <Card>
@@ -158,9 +171,10 @@ export default function HomePage() {
               <SectionTitle>Kanal</SectionTitle>
               <div className="divide-y divide-rc-border">
                 {channelStatuses.map((c) => (
-                  <div
+                  <Link
                     key={c.channel}
-                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+                    href="/dashboard/integrasi"
+                    className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-rc-surface-hover"
                   >
                     <ChannelIcon channel={c.channel} size="md" />
                     <div className="min-w-0 flex-1">
@@ -168,11 +182,13 @@ export default function HomePage() {
                         {channelLabel[c.channel]}
                       </div>
                       <div className="truncate text-sm text-rc-fg-muted">
-                        {c.detail}
+                        {c.connected ? c.detail : "Belum terhubung"}
                       </div>
                     </div>
-                    <Dot ok={c.connected} />
-                  </div>
+                    <span className={c.connected ? "text-xs font-medium text-[#15803d]" : "text-xs font-medium text-rc-accent"}>
+                      {c.connected ? "Terhubung" : "Hubungkan"}
+                    </span>
+                  </Link>
                 ))}
               </div>
             </Card>

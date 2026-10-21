@@ -253,8 +253,8 @@ export default function Landing() {
         <section id="agen" className={cn(band, "scroll-mt-24")}>
           <div className={container}>
             <SectionHead
-              title="Agent bekerja 24/7"
-              sub="Pilih kanal, lalu lihat AI membaca pesan, mengerti konteks, mengecek katalog, memberi balasan, dan mengikat preferensi pelanggan."
+              title="Agen bekerja 24/7, Anda yang memutuskan"
+              sub="Pilih kanal, lalu lihat agen membaca pesan, menilai prioritas, dan menyiapkan balasan dari katalog. Balasan baru terkirim setelah Anda setujui."
             />
             <Reveal className="mt-12">
               <HeroStage />

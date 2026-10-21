@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Menu, Pencil, X } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { ChannelMock, type MockScenario } from "@/components/landing/ChannelMocks";
 import { LandingChannelIcon, landingChannelLabel } from "@/components/landing/channels";
@@ -232,10 +232,14 @@ export function LandingHeader() {
 /* Hero: kanal → agen → usulan                                          */
 /* ------------------------------------------------------------------ */
 
-const SCENARIOS: MockScenario[] = [
+type Priority = { level: "Tinggi" | "Sedang"; score: number; reason: string };
+type StageScenario = MockScenario & { priority: Priority };
+
+const SCENARIOS: StageScenario[] = [
   {
     channel: "instagram",
     customer: "ani.majujaya",
+    priority: { level: "Tinggi", score: 86, reason: "60 porsi untuk tanggal 30, atas nama perusahaan" },
     thread: [
       { from: "customer", text: "Kak, bisa buat 60 orang tgl 30? harga?" },
       { from: "agent", text: "Bisa, Kak Ani! Rincian harga untuk 60 porsi kami kirim lewat DM ya." },
@@ -246,6 +250,7 @@ const SCENARIOS: MockScenario[] = [
   {
     channel: "whatsapp",
     customer: "Dinda",
+    priority: { level: "Sedang", score: 64, reason: "Reseller, 20 pcs, minta harga grosir" },
     thread: [
       { from: "customer", text: "kak aku reseller, mau ambil hijab pashmina 20 pcs brp?" },
       {
@@ -259,6 +264,7 @@ const SCENARIOS: MockScenario[] = [
   {
     channel: "email",
     customer: "PT Nusa Corp",
+    priority: { level: "Tinggi", score: 91, reason: "100 pax untuk acara kantor, nilai sekitar Rp3,5 juta" },
     thread: [
       {
         from: "customer",
@@ -275,6 +281,7 @@ const SCENARIOS: MockScenario[] = [
   {
     channel: "facebook",
     customer: "Sari Wulandari",
+    priority: { level: "Sedang", score: 58, reason: "10 box hampers, tanya harga" },
     thread: [
       { from: "customer", text: "hampers premium 10 box brp kak?" },
       { from: "agent", text: "Halo Kak Sari! Rincian harga 10 box kami kirim lewat Messenger ya." },
@@ -285,15 +292,64 @@ const SCENARIOS: MockScenario[] = [
 ];
 
 const STEP_MS = 1100;
+const REVIEW_MS = 2200;
 const AUTO_NEXT_MS = 4500;
 
-function framesOf(sc: MockScenario) {
-  const frames = [{ count: 0, typing: false }];
+type Review = "pending" | "approved" | null;
+type Frame = { count: number; typing: boolean; review: Review; ms: number };
+
+// Setiap balasan agen melewati kartu persetujuan sebelum tampil di kanal.
+function framesOf(sc: MockScenario): Frame[] {
+  const frames: Frame[] = [{ count: 0, typing: false, review: null, ms: STEP_MS }];
   sc.thread.forEach((m, i) => {
-    if (m.from === "agent") frames.push({ count: i, typing: true });
-    frames.push({ count: i + 1, typing: false });
+    if (m.from === "agent") {
+      frames.push({ count: i, typing: true, review: null, ms: STEP_MS });
+      frames.push({ count: i, typing: true, review: "pending", ms: REVIEW_MS });
+      frames.push({ count: i, typing: true, review: "approved", ms: 700 });
+    }
+    frames.push({ count: i + 1, typing: false, review: null, ms: STEP_MS });
   });
   return frames;
+}
+
+function ReviewCard({ sc, draft, review }: { sc: StageScenario; draft: string; review: "pending" | "approved" }) {
+  const high = sc.priority.level === "Tinggi";
+  return (
+    <div className="rc-enter absolute inset-x-3 bottom-14 z-10 rounded-xl border border-rc-border bg-rc-surface p-4 text-rc-fg shadow-[0_12px_32px_-12px_rgba(11,23,54,0.35)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">Usulan agen</span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-xs font-semibold",
+            high ? "bg-rc-highlight-soft text-[#8a5300]" : "bg-rc-accent-soft text-rc-accent",
+          )}
+        >
+          Prioritas {sc.priority.level.toLowerCase()}, skor {sc.priority.score}
+        </span>
+        <span className="ml-auto text-xs text-rc-fg-muted">Belum terkirim</span>
+      </div>
+      <p className="mt-1 text-xs text-rc-fg-muted">{sc.priority.reason}</p>
+      <p className="mt-3 line-clamp-3 rounded-lg bg-rc-bg px-3 py-2 text-sm whitespace-pre-line">{draft}</p>
+      <div className="mt-3 flex items-center gap-2">
+        <span className="inline-flex h-8 items-center rounded-md border border-rc-border px-3 text-xs font-medium text-rc-fg-muted">
+          Tolak
+        </span>
+        <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rc-border px-3 text-xs font-medium text-rc-fg-muted">
+          <Pencil className="h-3.5 w-3.5" aria-hidden />
+          Edit
+        </span>
+        <span
+          className={cn(
+            "ml-auto inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white transition-[background-color,transform] duration-300",
+            review === "approved" ? "scale-95 bg-[#15803d]" : "bg-rc-hero",
+          )}
+        >
+          {review === "approved" && <Check className="h-3.5 w-3.5" aria-hidden />}
+          {review === "approved" ? "Disetujui" : "Setujui"}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function lane(i: number, n: number) {
@@ -314,15 +370,19 @@ export function HeroStage() {
 
   useEffect(() => {
     if (reduced) return;
-    const timers = Array.from({ length: last }, (_, i) =>
-      window.setTimeout(() => setPhase(i + 1), 400 + i * STEP_MS),
-    );
+    let at = 400;
+    const timers = framesOf(SCENARIOS[active]).slice(0, last).map((f, i) => {
+      const t = window.setTimeout(() => setPhase(i + 1), at);
+      at += f.ms;
+      return t;
+    });
     return () => timers.forEach(clearTimeout);
   }, [active, run, reduced, last]);
 
   const frame = frames[reduced ? last : Math.min(phase, last)];
   const finished = reduced || phase >= last;
   const replied = sc.thread.slice(0, frame.count).some((m) => m.from === "agent");
+  const status = frame.review === "pending" ? "Menunggu persetujuan" : frame.typing ? "Agen menyusun usulan" : replied ? "Terkirim setelah disetujui" : "Pesan masuk";
 
   useEffect(() => {
     if (reduced || touched || hovering || !finished) return;
@@ -370,7 +430,7 @@ export function HeroStage() {
               <span className="min-w-0">
                 <span className="block text-sm font-medium">{landingChannelLabel[s.channel]}</span>
                 <span className={cn("block text-xs whitespace-nowrap", on ? "text-rc-accent" : "text-rc-fg-subtle")}>
-                  {on ? "Sedang dibalas agen" : "Lihat contoh"}
+                  {on ? status : "Lihat contoh"}
                 </span>
               </span>
             </button>
@@ -422,8 +482,9 @@ export function HeroStage() {
         </span>
       </div>
 
-      <div key={`${active}-${run}`} className="rc-enter" aria-live="polite">
+      <div key={`${active}-${run}`} className="rc-enter relative" aria-live="polite">
         <ChannelMock sc={sc} count={frame.count} typing={frame.typing} />
+        {frame.review && <ReviewCard sc={sc} draft={sc.thread[frame.count].text} review={frame.review} />}
       </div>
     </div>
   );

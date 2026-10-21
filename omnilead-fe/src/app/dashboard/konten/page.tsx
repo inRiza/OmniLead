@@ -43,7 +43,7 @@ export default function KontenPage() {
         subtitle="Ide dari pertanyaan pelanggan. Draf saja, publish tetap Anda."
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="mx-auto w-full max-w-4xl p-4 pb-8 md:p-6">
+        <div className="w-full mx-auto w-full max-w-6xl pt-1 pb-10">
           {error ? (
             <p role="alert" className="text-sm font-medium text-rc-danger">
               {error}

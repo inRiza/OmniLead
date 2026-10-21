@@ -24,7 +24,7 @@ export function WorkspaceSwitcher() {
   return <div className="min-w-0">
     <div className="flex items-center gap-2">
     <label className="sr-only" htmlFor="active-workspace">Bisnis aktif</label>
-    <select id="active-workspace" value={session.user.workspace_id} disabled={busy} className="min-w-0 max-w-36 rounded-md border border-rc-border bg-rc-surface px-2 py-1.5 text-sm text-rc-fg md:max-w-44" onChange={(event) => {
+    <select id="active-workspace" value={session.user.workspace_id} disabled={busy} className="min-h-9 min-w-0 max-w-48 rounded-md border border-rc-border bg-rc-surface px-2 py-1.5 text-sm font-medium text-rc-fg md:max-w-64" onChange={(event) => {
       const id = event.target.value;
       setBusy(true); setError("");
       void api.selectWorkspace(id).then(() => window.location.reload()).catch((e) => { setError(e.message); setBusy(false); });

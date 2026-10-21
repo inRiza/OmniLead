@@ -3,13 +3,13 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const shared =
-  "inline-flex cursor-pointer items-center justify-center border px-3.5 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-9 cursor-pointer items-center justify-center border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent disabled:cursor-not-allowed disabled:opacity-40";
 
 type Style = "primary" | "secondary" | "ghost" | "muted";
 
 const styleClass: Record<Style, string> = {
   primary:
-    "rounded-xl border-rc-fg bg-rc-fg text-rc-primary-fg hover:bg-rc-fg/90",
+    "rounded-md border-rc-hero bg-rc-hero text-white hover:border-rc-hero-hover hover:bg-rc-hero-hover",
   muted:
     "rounded-md border-rc-border bg-rc-surface-hover text-rc-fg hover:bg-rc-border/40",
   secondary:

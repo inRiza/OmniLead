@@ -66,6 +66,16 @@ def test_guard_blocks_other_customer_data():
     assert any(n.check == "kebocoran_data" for n in notes)
 
 
+def test_guard_matches_other_customer_names_as_whole_words():
+    from omnilead_agent.guard import check_proposal
+    from omnilead_agent.schemas import Proposal
+    req = make_req("bisa kirim ke Cimahi?", protected_terms=["Ani"])
+    safe = Proposal(kind="send_message", channel="instagram", text="Kami melayani pengiriman ke Cimahi ya kak")
+    assert not any(n.check == "kebocoran_data" for n in check_proposal(safe, req, triage(req), default_catalog()))
+    leak = Proposal(kind="send_message", channel="instagram", text="Seperti pesanan Ani kemarin ya kak")
+    assert any(n.check == "kebocoran_data" for n in check_proposal(leak, req, triage(req), default_catalog()))
+
+
 def test_rejection_preference_changes_draft(ani_lead):
     base = analyze(make_req(GOLDEN, lead=ani_lead))
     casual = analyze(make_req(GOLDEN, lead=ani_lead, preferences=["jangan terlalu formal", "tanpa emoji"]))

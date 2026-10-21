@@ -59,16 +59,26 @@ def _goal(req: AnalyzeRequest, tri: TriageResult) -> str:
     return f"Tanggapi {', '.join(tri.intents)} dari {who} via {req.event.channel}"
 
 
+INTENT_LABEL = {
+    "tanya_harga": "tanya harga", "minta_penawaran": "minta penawaran", "order": "mau pesan",
+    "tanya_stok": "tanya stok", "komplain": "komplain", "follow_up": "menagih balasan",
+    "pertanyaan_umum": "pertanyaan umum", "spam": "spam",
+}
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+
+
 def _summary(req: AnalyzeRequest, tri: TriageResult, score: LeadScore) -> str:
     e = tri.entities
-    bits = [f"Minat: {', '.join(tri.intents)}"]
+    intents = list(dict.fromkeys(INTENT_LABEL.get(i, i.replace("_", " ")) for i in tri.intents))
+    bits = [intents[0].capitalize() + "".join(", " + i for i in intents[1:])]
     if "qty" in e:
         bits.append(f"{e['qty']} {e.get('unit', '')}".strip())
     if "date" in e:
-        bits.append(f"tenggat {e['date']}")
+        y, m, d = str(e["date"]).split("-") if str(e["date"]).count("-") == 2 else ("", "", "")
+        bits.append(f"acara {int(d)} {MONTHS[int(m) - 1]}" if d.isdigit() and m.isdigit() else f"acara {e['date']}")
     if e.get("company"):
         bits.append(str(e["company"]))
-    return "; ".join(bits) + f". Skor {score.score} ({score.label})."
+    return "; ".join(bits) + "."
 
 
 def analyze(

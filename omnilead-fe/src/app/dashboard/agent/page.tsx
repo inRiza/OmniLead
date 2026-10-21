@@ -52,7 +52,7 @@ export default function AgentPage() {
   return <>
     <Topbar title="Aktivitas agen" subtitle="Ikuti proses pesan, tool yang dijalankan, dan usulan balasan untuk bisnis ini." />
     <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="space-y-5 p-4 md:p-6">
+      <div className="mx-auto w-full max-w-6xl space-y-5 pt-1 pb-10">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rc-border bg-rc-surface p-4">
           <div>
             <p role="status" className="flex items-center gap-2 text-sm font-semibold text-rc-fg"><span className={`h-2 w-2 rounded-full ${d.error || !d.agent?.reachable ? "bg-rc-danger" : "bg-rc-fg"}`} />{state}</p>
@@ -66,7 +66,7 @@ export default function AgentPage() {
         </div>
 
         {pasting && <PasteMessage onCreated={(id) => { setSelectedId(id); setFilter("all"); setPasting(false); }} />}
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter aktivitas agen">{FILTERS.map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={cn("rounded-md border px-3 py-1.5 text-sm", filter === value ? "border-rc-fg bg-rc-fg text-rc-primary-fg" : "border-rc-border text-rc-fg-muted hover:bg-rc-surface-hover")}>{label}</button>)}</div>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter aktivitas agen">{FILTERS.map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={cn("rounded-md border px-3 py-1.5 text-sm", filter === value ? "border-rc-accent bg-rc-accent-soft text-rc-accent" : "border-rc-border text-rc-fg-muted hover:bg-rc-surface-hover")}>{label}</button>)}</div>
 
         {!d.loaded ? <p role="status" className="py-10 text-center text-sm text-rc-fg-muted">Memuat aktivitas agen…</p>
           : !rows.length ? <div className="rounded-lg border border-rc-border bg-rc-surface p-8 text-center">
