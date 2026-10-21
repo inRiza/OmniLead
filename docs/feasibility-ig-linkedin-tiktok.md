@@ -1,7 +1,7 @@
 ---
 title: Feasibility teknis OmniLead, Instagram + LinkedIn + TikTok (jalur API resmi)
 updated: 2026-10-21
-related: crm-agentic-multikanal-revision.md, validasi-yc-dan-mcp.md
+related: crm-agentic-multikanal-3.0.md
 ---
 
 Dokumen ini memetakan, per kanal, **aksi apa yang benar-benar bisa dilakukan
