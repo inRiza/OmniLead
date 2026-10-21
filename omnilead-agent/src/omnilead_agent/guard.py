@@ -80,7 +80,8 @@ def check_proposal(
     # 4. Kebocoran data pelanggan lain
     own = {t for t in (req.event.sender.phone, req.event.sender.email) if t}
     leaked = [m for m in PHONE_RE.findall(text) + EMAIL_RE.findall(text) if m not in own]
-    leaked += [t for t in req.protected_terms if t and t.lower() in low]
+    # Nama dicocokkan sebagai kata utuh: "Ani" tidak boleh cocok dengan "melayani".
+    leaked += [t for t in req.protected_terms if t and re.search(rf"(?<!\w){re.escape(t.lower())}(?!\w)", low)]
     if leaked:
         notes.append(GuardNote(
             check="kebocoran_data", status="block",

@@ -84,7 +84,8 @@ export default function InboxPage() {
             />
           ) : null}
 
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter jenis aktivitas">
+          <div className="rc-scrollbar -mx-1 flex items-center gap-3 overflow-x-auto px-1 pb-1">
+          <div className="flex shrink-0 gap-1.5" role="group" aria-label="Filter jenis aktivitas">
             {(["all", "komentar", "dm", "email"] as const).map((k) => (
               <button
                 key={k}
@@ -92,7 +93,7 @@ export default function InboxPage() {
                 onClick={() => setKind(k)}
                 aria-pressed={kind === k}
                 className={cn(
-                  "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                  "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-sm transition-colors",
                   kind === k
                     ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                     : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
@@ -104,7 +105,7 @@ export default function InboxPage() {
           </div>
 
           {channelsInUse.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter kanal">
+            <div className="flex shrink-0 gap-1.5 border-l border-rc-border pl-3" role="group" aria-label="Filter kanal">
               {(["all", ...channelsInUse] as const).map((c) => (
                 <button
                   key={c}
@@ -112,17 +113,18 @@ export default function InboxPage() {
                   onClick={() => setChannel(c)}
                   aria-pressed={channel === c}
                   className={cn(
-                    "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                    "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-sm transition-colors",
                     channel === c
                       ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                       : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
                   )}
                 >
-                  {c === "all" ? "Semua" : channelLabel[c]}
+                  {c === "all" ? "Semua kanal" : channelLabel[c]}
                 </button>
               ))}
             </div>
           ) : null}
+          </div>
 
           {d.loaded && rows.length === 0 ? (
             <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">
