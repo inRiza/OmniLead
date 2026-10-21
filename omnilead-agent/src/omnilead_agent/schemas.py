@@ -149,6 +149,7 @@ class Trace(BaseModel):
     guard_summary: str = ""
     status: str = ""
     revisions: int = 0
+    activity: list[dict] = Field(default_factory=list)
 
 
 class AnalyzeResponse(BaseModel):

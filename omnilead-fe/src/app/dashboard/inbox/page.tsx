@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Channel } from "@/lib/types";
 import { channelLabel, cn } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
@@ -62,7 +63,8 @@ export default function InboxPage() {
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
         <div className="flex flex-col gap-3 p-5 md:p-6">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link href="/dashboard/agent" className="rounded-md border border-rc-border px-3 py-2 text-sm font-medium text-rc-fg hover:bg-rc-surface-hover">Aktivitas agen</Link>
             <Button
               purpose="action"
               style={pasting ? "primary" : "secondary"}
@@ -124,8 +126,9 @@ export default function InboxPage() {
 
           {d.loaded && rows.length === 0 ? (
             <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">
-              Belum ada aktivitas. Hubungkan kanal komunikasi atau media sosial
-              untuk mulai.
+              {d.channels.some((c) => c.connected)
+                ? "Akun sudah terhubung, tetapi belum ada pesan yang diterima pada filter ini. Kirim pesan baru dari akun lain, atau gunakan Tempel pesan."
+                : "Belum ada aktivitas. Hubungkan kanal komunikasi atau media sosial untuk mulai."}
             </p>
           ) : (
             <ActivityTable
@@ -158,7 +161,7 @@ export default function InboxPage() {
               </SheetHeader>
               <SheetBody className="flex flex-col gap-5">
                 {lead ? (
-                  <ActivityDetail activity={selected} lead={lead} trace={trace} />
+                  <ActivityDetail activity={selected} lead={lead} trace={trace} actions={activityActions} />
                 ) : null}
                 <div>
                   <h2 className="mb-2 text-sm font-semibold text-rc-fg">

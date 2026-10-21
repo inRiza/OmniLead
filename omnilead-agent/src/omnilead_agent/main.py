@@ -10,6 +10,7 @@ import hmac
 import os
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import StreamingResponse
 
 from pydantic import BaseModel
 
@@ -23,6 +24,7 @@ from omnilead_agent.extract import (
 )
 from omnilead_agent.pipeline import analyze, engine_name
 from omnilead_agent.schemas import AnalyzeRequest, AnalyzeResponse
+from omnilead_agent.progress import run_observed, stream_analysis
 
 
 def require_key(x_api_key: str | None = Header(default=None)) -> None:
@@ -56,7 +58,12 @@ def create_app() -> FastAPI:
 
     @app.post("/v1/analyze", response_model=AnalyzeResponse, dependencies=[Depends(require_key)])
     def analyze_event(req: AnalyzeRequest) -> AnalyzeResponse:
-        return analyze(req)
+        return run_observed(analyze, req)
+
+    @app.post("/v1/analyze/stream", dependencies=[Depends(require_key)])
+    def analyze_stream(req: AnalyzeRequest):
+        return StreamingResponse(stream_analysis(analyze, req), media_type="application/x-ndjson",
+                                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
     @app.post("/v1/extract", response_model=ExtractResult, dependencies=[Depends(require_key)])
     def extract_message(

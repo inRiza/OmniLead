@@ -18,7 +18,7 @@ Kendali
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from omnilead.api.deps import (
     get_agent_client,
@@ -146,7 +146,9 @@ def post_event(
 
 @router.post("/events/paste", response_model=Event)
 def paste_event(
-    req: PasteEventRequest, ingest: IngestService = Depends(get_ingest)
+    req: PasteEventRequest, background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
+    ingest: IngestService = Depends(get_ingest)
 ) -> Event:
     """Kanal tanpa API: pengguna menempel teks pesan; diproses seperti event biasa."""
     ev = EventIn(
@@ -158,13 +160,16 @@ def paste_event(
         post_ref=req.post_ref,
         meta={"source": "paste"},
     )
-    event, _ = ingest.ingest(ev)
+    schedule = (lambda event, created: background_tasks.add_task(ingest.process_created, event, created)) if run_async else None
+    event, _ = ingest.ingest(ev, defer_analysis=schedule)
     return event
 
 
 @router.post("/events/paste-image", response_model=Event)
 def paste_image(
     req: PasteImageRequest,
+    background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
     ingest: IngestService = Depends(get_ingest),
     agent: AgentClient = Depends(get_agent_client),
 ) -> Event:
@@ -186,7 +191,8 @@ def paste_image(
         text=text,
         meta={"source": "screenshot"},
     )
-    event, _ = ingest.ingest(ev)
+    schedule = (lambda event, created: background_tasks.add_task(ingest.process_created, event, created)) if run_async else None
+    event, _ = ingest.ingest(ev, defer_analysis=schedule)
     return event
 
 
@@ -227,12 +233,22 @@ def list_events(
 @router.post("/events/{event_id}/analyze", response_model=Event)
 def reanalyze(
     event_id: str,
+    background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
     store: Store = Depends(get_store),
     ingest: IngestService = Depends(get_ingest),
 ) -> Event:
     event = store.get_event(event_id)
     if event is None:
         raise NOT_FOUND
+    if event.status == "processing":
+        raise HTTPException(status_code=409, detail="Pesan masih sedang dianalisis")
+    if run_async:
+        event.status = "new"
+        event.trace = None
+        store.save_event(event)
+        background_tasks.add_task(ingest.process, event)
+        return event
     return ingest.process(event)
 
 

@@ -3,6 +3,40 @@
 Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Aktivitas agen (22 Okt 2026)
+
+- Halaman `/dashboard/agent` dan panel aktivitas di Workspace ditambahkan. Agen
+  menerbitkan kejadian pelaksanaan melalui NDJSON; backend menyimpan kemajuan
+  pada trace per bisnis dan frontend memperbarui tampilan setiap tiga detik.
+- Pemeriksaan statis: TypeScript, ESLint, dan parsing sintaks Python lulus.
+  Backend dan service agen berhasil startup dan `/health` keduanya merespons 200.
+  Suite tes, browser, dan panggilan LLM untuk alur streaming baru belum dijalankan.
+- Diagnostik Instagram: callback login tercatat; koneksi akun yang sesuai
+  screenshot tersimpan sebagai connected. GET subscribed_apps merespons 200,
+  dengan `comments` dan `messages`. Saat diperiksa belum ada POST webhook DM
+  yang masuk ke backend. Status publikasi/konfigurasi aplikasi Meta masih
+  membutuhkan pemeriksaan di dashboard provider.
+- Sebelum perubahan streaming, satu pesan sintetis melalui pipeline nyata
+  selesai dalam 42 detik, tanpa fallback, memakai konteks pengetahuan dan tone
+  profesional. Namun draf menyebut tutup 18.00 sedangkan sumber menyebut 17.00.
+  Kasus ini menunjukkan alur berjalan, tetapi ketepatan fakta belum lolos.
+
+## OAuth dan webhook melalui tunnel HTTPS lokal (21 Okt 2026)
+
+- Next.js sebelumnya menolak dev asset dari origin tunnel (403). Hostname dari
+  `OMNILEAD_FRONTEND_URL` kini masuk `allowedDevOrigins`; halaman login dan asetnya merespons 200.
+- Proxy FE meneruskan GET/POST webhook Meta, body utuh, dan header signature. Diagnostik melalui
+  HTTPS publik: challenge dengan verify token benar 200 dan body challenge sesuai; token salah 403;
+  POST tanpa signature 403; POST bertanda tangan dengan daftar event kosong 200. Tidak ada event
+  pelanggan atau pengiriman pesan pada pemeriksaan ini.
+- Login HTTPS awal menghasilkan 500 karena key enkripsi eksplisit belum terisi. Konfigurasi lokal
+  memakai kembali key lama `.secrets/oauth.key` (tanpa rotasi), lalu login akun sintetis berhasil
+  200 dengan cookie Secure. Sesi diagnostik di-logout setelah pemeriksaan.
+- Start Instagram menghasilkan redirect dengan callback HTTPS sesuai origin tunnel. Consent di
+  Instagram dan pendaftaran callback Meta masih dilakukan pengguna; belum terbukti selesai.
+- TypeScript dan lint lulus. Suite tes tidak dijalankan ulang. Diagnostik lokal:
+  `omnilead-be/data/local-runtime/diagnose-https-onboarding.py` (gitignored).
+
 ## Facebook Page, Gemini sungguhan, dan Docker (21 Okt 2026)
 
 **Tes otomatis setelah connector Facebook:** BE **98 lulus**, agen **43 lulus**, FE **22 lulus**;

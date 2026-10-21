@@ -11,6 +11,7 @@ Urutan:
 
 import re
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 from omnilead.agent_client import AgentClient, AgentResult, AgentUnavailable
@@ -70,7 +71,7 @@ class IngestService:
 
     # --- public ---
 
-    def ingest(self, ev: EventIn) -> tuple[Event, bool]:
+    def ingest(self, ev: EventIn, *, defer_analysis: Callable[[Event, bool], None] | None = None) -> tuple[Event, bool]:
         """Mengembalikan (event, duplikat)."""
         bindings = self._queue.account_bindings
         if bindings is not None:
@@ -95,10 +96,17 @@ class IngestService:
             channel=event.channel.value,
             lead_id=lead.id,
         )
+        if defer_analysis:
+            defer_analysis(event, created)
+            return event, False
+        event = self.process_created(event, created)
+        return event, False
+
+    def process_created(self, event: Event, created: bool) -> Event:
         event = self.process(event)
         if created and event.status in ("analyzed", "review"):
             self._propose_merges(event)
-        return event, False
+        return event
 
     def process(self, event: Event) -> Event:
         """Jalankan agen untuk event. Dipanggil juga saat memproses ulang event tertahan."""
@@ -115,11 +123,42 @@ class IngestService:
             return event
 
         lead = self._store.get_lead(event.lead_id) if event.lead_id else None
+        event.status = "processing"
+        event.review_reason = ""
+        event.triage = None
+        event.trace = {"goal": f"Menyiapkan tanggapan via {event.channel.value}",
+                       "plan": ["Kenali maksud pesan", "Baca konteks bisnis dan riwayat",
+                                "Siapkan usulan", "Periksa usulan", "Minta persetujuan Anda"],
+                       "steps": [], "activity": [], "status": "Memulai analisis"}
+        self._store.save_event(event)
+
+        def on_progress(item: dict) -> None:
+            trace = event.trace
+            if len(trace["activity"]) >= 128:
+                return
+            trace["activity"].append(item)
+            trace["status"] = item.get("label", "Memproses pesan")
+            if item.get("phase") == "plan":
+                trace["plan"] = item.get("plan", trace["plan"])
+                trace["goal"] = item.get("goal", trace["goal"])
+            elif item.get("phase") == "tool":
+                trace["steps"].append({"n": len(trace["steps"]) + 1, "tool": item.get("tool", ""),
+                                       "input": item.get("input", {}), "result": item.get("result", "")})
+            elif item.get("phase") == "triage_done":
+                event.triage = {"intents": item.get("intents", []), "urgency": item.get("urgency", "rendah"),
+                                "urgency_reason": item.get("reason", "")}
+            self._store.save_event(event)
+
         try:
-            result = self._agent.analyze(self._payload(event, lead))
+            payload = self._payload(event, lead)
+            if hasattr(self._agent, "analyze_stream"):
+                result = self._agent.analyze_stream(payload, on_progress)
+            else:
+                result = self._agent.analyze(payload)
         except AgentUnavailable as exc:
             event.status = "agent_error"
             event.review_reason = f"Service agen tidak tersedia: {exc}"
+            event.trace["status"] = "Analisis gagal; perlu diproses ulang"
             self._store.save_event(event)
             self._store.audit(
                 "agent_error",

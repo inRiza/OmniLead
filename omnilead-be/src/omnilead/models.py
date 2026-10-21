@@ -155,7 +155,7 @@ class EventIn(BaseModel):
 class Event(EventIn):
     id: str
     lead_id: str | None = None
-    status: Literal["new", "analyzed", "review", "held", "agent_error"] = "new"
+    status: Literal["new", "processing", "analyzed", "review", "held", "agent_error"] = "new"
     triage: dict | None = None
     review_reason: str = ""
     trace: dict | None = None

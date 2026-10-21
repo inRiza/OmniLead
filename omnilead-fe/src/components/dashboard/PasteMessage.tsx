@@ -72,10 +72,10 @@ export function PasteMessage({ onCreated }: { onCreated: (eventId: string) => vo
 
   return (
     <div className="rounded-lg border border-rc-border bg-rc-surface p-6">
-      <h2 className="text-sm font-semibold text-rc-fg">Tempel pesan dari kanal tanpa API</h2>
+      <h2 className="text-sm font-semibold text-rc-fg">Tempel pesan untuk diproses agen</h2>
       <p className="mt-1 text-sm text-rc-fg-muted">
-        Tempel teks atau unggah screenshot DM. Agen menyiapkan draf; Anda yang
-        mengirim lewat <span className="font-medium text-rc-fg">Salin &amp; buka</span>.
+        Tempel teks atau unggah screenshot DM, lalu ikuti aktivitas agen saat
+        menyiapkan usulan. Pengiriman tetap menunggu persetujuan Anda.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">

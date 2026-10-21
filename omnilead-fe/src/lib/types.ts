@@ -54,6 +54,24 @@ export interface TraceStep {
   output: string;
 }
 
+export interface AgentExecutionEvent {
+  sequence: number;
+  phase: string;
+  label: string;
+  at: string;
+  elapsed_ms: number;
+  tool?: string;
+  input?: Record<string, unknown>;
+  result?: string;
+  reason?: string;
+  text?: string;
+  kind?: string;
+  engine?: string;
+  guard_summary?: string;
+  revision?: number;
+  intents?: string[];
+}
+
 export interface GuardCheck {
   label: string;
   passed: boolean;
@@ -66,6 +84,7 @@ export interface AgentTrace {
   guard: GuardCheck[];
   guardSummary?: string;
   status?: string;
+  activity?: AgentExecutionEvent[];
 }
 
 export type ActionStatus =

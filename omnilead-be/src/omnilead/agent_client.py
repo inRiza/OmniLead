@@ -4,6 +4,7 @@ BE hanya mengirim konteks dan menerima USULAN. Service agen tidak memegang
 token platform dan tidak punya jalur kirim.
 """
 
+import json
 import time
 from collections.abc import Callable
 
@@ -76,6 +77,7 @@ class AgentClient:
         token_provider: Callable[[], str] | None = None,
     ):
         self._token_provider = token_provider
+        self._timeout = timeout
         headers = {"X-API-Key": api_key} if api_key else {}
         self._http = httpx.Client(
             base_url=base_url.rstrip("/"),
@@ -99,6 +101,30 @@ class AgentClient:
             return AgentResult.model_validate(resp.json())
         except (httpx.HTTPError, ValueError) as exc:
             raise AgentUnavailable(f"{type(exc).__name__}: {exc}") from exc
+
+    def analyze_stream(self, payload: dict, on_progress: Callable[[dict], None]) -> AgentResult:
+        started = time.monotonic()
+        try:
+            with self._http.stream("POST", "/v1/analyze/stream", json=payload, headers=self._auth()) as response:
+                # Allow a rolling upgrade when the agent is still on the older API.
+                if response.status_code in (404, 405):
+                    return self.analyze(payload)
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if time.monotonic() - started > self._timeout:
+                        raise AgentUnavailable("Analisis melewati batas waktu. Coba proses ulang pesan.")
+                    if not line:
+                        continue
+                    item = json.loads(line)
+                    if item.get("type") == "progress":
+                        on_progress(item["data"])
+                    elif item.get("type") == "result":
+                        return AgentResult.model_validate(item["data"])
+                    elif item.get("type") == "error":
+                        raise AgentUnavailable("Analisis agen gagal. Coba proses ulang pesan.")
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            raise AgentUnavailable("Koneksi ke agen terputus atau hasil analisis tidak valid.") from None
+        raise AgentUnavailable("Koneksi agen berakhir sebelum hasil analisis diterima.")
 
     def extract(self, payload: dict) -> dict:
         """Ekstrak pengirim dan isi pesan dari screenshot (Gemini multimodal di service agen)."""

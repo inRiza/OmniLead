@@ -17,6 +17,33 @@ mengganti akun tersebut. Kanal aktif: Instagram, Facebook Page, WhatsApp, dan em
 lama dan tidak otomatis diberikan kepada akun baru. `OMNILEAD_AUTH_ENABLED=false`
 secara eksplisit mengaktifkan mode demo lama dengan API key opsional. Jangan memakai mode itu untuk layanan publik.
 
+## Development lokal lewat HTTPS tunnel
+
+Arahkan tunnel HTTPS ke frontend port 3000. Satu origin dapat dipakai untuk OAuth dan webhook
+Meta melalui proxy Next.js. Buka OmniLead dan login dari origin HTTPS tersebut agar cookie sesi
+tersedia ketika OAuth kembali.
+
+- BE `.env`: sesuaikan `OMNILEAD_FRONTEND_URL` dan tambahkan origin tunnel ke `OMNILEAD_CORS_ORIGINS`.
+- FE `.env.local`: isi `OMNILEAD_FRONTEND_URL` dengan origin yang sama. Next.js mengizinkan
+  hostname tersebut lewat `allowedDevOrigins` untuk aset development.
+- HTTPS memerlukan `OMNILEAD_TOKEN_ENCRYPTION_KEY` eksplisit. Instalasi lokal yang sudah memakai
+  `.secrets/oauth.key` harus menggunakan kembali key itu agar token tersimpan tetap dapat dibaca.
+- Buat nilai acak untuk `OMNILEAD_META_VERIFY_TOKEN`; isi kolom verifikasi webhook Meta dengan
+  nilai yang sama. Nilai ini berbeda dari App Secret dan access token akun.
+- Restart FE dan BE setelah mengubah konfigurasi; biarkan tunnel tetap berjalan.
+
+Dengan origin contoh `https://contoh.ngrok-free.dev`:
+
+| Pengaturan Meta | URL |
+|---|---|
+| Pengalihan login Instagram | `https://contoh.ngrok-free.dev/api/backend/auth/oauth/instagram/callback` |
+| Callback webhook Instagram | `https://contoh.ngrok-free.dev/api/backend/webhooks/instagram` |
+
+Proxy webhook mendukung GET/POST untuk Instagram, Facebook, dan WhatsApp. Body diteruskan utuh
+bersama `X-Hub-Signature-256`; backend tetap memeriksa verify token dan signature. Webhook Gmail
+tidak diekspos melalui proxy ini. Backend langsung `/webhooks/instagram` tetap dapat dipakai
+jika backend mempunyai origin HTTPS sendiri.
+
 ## Konfigurasi sekali oleh pengelola
 
 Set `OMNILEAD_FRONTEND_URL` ke origin FE yang sebenarnya, tanpa path tambahan,
