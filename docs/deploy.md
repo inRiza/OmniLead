@@ -5,6 +5,10 @@ updated: 2026-10-21
 
 # Deploy OmniLead ke Google Cloud
 
+Login dan OAuth per bisnis: ikuti [account-connections.md](account-connections.md)
+untuk membuat aplikasi provider, callback FE, dan key enkripsi. Kredensial akun
+pengguna diperoleh dari tombol **Hubungkan**, bukan dipasang sebagai env service.
+
 **Status:** perintah di bawah belum dijalankan terhadap project GCP sungguhan dan Dockerfile belum
 diuji build (Docker daemon tidak aktif di mesin pengembang). Perlakukan sebagai titik awal, lalu
 perbaiki saat dijalankan pertama kali.
@@ -35,11 +39,11 @@ Pasang **budget alert** di Billing sebelum lanjut. Matikan resource yang tidak p
 Token tidak pernah masuk repo, deck, atau rekaman. Buat satu secret per nilai:
 
 ```bash
-for s in omnilead-api-key omnilead-agent-key meta-app-secret meta-verify-token whatsapp-access-token \
-         gmail-client-secret gmail-refresh-token gmail-push-token scheduler-token instagram-access-token; do
+for s in omnilead-agent-key meta-app-secret meta-verify-token oauth-encryption-key \
+         gmail-client-secret gmail-push-token scheduler-token instagram-client-secret linkedin-client-secret; do
   gcloud secrets create $s --replication-policy=automatic
 done
-printf '%s' "<nilai>" | gcloud secrets versions add omnilead-api-key --data-file=-
+printf '%s' "<nilai>" | gcloud secrets versions add omnilead-agent-key --data-file=-
 ```
 
 Service account `omnilead-run@$PROJECT.iam.gserviceaccount.com` dengan peran minimal:
@@ -73,22 +77,24 @@ Uji tanpa LLM dulu: `OMNILEAD_AGENT_ENGINE=rule` (default). Cek ID model di kons
 AGENT_URL=$(gcloud run services describe omnilead-agent --region $REGION --format 'value(status.url)')
 gcloud run deploy omnilead-api --source omnilead-be --region $REGION \
   --service-account omnilead-run@$PROJECT.iam.gserviceaccount.com --allow-unauthenticated \
-  --set-env-vars OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$PROJECT,OMNILEAD_AGENT_URL=$AGENT_URL,\
-OMNILEAD_CORS_ORIGINS='["https://<url-fe>"]' \
-  --set-secrets OMNILEAD_API_KEY=omnilead-api-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest,\
+  --set-env-vars OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$PROJECT,OMNILEAD_AGENT_URL=$AGENT_URL,OMNILEAD_AUTH_ENABLED=true,\
+OMNILEAD_FRONTEND_URL=https://<url-fe>,OMNILEAD_CORS_ORIGINS='["https://<url-fe>"]' \
+  --set-secrets OMNILEAD_TOKEN_ENCRYPTION_KEY=oauth-encryption-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest,\
 OMNILEAD_META_APP_SECRET=meta-app-secret:latest,OMNILEAD_META_VERIFY_TOKEN=meta-verify-token:latest,\
-OMNILEAD_WHATSAPP_ACCESS_TOKEN=whatsapp-access-token:latest,OMNILEAD_SCHEDULER_TOKEN=scheduler-token:latest,\
-OMNILEAD_GMAIL_CLIENT_SECRET=gmail-client-secret:latest,OMNILEAD_GMAIL_REFRESH_TOKEN=gmail-refresh-token:latest,\
-OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_ACCESS_TOKEN=instagram-access-token:latest
+OMNILEAD_SCHEDULER_TOKEN=scheduler-token:latest,OMNILEAD_GMAIL_CLIENT_SECRET=gmail-client-secret:latest,\
+OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_CLIENT_SECRET=instagram-client-secret:latest,\
+OMNILEAD_LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest
 ```
 
 `--allow-unauthenticated` diperlukan karena webhook Meta dan push Pub/Sub tidak membawa identitas Google.
-Perlindungan ada di aplikasi: API key untuk FE, signature `X-Hub-Signature-256` untuk Meta, token di query
+Perlindungan ada di aplikasi: sesi pengguna untuk FE, signature `X-Hub-Signature-256` untuk Meta, token di query
 untuk push Gmail, dan token Bearer untuk Scheduler. Peningkatan produksi: tutup agen dari publik dan pakai
 token OIDC antar-service (`OMNILEAD_AGENT_AUTH=oidc`, lihat bagian agen).
 
-Isi juga `OMNILEAD_WHATSAPP_PHONE_NUMBER_ID`, `OMNILEAD_INSTAGRAM_USER_ID`, `OMNILEAD_GMAIL_CLIENT_ID`,
-`OMNILEAD_GMAIL_PUBSUB_TOPIC` (nilai non-rahasia, lewat `--set-env-vars`).
+Isi juga `OMNILEAD_META_APP_ID`, `OMNILEAD_WHATSAPP_SIGNUP_CONFIG_ID`,
+`OMNILEAD_INSTAGRAM_CLIENT_ID`, `OMNILEAD_GMAIL_CLIENT_ID`, `OMNILEAD_LINKEDIN_CLIENT_ID`,
+dan `OMNILEAD_GMAIL_PUBSUB_TOPIC` (nilai non-rahasia, lewat `--set-env-vars`).
+Setelah URL FE tersedia, perbarui `FRONTEND_URL`, CORS, serta redirect URI pada dashboard provider.
 
 ## 5. Webhook dan Gmail
 
@@ -97,7 +103,7 @@ Isi juga `OMNILEAD_WHATSAPP_PHONE_NUMBER_ID`, `OMNILEAD_INSTAGRAM_USER_ID`, `OMN
 - **Gmail push**: topic Pub/Sub, beri `gmail-api-push@system.gserviceaccount.com` peran Publisher, lalu subscription
   push ke `https://<api>/webhooks/gmail?token=<gmail-push-token>`. `watch` berlaku 7 hari; perpanjang harian (langkah 6).
   Cadangan bila push macet: job polling (langkah 6).
-- Refresh token Gmail mode Testing berlaku ±7 hari: ulangi OAuth tiap pagi hari demo.
+- Gmail mode Testing dapat meminta login ulang; gunakan **Hubungkan ulang** pada halaman Integrasi.
 
 ## 6. Cloud Scheduler
 
@@ -117,13 +123,13 @@ Alternatif OIDC: isi `OMNILEAD_SCHEDULER_OIDC_AUDIENCE` dengan URL API dan buat 
 ## 7. FE
 
 ```bash
-gcloud builds submit omnilead-fe --tag $REGION-docker.pkg.dev/$PROJECT/cloud-run-source-deploy/omnilead-fe \
-  --substitutions=_API_URL=$API   # atau: docker build --build-arg NEXT_PUBLIC_API_URL=$API
-gcloud run deploy omnilead-fe --image <image> --region $REGION --allow-unauthenticated
+gcloud builds submit omnilead-fe --tag $REGION-docker.pkg.dev/$PROJECT/cloud-run-source-deploy/omnilead-fe
+gcloud run deploy omnilead-fe --image <image> --region $REGION --allow-unauthenticated \
+  --set-env-vars OMNILEAD_BACKEND_URL=$API
 ```
 
-`NEXT_PUBLIC_API_KEY` ikut ke bundle browser. Untuk produksi, lewatkan API key lewat proxy server-side
-(Next.js route handler), jangan di bundle.
+Proxy Next.js `/api/backend` sudah meneruskan cookie sesi ke BE. URL backend dibaca
+server saat runtime. Tidak perlu mengisi `NEXT_PUBLIC_API_KEY`.
 
 ## 8. Data demo dan freeze
 

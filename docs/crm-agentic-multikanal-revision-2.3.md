@@ -1030,6 +1030,13 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 
 ## Status Implementasi
 
+**Pembaruan login bisnis (21 Okt 2026):** tersedia daftar/masuk/keluar, pemisahan data per bisnis,
+penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/ganti/putuskan
+akun untuk Instagram, Gmail, WhatsApp, dan LinkedIn. Aktivasi aplikasi provider sekali oleh
+pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
+dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
+Hasil pengujian terbaru: BE 87, FE 22; alur provider diuji dengan HTTP tiruan.
+
 Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
 [../TESTING.md](../TESTING.md), deploy di [deploy.md](deploy.md), sumber dan lisensi di [SOURCES.md](SOURCES.md).
 

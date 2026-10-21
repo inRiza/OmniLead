@@ -8,6 +8,16 @@ from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 from omnilead.store import Store
 
 
+@pytest.fixture(autouse=True)
+def legacy_auth_mode(monkeypatch):
+    """Existing connector/CRM tests explicitly use the local demo auth mode."""
+    from omnilead.config import get_settings
+    monkeypatch.setenv("OMNILEAD_AUTH_ENABLED", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 class FakeConnector(ChannelConnector):
     """Connector palsu untuk tes, mencatat panggilan tulis."""
 

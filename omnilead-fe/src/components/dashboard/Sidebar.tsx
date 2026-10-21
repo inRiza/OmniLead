@@ -6,6 +6,8 @@ import type { ComponentType, SVGProps } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardContext";
+import { useAccount } from "./AccountProvider";
+import { LogoutButton } from "./LogoutButton";
 import {
   HomeIcon,
   InboxIcon,
@@ -30,6 +32,7 @@ const main: NavItem[] = [
 ];
 
 const secondary: NavItem[] = [
+  { href: "/dashboard/knowledge", label: "Pengetahuan & Tone", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
   { href: "/dashboard/audit", label: "Audit", icon: ListIcon },
 ];
@@ -37,6 +40,8 @@ const secondary: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { pendingCount } = useDashboard();
+  const { session } = useAccount();
+  const user = session.user;
   const withBadge = (items: NavItem[]): NavItem[] =>
     items.map((i) =>
       i.href === "/dashboard/inbox" ? { ...i, badge: pendingCount } : i,
@@ -66,17 +71,18 @@ export function Sidebar() {
       <div className="p-3 pt-0">
         <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-md border border-rc-border bg-rc-primary text-sm font-semibold text-rc-primary-fg">
-            BR
+            {user ? user.name.slice(0, 2).toUpperCase() : "OL"}
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-medium text-rc-fg">
-              Bu Rina
+              {user?.name ?? "Demo OmniLead"}
             </div>
             <div className="truncate text-sm text-rc-fg-muted">
-              Katering &amp; hampers
+              {user?.business ?? "Lingkungan lokal"}
             </div>
           </div>
         </div>
+        <LogoutButton className="mt-2" />
       </div>
     </aside>
   );

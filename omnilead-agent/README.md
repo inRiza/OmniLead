@@ -49,6 +49,36 @@ Dokumentasi interaktif: http://localhost:8100/docs. Tes: `uv run pytest` (termas
 
 Jika `OMNILEAD_AGENT_API_KEY` diisi, BE wajib mengirim header `X-API-Key` (di BE: `OMNILEAD_AGENT_API_KEY`).
 
+## Mengaktifkan Gemini (Vertex AI)
+
+Vertex AI memakai kredensial Google (ADC), bukan token yang ditempel di kode.
+
+```bash
+gcloud auth login
+gcloud config set project <PROJECT_ID>
+gcloud services enable aiplatform.googleapis.com
+gcloud auth application-default login      # membuat kredensial lokal yang dibaca ADK
+```
+
+Isi `omnilead-agent/.env`:
+
+```
+OMNILEAD_AGENT_ENGINE=adk
+GOOGLE_GENAI_USE_VERTEXAI=1
+GOOGLE_CLOUD_PROJECT=<PROJECT_ID>
+GOOGLE_CLOUD_LOCATION=us-central1
+OMNILEAD_AGENT_MODEL=<ID model yang ada di Vertex>
+OMNILEAD_AGENT_TRIAGE_MODEL=<ID model>
+```
+
+Uji dulu, sebelum menjalankan service: `uv run python scripts/smoke_llm.py` (menampilkan error asli; pipeline biasa
+diam-diam jatuh ke templat bila LLM gagal). Lalu jalankan dengan `.env` dimuat:
+`uv run uvicorn omnilead_agent.main:app --port 8100 --env-file .env`.
+
+Alternatif tanpa gcloud: API key AI Studio (`GOOGLE_API_KEY=...`, tanpa `GOOGLE_GENAI_USE_VERTEXAI`).
+ID model dan region harus tersedia di project Anda; alias `gemini-flash-latest` adalah alias AI Studio dan belum
+tentu ada di Vertex.
+
 ## Persona dan ide konten
 
 - Persona = konfigurasi katalog: `OMNILEAD_AGENT_PERSONA=fashion` memuat `data/catalog-fashion.json` (stok per ukuran,

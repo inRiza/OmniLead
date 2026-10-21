@@ -178,12 +178,35 @@ class Lead(BaseModel):
     updated_at: datetime
 
 
+class KnowledgeProduct(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    unit_price: int = Field(ge=0, le=1_000_000_000)
+    unit: str = Field(default="pcs", min_length=1, max_length=30)
+    min_order: int = Field(default=1, ge=1, le=1_000_000)
+
+
+class KnowledgeBase(BaseModel):
+    id: str
+    name: str = Field(min_length=1, max_length=100)
+    content: str = Field(default="", max_length=100_000)
+    products: list[KnowledgeProduct] = Field(default_factory=list, max_length=30)
+    updated_at: datetime
+
+
+class ChannelAgentConfig(BaseModel):
+    knowledge_base_ids: list[str] = Field(default_factory=list, max_length=10)
+    tone: Literal["friendly", "professional", "casual", "concise", "custom"] = "friendly"
+    custom_tone: str = Field(default="", max_length=500)
+
+
 class AppSettings(BaseModel):
     paused: bool = False
     disabled_channels: list[Channel] = Field(default_factory=list)
     dry_run: bool = False
     preferences: list[str] = Field(default_factory=list)
     rate_limit_per_hour: int = 30
+    business_name: str = "Bisnis Anda"
+    agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
 
 
 class AuditEntry(BaseModel):

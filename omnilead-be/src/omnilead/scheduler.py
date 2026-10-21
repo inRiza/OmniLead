@@ -74,7 +74,9 @@ def run_followups(
                 reason="Follow-up jatuh tempo dan belum ada balasan dari pelanggan",
                 lead_id=action.lead_id,
                 event_id=action.event_id,
-                payload={"role": "followup_due", "from_action": action.id},
+                payload={"role": "followup_due", "from_action": action.id,
+                         **({"_connection_account": action.payload["_connection_account"]}
+                            if "_connection_account" in action.payload else {})},
             )
         )
         created.append(proposal.id)

@@ -43,6 +43,11 @@ Semua connector baru diuji dengan transport HTTP tiruan; belum pernah dipanggil 
 
 ## Menjalankan
 
+Login pengguna aktif secara default. Buka FE `/login`, daftar bisnis, lalu
+hubungkan Instagram, Gmail, WhatsApp, atau LinkedIn di **Akun & Integrasi**.
+Panduan konfigurasi aplikasi sekali oleh pengelola: [account-connections.md](../docs/account-connections.md).
+Token pengguna diperoleh lewat OAuth dan disimpan terenkripsi per bisnis.
+
 ```bash
 cd omnilead-be
 uv sync                       # tambah --extra firestore untuk Firestore
@@ -78,15 +83,17 @@ src/omnilead/
 
 ## Keamanan
 
-- REST untuk FE: header `X-API-Key` bila `OMNILEAD_API_KEY` diisi (kosong = mati, hanya dev).
+- REST untuk FE: cookie sesi login. Hanya mode demo eksplisit (`OMNILEAD_AUTH_ENABLED=false`)
+  memakai API key opsional. Token/API key tidak dikirim ke browser.
 - Webhook Meta: `X-Hub-Signature-256` wajib; app secret kosong → ditolak. Push Gmail: token di query.
 - `/scheduler/*`: `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>` atau OIDC Google; keduanya kosong → 403.
-- Rahasia hanya dari env/Secret Manager; `.env` dan `.secrets/` ada di `.gitignore`.
+- Kredensial aplikasi dari env/Secret Manager; token kanal disimpan terenkripsi di store per bisnis.
+  `.env`, `.secrets/`, dan database lokal ada di `.gitignore`.
 
 ## Tes
 
 ```bash
-uv run pytest                          # 72 tes
+uv run pytest                          # 87 tes
 uv run python eval/identity_eval.py    # presisi/recall identitas pada 50 lead dummy
 ```
 

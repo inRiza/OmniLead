@@ -31,7 +31,7 @@ class InstagramConnector(ChannelConnector):
         self._user_id = settings.instagram_user_id
         self._token = settings.instagram_access_token
         self._base = (
-            f"https://graph.facebook.com/{settings.instagram_graph_version}"
+            f"{settings.instagram_api_host}/{settings.instagram_graph_version}"
         )
         self._client = client or httpx.Client(timeout=15.0)
 
@@ -64,6 +64,8 @@ class InstagramConnector(ChannelConnector):
             raise ConnectorError(f"Respons non-JSON dari Graph API: {resp.text[:200]}")
         if resp.status_code >= 400 or "error" in body:
             err = body.get("error", {})
+            if resp.status_code == 401 or err.get("code") == 190:
+                raise NotConnected("Akses Instagram berakhir atau dicabut")
             raise ConnectorError(
                 f"Graph API error {resp.status_code}: "
                 f"{err.get('message', body)} (code {err.get('code')})"
@@ -73,14 +75,15 @@ class InstagramConnector(ChannelConnector):
     # --- kapabilitas ---
 
     def capabilities(self) -> list[Capability]:
-        p = "official_api"
+        connected = bool(self._user_id and self._token)
+        p = "official_api" if connected else "handoff"
         return [
-            Capability(action="list_posts", available=True, path=p),
-            Capability(action="read_comments", available=True, path=p),
-            Capability(action="post_comment", available=True, path=p),
+            Capability(action="list_posts", available=connected, path=p),
+            Capability(action="read_comments", available=connected, path=p),
+            Capability(action="post_comment", available=connected, path=p),
             Capability(
                 action="reply_comment",
-                available=True,
+                available=connected,
                 path=p,
                 note="Balasan publik atas komentar di media sendiri.",
             ),
@@ -94,7 +97,7 @@ class InstagramConnector(ChannelConnector):
 
     def status(self) -> ChannelStatus:
         connected = bool(self._user_id and self._token)
-        detail = "Terhubung (Graph API)" if connected else "Token belum diisi"
+        detail = "Terhubung (Instagram API)" if connected else "Hubungkan akun Instagram Business atau Creator"
         return ChannelStatus(
             channel=self.channel,
             connected=connected,
