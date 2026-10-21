@@ -1,14 +1,14 @@
 ---
 summary: OmniLead membantu pemilik dan admin UMKM Indonesia mengelola
-  komentar, pesan, dan email prospek dari WhatsApp, Instagram, dan email
-  dalam satu profil pelanggan. Agen AI berbasis Google ADK dan Gemini
+  komentar, pesan, dan email prospek dari WhatsApp, Instagram, Facebook,
+  dan email dalam satu profil pelanggan. Agen AI berbasis Google ADK dan Gemini
   menyusun balasan dan tindak lanjut beserta alasannya, dan setiap aksi
   keluar dijalankan setelah disetujui manusia.
 tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 3.0
+version: 4.0
 ---
 
 Label sumber data di dokumen ini:
@@ -17,6 +17,10 @@ Label sumber data di dokumen ini:
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
 - **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 4.0 (21 Okt 2026).** Kanal MVP ditetapkan: WhatsApp, email, Instagram, dan
+Facebook. LinkedIn, TikTok, dan kanal lain dipindah ke pengembangan lanjutan (lihat
+[Kanal: MVP dan Pengembangan Lanjutan](#kanal-mvp-dan-pengembangan-lanjutan)).
 
 **Versi 3.0 (21 Okt 2026).** Disinkronkan dengan kode dan kondisi project GCP
 panitia; bagian Urgensi Masalah ditambahkan; bagian Dampak ditulis ulang (bisnis dan non-bisnis); isi
@@ -29,7 +33,7 @@ Daftar ketidaksinkronan yang diperbaiki ada di
 UMKM Indonesia berjualan lewat chat. Menurut BPS Statistik E-Commerce
 2023, 95,33% usaha e-commerce berjualan melalui aplikasi pesan instan
 dan 33,29% melalui media sosial [S]. Pelanggan menghubungi bisnis lewat
-komentar Instagram, DM, WhatsApp, dan email, sering kali orang yang sama
+komentar Instagram dan Facebook, DM, WhatsApp, dan email, sering kali orang yang sama
 lewat dua atau tiga kanal sekaligus. Di usaha mikro, satu orang biasanya
 merangkap pemilik, admin chat, sales, dan pengelola media sosial.
 
@@ -42,7 +46,7 @@ Akibatnya:
 - Tindak lanjut terlewat.
 
 **OmniLead** adalah platform web dengan agen AI sebagai orkestrator.
-Agen menyatukan WhatsApp, Instagram, dan email menjadi satu profil
+Agen menyatukan WhatsApp, Instagram, Facebook, dan email menjadi satu profil
 pelanggan, memprioritaskan aktivitas berdasarkan nilai bisnis, lalu
 menyiapkan balasan dan tindak lanjut lengkap dengan alasannya. Agen
 tidak pernah mengirim apa pun sendiri. Setiap aksi keluar masuk antrean
@@ -59,9 +63,11 @@ Batas demo hackathon:
   untuk akun milik tim, tanpa App Review) adalah **target nyata**. Kodenya
   siap, tetapi per 21 Okt 2026 belum diuji ke akun asli. Selama belum
   diuji, pesan masuk lewat **Tempel pesan** dan dikirim dalam mode dry-run.
-- TikTok dan LinkedIn tidak lewat API, tetapi lewat fitur **Kanal tanpa
-  API**: pesan masuk ditempel sebagai screenshot atau teks, lalu draf
-  dikirim sendiri oleh pengguna melalui tombol "Salin & buka".
+- Facebook Page (komentar dan Messenger) termasuk MVP, tetapi connector-nya
+  **belum diimplementasi**. Sampai selesai, komentar dan pesan Facebook masuk
+  lewat **Tempel pesan** dan balasannya dikirim manual lewat **Salin & buka**.
+- LinkedIn, TikTok, dan kanal lain masuk **pengembangan lanjutan**, bukan
+  bagian demo.
 - CRM di SQLite lokal untuk demo. Adapter Firestore sudah ada dan
   dipakai bila Firestore diaktifkan di project panitia.
 
@@ -180,7 +186,8 @@ dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 - **Profil:** Usaha mikro dengan 2–4 orang yang menjual olahan buah: rujak
   buah, es teler, dan paket untuk acara (arisan, pengajian, acara kantor).
   Rina merangkap pemilik, admin chat, dan pengelola Instagram.
-- **Kanal:** Komentar dan DM Instagram, WhatsApp, dan email. Email
+- **Kanal:** Komentar dan DM Instagram, Page Facebook dan Messenger, WhatsApp,
+  dan email. Email
   biasanya dipakai pelanggan kantor yang meminta penawaran untuk acara [A].
 - **Masalah:**
   - Pertanyaan harga, porsi, dan area kirim tersebar di tiga kanal.
@@ -201,7 +208,7 @@ dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 
 ### P2: "Dimas", admin toko online fashion wanita
 
-- **Profil:** Usaha kecil dengan 5–15 orang, 1–2 admin. Jualan di IG, WA,
+- **Profil:** Usaha kecil dengan 5–15 orang, 1–2 admin. Jualan di IG, Facebook, WA,
   dan marketplace.
 - **Masalah:** Volume komentar tinggi ("ready size M?", "PO kapan?"),
   komplain bercampur dengan pertanyaan beli, dan reseller tidak
@@ -229,6 +236,66 @@ berapa chat per hari, kanal apa saja yang dipakai, dan apakah pernah
 kehilangan order karena telat membalas. Kutipan nyata (dengan izin dan
 dianonimkan) menjadi bukti relevansi terkuat.
 
+## Kanal: MVP dan Pengembangan Lanjutan
+
+### Kanal MVP
+
+Keempat kanal MVP memakai API resmi. WhatsApp, Instagram, dan Facebook berada
+di satu ekosistem Meta, sehingga satu aplikasi Meta Developer, satu jenis
+webhook, dan satu pola private reply bisa dipakai bersama.
+
+| Kanal | Yang didukung | API | Status kode (21 Okt 2026) |
+|---|---|---|---|
+| WhatsApp | Chat masuk dan keluar, jendela 24 jam | WhatsApp Cloud API (Embedded Signup) | Ada; belum diuji ke akun asli |
+| Email | Baca, balas dalam thread | Gmail API (OAuth) | Ada; belum diuji ke akun asli |
+| Instagram | Komentar, DM, private reply | Instagram API with Instagram Login | Ada; belum diuji ke akun asli |
+| **Facebook Page** | Komentar di post Page, Messenger, private reply | Graph API (Pages) + Messenger Platform | **Belum diimplementasi** |
+
+**Kenapa Facebook masuk MVP:** jangkauan iklan Facebook di Indonesia **121 juta
+pengguna** dan Messenger **33,7 juta** [V]
+([DataReportal 2026](https://datareportal.com/reports/digital-2026-indonesia)).
+Banyak UMKM masih memakai Page dan grup Facebook untuk berjualan [A].
+
+**Catatan teknis Facebook** (dicek di dokumen Meta, 21 Okt 2026):
+
+- **Private reply:** Page bisa mengirim satu pesan Messenger ke orang yang
+  berkomentar, paling lambat **7 hari** setelah komentar dibuat. Percakapan
+  baru bisa dilanjutkan bila orang itu membalas, lalu berlaku jendela 24 jam
+  [V] ([Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)).
+- **Jendela balasan:** bisnis punya **24 jam** untuk membalas pesan pengguna.
+  Tag **Human Agent** mengizinkan balasan manual oleh manusia hingga **7 hari**
+  [V] ([Messenger policy](https://developers.facebook.com/docs/messenger-platform/policy/policy-overview)).
+  Ini cocok dengan pola OmniLead: semua balasan disetujui manusia.
+- **Izin:** butuh Page access token dan izin `pages_messaging`. Aplikasi
+  dengan Standard Access hanya bisa menjangkau orang yang punya role di
+  aplikasi, jadi demo memakai akun anggota tim; untuk pelanggan sungguhan
+  perlu App Review [V] ([Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)).
+  Membaca dan membalas komentar Page juga butuh izin engagement Page
+  (`pages_read_engagement`, `pages_manage_engagement`) [S, cek ulang saat
+  setup].
+- **Implementasi:** connector baru `connectors/facebook.py` dengan kontrak
+  yang sama (`capabilities()`, `official_api`), webhook `feed` dan
+  `messages` pada Page, serta nilai `facebook` di enum `Channel`. Polanya
+  sama dengan connector Instagram.
+
+**Cadangan untuk semua kanal MVP:** bila koneksi kanal belum siap, pengguna
+menempel pesan (teks atau screenshot) lewat **Tempel pesan**. Gemini
+mengekstrak isinya, agen menyusun draf, dan pengguna mengirim sendiri lewat
+**Salin & buka** lalu menandai **Sudah dikirim**.
+
+### Pengembangan lanjutan
+
+| Kanal | Alasan belum di MVP | Jalur nanti |
+|---|---|---|
+| TikTok | Jangkauan iklan besar (180 juta pengguna 18+ [V], [DataReportal](https://datareportal.com/reports/digital-2026-indonesia)), tetapi Comment Management dan Business Messaging API butuh pendaftaran developer dan review keamanan data; Business Messaging masih beta ([TikTok](https://business-api.tiktok.com/portal/docs/access-to-business-messaging-api/v1.3)) | API resmi setelah review disetujui |
+| LinkedIn | 37 juta member [V], tetapi Messaging API hanya untuk partner yang disetujui dan pesan harus dipicu member ([LinkedIn](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)); Company Page API perlu pengajuan produk | Company Page API untuk komentar |
+| Chat marketplace (Shopee, Tokopedia/TikTok Shop) | Akses API chat seller terbatas pada partner [A] | API partner marketplace |
+| X, Telegram, lainnya | Belum diprioritaskan untuk persona UMKM | Dievaluasi setelah MVP |
+
+Kode untuk LinkedIn dan TikTok sudah dihapus dari repo pada 21 Okt 2026.
+Riset kelayakan per kanal ada di
+[feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md).
+
 ## Arsitektur Agent
 
 ### Pilihan: workflow deterministik dengan tiga peran agent
@@ -248,7 +315,7 @@ Pemisahan Triage, Orchestrator, dan Guard dijustifikasi oleh pola
 *review-critique*. Sisanya berupa kode deterministik.
 
 ```
-[Webhook WA / IG / Gmail Pub/Sub]
+[Webhook WA / IG / FB / Gmail Pub/Sub]
           │  (kode biasa, bukan LLM)
           ▼
  ① Ingest & Normalize ──► Event{channel, sender, text, ts, raw_ref}
@@ -310,21 +377,19 @@ Pemisahan Triage, Orchestrator, dan Guard dijustifikasi oleh pola
   draf berikutnya.
 - **Trace terlihat:** setiap langkah (rencana, tool, input, hasil, alasan)
   ditampilkan di panel agen.
-- **Private reply Instagram:** untuk komentar publik yang menanyakan
-  harga, agen mengusulkan dua aksi sekaligus: balasan publik singkat
-  ("sudah kami DM ya kak") dan DM berisi detail harga. Private reply
+- **Private reply Instagram dan Facebook:** untuk komentar publik yang
+  menanyakan harga, agen mengusulkan dua aksi sekaligus: balasan publik
+  singkat ("sudah kami DM ya kak") dan DM berisi detail harga. Private reply
   hanya bisa dikirim dalam 7 hari sejak komentar dibuat, satu kali per
-  komentator ([Private Replies](https://developers.facebook.com/docs/instagram-platform/private-replies)).
-- **Kanal tanpa API (handoff manual):** untuk kanal yang API-nya tidak
-  bisa diakses (TikTok DM, LinkedIn DM):
+  komentator ([Instagram](https://developers.facebook.com/docs/instagram-platform/private-replies),
+  [Facebook](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)).
+- **Tempel pesan (cadangan):** bila koneksi kanal MVP belum siap:
   - **Masuk:** pengguna menempel screenshot atau teks. Gemini (multimodal)
     mengekstrak pengirim, isi, dan konteks menjadi event biasa, sehingga
     triage, identitas, dan draf tetap berjalan.
   - **Keluar:** executor tidak mengirim apa pun. UI menampilkan tombol
-    **Salin & buka di TikTok/LinkedIn**. Pengguna mengirim sendiri lalu
-    menekan **Sudah dikirim**, dan aktivitasnya dicatat di CRM.
-  - Pola ini sesuai aturan LinkedIn, yang mewajibkan setiap pesan dipicu
-    dan bisa diedit oleh member ([LinkedIn Messages](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)).
+    **Salin & buka**. Pengguna mengirim sendiri lalu menekan **Sudah
+    dikirim**, dan aktivitasnya dicatat di CRM.
   - Agen tidak pernah mengklaim akses yang tidak ada.
 
 ## Kemampuan Agent
@@ -434,8 +499,8 @@ Inti sistem. Orchestrator bekerja dengan siklus **rencana → panggil tool
 | Update CRM | Mengusulkan perubahan tahap (baru → tertarik → penawaran → deal/batal), tag, dan catatan | Must |
 | Ringkasan profil | Ringkasan 2–3 kalimat tentang pelanggan dan status terakhir, diperbarui setiap ada aktivitas | Must |
 | Follow-up | Mengusulkan pengingat dan draf follow-up (misalnya H+2 jika belum dibalas) | Should |
-| Private reply IG | Balasan publik singkat + DM berisi detail | Should |
-| Handoff manual | Draf untuk kanal tanpa API, dengan tombol Salin & buka | Could |
+| Private reply IG/FB | Balasan publik singkat + DM berisi detail | Should |
+| Kirim manual | Draf dari pesan yang ditempel, dengan tombol Salin & buka (cadangan bila kanal belum terhubung) | Could |
 | Ide konten | 3 ide konten dari pertanyaan yang paling sering muncul minggu ini | Could |
 
 ### 4. Guard Agent (Must)
@@ -535,7 +600,7 @@ Status   : Menunggu persetujuan (4 aksi)
 | Yang wajib terlihat di demo | Di OmniLead |
 |---|---|
 | Tujuan | Baris "Tujuan" di panel trace |
-| Masukan | Komentar IG, chat WA, email (atau screenshot untuk kanal tanpa API) |
+| Masukan | Komentar IG/FB, chat WA/Messenger, email (atau pesan yang ditempel bila kanal belum terhubung) |
 | Langkah agent | Rencana dan langkah bernomor di panel trace |
 | Penggunaan tools/data | Nama tool, input, dan hasil per langkah; data dari CRM dan katalog lewat MCP |
 | Hasil eksekusi | Email dan WA benar-benar terkirim; CRM dan audit log diperbarui |
@@ -586,20 +651,20 @@ Status   : Menunggu persetujuan (4 aksi)
 -   Executor backend memeriksa flag Pause dan izin -\> Agent dijeda
 -   Agent dijeda -\> Tahan aksi di antrean
 -   Executor backend memeriksa flag Pause dan izin -\> Kirim melalui Gmail,
-    WhatsApp, atau Instagram API
--   Kirim melalui Gmail, WhatsApp, atau Instagram API -\> Aksi berhasil
--   Kirim melalui Gmail, WhatsApp, atau Instagram API -\> Aksi gagal atau
+    WhatsApp, Instagram, atau Facebook API
+-   Kirim melalui Gmail, WhatsApp, Instagram, atau Facebook API -\> Aksi berhasil
+-   Kirim melalui Gmail, WhatsApp, Instagram, atau Facebook API -\> Aksi gagal atau
     izin kedaluwarsa
 -   Aksi gagal atau izin kedaluwarsa -\> Tampilkan error dan sediakan opsi
     coba ulang atau penanganan manual
 -   Aksi berhasil -\> Catat audit log dan perbarui CRM
 -   Catat audit log dan perbarui CRM -\> Jadwalkan pengingat follow-up
--   Screenshot atau teks dari kanal tanpa API ditempel pengguna -\>
+-   Screenshot atau teks dari kanal yang belum terhubung ditempel pengguna -\>
     Gemini mengekstrak pengirim, isi, dan konteks
 -   Gemini mengekstrak pengirim, isi, dan konteks -\> Ingest dan
     normalisasi event
--   Executor backend memeriksa flag Pause dan izin -\> Kanal tanpa API
--   Kanal tanpa API -\> Tampilkan Salin dan buka aplikasi
+-   Executor backend memeriksa flag Pause dan izin -\> Kanal belum terhubung
+-   Kanal belum terhubung -\> Tampilkan Salin dan buka aplikasi
 -   Tampilkan Salin dan buka aplikasi -\> Pengguna mengirim sendiri dan
     menandai sudah dikirim
 -   Pengguna mengirim sendiri dan menandai sudah dikirim -\> Catat audit
@@ -638,16 +703,20 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 8. **Pause Agent.** Tekan Pause saat agen menyusun draf. Banner merah
    muncul dan antrean terkunci.
 
-### Skenario tambahan: kanal tanpa API (±45 detik, jika fitur selesai)
+### Skenario tambahan: Facebook Page (±45 detik, setelah connector Facebook selesai)
 
-1. Tempel screenshot DM TikTok: "kak rujaknya bisa kirim ke Cimahi?".
-2. Gemini mengekstrak pengirim dan isi. Agen mencocokkan dengan profil
-   yang ada (atau membuat profil baru), lalu menyusun draf.
-3. Tombol yang muncul adalah **Salin & buka di TikTok**, bukan "Kirim".
-   Pengguna mengirim sendiri, menekan **Sudah dikirim**, dan riwayat
-   tercatat.
-4. Pesan ke juri: "Untuk kanal yang API-nya tertutup, OmniLead tidak
-   berpura-pura terhubung. Agen menyiapkan, manusia yang mengirim."
+1. Komentar di post Facebook Page Bu Rina: "kak rujaknya bisa kirim ke
+   Cimahi?".
+2. Agen mengenali pengirim (atau membuat profil baru), membaca area kirim
+   di katalog, lalu mengusulkan balasan komentar singkat dan private reply
+   Messenger berisi ongkir dan harga.
+3. Pemilik menyetujui; executor mengirim lewat Graph API dan Messenger
+   Platform.
+4. Pesan ke juri: "Engine-nya sama untuk empat kanal. Menambah kanal berarti
+   menambah connector, bukan mengubah agen."
+
+Bila connector Facebook belum selesai, skenario ini dijalankan lewat
+**Tempel pesan** dan **Salin & buka**, dan disebutkan apa adanya ke juri.
 
 ### Skenario gagal
 
@@ -665,9 +734,8 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 | Gmail baca dan kirim | **Target nyata, belum diuji** | Kode siap (OAuth refresh token, kirim dalam thread, push + polling). Gmail API belum aktif di project panitia. OAuth mode Testing dengan anggota tim sebagai test user. `gmail.send` termasuk scope sensitive; `gmail.modify`/`readonly` restricted ([scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)), cukup untuk mode Testing. |
 | WhatsApp | **Target nyata (terbatas), belum diuji** | Kode siap (webhook dengan signature, jendela 24 jam). Nomor uji Cloud API hanya ke beberapa nomor terdaftar (±5). HP anggota tim berperan sebagai pelanggan. |
 | Instagram komentar, DM, private reply | **Target nyata (Standard Access), belum diuji; cadangan: Tempel pesan** | Akun IG Professional milik tim dengan `instagram_business_manage_comments`/`..._manage_messages`. Standard Access cukup untuk akun sendiri atau akun yang punya role di app, jadi App Review **tidak** diperlukan untuk demo ([Messaging](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api), [Comments](https://developers.facebook.com/docs/instagram-platform/comment-moderation)). Tidak ada mock Instagram; bila akses belum siap, komentar masuk lewat Tempel pesan. |
-| TikTok DM/komentar | **Handoff manual** (Could) | Pendaftaran developer, review keamanan, dan Business Messaging API butuh approval berhari-hari, sehingga tidak realistis dalam 24 jam. Masuk lewat screenshot/teks, keluar lewat Salin & buka. |
-| LinkedIn DM | **Handoff manual** (Could) | API messaging hanya untuk partner yang disetujui, dan pesan harus dipicu member ([LinkedIn](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)). Company Page API memerlukan pengajuan produk, sehingga masuk roadmap. |
-| LinkedIn komentar/balasan di post milik sendiri | **Target nyata (OAuth member), fallback handoff** [A] | `omnilead-be` sudah memanggil `/rest/socialActions` dengan token OAuth member (`connectors/linkedin.py`). Membaca post dan komentar belum didukung connector (`ActionNotSupported`), jadi komentar masuk lewat **Tempel pesan**. Izin produk LinkedIn yang dibutuhkan belum diverifikasi; jangan diklaim "terhubung" di slide sebelum token uji berhasil. Tanpa token, aksi otomatis jatuh ke handoff. |
+| Facebook Page: komentar, Messenger, private reply | **MVP, belum diimplementasi; cadangan: Tempel pesan** | Connector belum ada di kode. Standard Access cukup untuk akun anggota tim yang punya role di aplikasi ([Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)). |
+| LinkedIn, TikTok, dan kanal lain | **Pengembangan lanjutan** | Kode dihapus 21 Okt 2026; lihat bagian Kanal |
 | CRM | **Nyata, lokal** | SQLite di laptop demo. Adapter Firestore siap (diuji dengan fake), menunggu Firestore diaktifkan panitia |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
 | Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 14/18 pass^3, ±41 detik per kasus; engine aturan 18/18, ±0,4 detik |
@@ -924,8 +992,9 @@ di antara Meta (gratis) dan Qontak/SleekFlow (Rp750rb+).
   - pesan layanan di dalam jendela 24 jam gratis sampai 1.000 per nomor
     per bulan, mulai 1 Okt 2026 ([WA pricing](https://developers.facebook.com/docs/whatsapp/pricing/)).
   - Prioritisasi (tidak membalas spam) ikut menekan biaya.
-- LinkedIn mewajibkan setiap pesan dipicu dan bisa diedit member. Ini
-  sejalan dengan filosofi human approval.
+- Messenger: balasan bebas dalam 24 jam; tag Human Agent mengizinkan
+  balasan manual hingga 7 hari. Ini sejalan dengan filosofi human approval
+  ([Messenger policy](https://developers.facebook.com/docs/messenger-platform/policy/policy-overview)).
 
 ## Teknologi dan Google Cloud
 
@@ -984,7 +1053,8 @@ Gmail ─► Pub/Sub topic ─►┘          │
 | Gmail API | Gratis untuk pemakaian standar, berbasis kuota (6.000 unit/menit per user, 80 juta unit/hari per project; `messages.send` = 100 unit). Google berencana menagih pemakaian **di atas kuota** mulai akhir 2026; demo jauh di bawah batas. Akun Gmail biasa cukup. ([Gmail quota](https://developers.google.com/workspace/gmail/api/reference/quota)) |
 | WhatsApp Cloud API | Satu-satunya API yang menagih per pesan terkirim (marketing, utility, authentication, service, Meta Business Agent); pesan dari pelanggan gratis. Pesan layanan gratis **1.000 per nomor per bulan**, ditagih mulai pesan ke-1.001 (berlaku 1 Okt 2026). Tanpa metode pembayaran, Meta tetap mengirim dalam jatah gratis lalu **berhenti mengirim**, sehingga tidak ada tagihan kejutan. Nomor uji tidak memerlukan metode pembayaran untuk **template**; untuk pesan bebas belum terkonfirmasi, jadi diuji saat setup. Hindari template marketing dan BSP pihak ketiga. ([WA pricing](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing), [Get started](https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started)) |
 | Instagram API | Tidak ada biaya per panggilan atau per pesan; dibatasi rate limit (Send API 300 panggilan/detik per akun, publikasi 100 post/24 jam). Hambatannya App Review, yang tidak diperlukan untuk akun sendiri. ([Overview](https://developers.facebook.com/docs/instagram-platform/overview/), [Publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing/)) |
-| LinkedIn dan TikTok API | Tidak ada biaya per panggilan yang dipublikasikan untuk API resmi. Hambatannya approval atau status partner, bukan biaya, sehingga di demo memakai handoff manual (Rp0). Biaya program partner LinkedIn tidak dipublikasikan [S]. |
+| Facebook (Graph API, Messenger Platform) | Tidak ada biaya per panggilan untuk membalas komentar dan pesan yang dimulai pelanggan [A, cek ulang]; hambatannya izin dan App Review untuk pelanggan di luar role aplikasi. |
+| LinkedIn dan TikTok API (pengembangan lanjutan) | Tidak ada biaya per panggilan yang dipublikasikan untuk API resmi. Hambatannya approval atau status partner, bukan biaya. |
 | ADK, MCP, library open-source | Gratis |
 
 **Ringkasnya:** demo kemungkinan besar Rp0 di luar kredit GCP. Dalam
@@ -1133,9 +1203,9 @@ dokumentasi. Scope yang lebar tetap berisiko karena:
 |---|---|
 | **Must** | Ingest Gmail + WA (+ IG mock) → Triage → Identity → Orchestrator → Guard → Approval UI → Executor Gmail/WA → Audit log; panel trace; Pause Agent; seed data P1; skenario utama + G1; README + catatan AI + TESTING.md; video cadangan |
 | **Should** | IG API asli (Standard Access) + private reply komentar → DM; lead scoring dengan alasan; pengingat Cloud Scheduler; belajar dari penolakan; `adk eval` dengan pass^3 |
-| **Could (prioritas atas)** | Kanal tanpa API untuk TikTok/LinkedIn: screenshot/teks → event (Gemini multimodal), draf → Salin & buka → Sudah dikirim (±2–3 jam) |
+| **Could (prioritas atas)** | Tempel pesan (screenshot/teks → event, Gemini multimodal) dan Salin & buka → Sudah dikirim sebagai cadangan kanal MVP (±2–3 jam) |
 | **Could** | Persona P2 sebagai konfigurasi; agen menyarankan 3 ide konten dari pertanyaan yang paling sering muncul (draf saja; publikasi IG hanya setelah disetujui). Dikerjakan hanya jika semua Must selesai sebelum Kamis 05.00. |
-| **Won't (roadmap)** | Integrasi API TikTok (Business Messaging, Comment, Content Posting) dan LinkedIn (Company Page, Messaging); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md). |
+| **Won't (pengembangan lanjutan)** | LinkedIn, TikTok, chat marketplace, dan kanal lain (lihat bagian Kanal); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md). |
 
 ### Pembagian peran (tim 3 orang)
 
@@ -1185,7 +1255,7 @@ Supaya tiga orang bisa bekerja paralel sejak jam pertama:
    | `executing` | Executor sedang mengirim | `approved`, `edited`, `failed` (coba ulang) |
    | `executed` (= `sent`) | Terkirim lewat API | `executing` |
    | `failed` | Gagal kirim; error tercatat; boleh coba ulang | `executing` |
-   | `awaiting_manual_send` | Kanal tanpa API: menunggu pengguna | `approved`, `edited` |
+   | `awaiting_manual_send` | Kirim manual: menunggu pengguna | `approved`, `edited` |
    | `sent_manually` | Pengguna menekan **Sudah dikirim** | `awaiting_manual_send` |
 
    Aturan: persetujuan, penolakan, dan penandaan manual hanya sah dari
@@ -1212,7 +1282,7 @@ Supaya tiga orang bisa bekerja paralel sejak jam pertama:
    | `GET`/`PATCH /settings`, `GET`/`POST /settings/pause`, `PATCH /settings/channels/{ch}` (aktif; dry-run lewat `/settings`) | ada |
    | `GET /leads`, `GET /leads/{id}` (profil + timeline + bukti merge) | ada |
    | `POST /events` (event masuk: dedup, identitas, panggil agen), `GET /events`, `POST /events/{id}/analyze` | ada |
-   | `POST /events/paste`, `POST /events/paste-image` (kanal tanpa API: teks atau screenshot) | ada |
+   | `POST /events/paste`, `POST /events/paste-image` (pesan tempelan: teks atau screenshot) | ada |
    | `POST /actions/{id}/retry` | ada |
    | `GET /summary/today` (hal yang perlu ditangani hari ini) | ada |
    | `GET /agent/health` | ada |
@@ -1247,17 +1317,17 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 | **19.00** | Checkpoint bersama: event → draf → approve → email terkirim; IG asli atau mock; WA pesan bebas dari nomor uji berhasil atau tidak (jika gagal: pasang metode pembayaran, tetap gratis dalam jatah 1.000, atau pakai template `hello_world` dan pindahkan pesan bebas ke email) | | |
 | 19–24 | Panel trace, profil + bukti merge, tombol Pause | Identity LLM (kasus ambigu), scoring, revisi dari penolakan | Flag Pause di executor, IG webhook + private reply, identity rules |
 | Kam 00–05 | Polish UI, state kosong/error (tidur bergantian) | Evalset + `adk eval` + pass^3 (tidur bergantian) | Cloud Scheduler follow-up, deploy final, bug fix (tidur bergantian) |
-| 05–09 | Rekam video cadangan, mulai deck | Kanal tanpa API (jika Must stabil), TESTING.md | Uji kestabilan end-to-end, README instalasi |
+| 05–09 | Rekam video cadangan, mulai deck | Tempel pesan (jika Must stabil), TESTING.md | Uji kestabilan end-to-end, README instalasi |
 | 09–12 | Deck, latihan demo | Latihan demo, catatan AI | Uji skenario demo 5x, `.env.example`, catatan sumber |
 | 12–13 | **Freeze:** tag `v1.0-freeze`, matikan resource yang tidak perlu | | |
 | 13–15 | Unggah luaran; deck seleksi (pitch 2 menit + demo) | | |
 
 ## Status Implementasi
 
-**Penyempitan kanal (21 Okt 2026):** kanal aktif hanya Instagram, WhatsApp, dan email.
-LinkedIn dan TikTok dihapus dari entry API, OAuth, agen, UI, dan pengaturan pengetahuan.
-Pembahasan kedua kanal pada bagian riset/rencana sebelumnya merupakan konteks historis,
-bukan fitur yang tersedia. Instagram memakai Instagram Login di `graph.instagram.com` (default `v26.0`).
+**Kanal (PRD 4.0):** MVP = WhatsApp, email, Instagram, dan Facebook. Kode saat ini
+mendukung Instagram, WhatsApp, dan email; **connector Facebook belum ada**. LinkedIn dan
+TikTok dihapus dari entry API, OAuth, agen, UI, dan pengaturan pengetahuan (21 Okt 2026)
+dan masuk pengembangan lanjutan. Instagram memakai Instagram Login di `graph.instagram.com` (default `v26.0`).
 
 **Pembaruan login bisnis (21 Okt 2026):** tersedia daftar/masuk/keluar, pemisahan data per bisnis,
 penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/ganti/putuskan
@@ -1286,7 +1356,8 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |
-| Kanal tanpa API: tempel teks/screenshot, Salin & buka, Sudah dikirim | Could | Selesai | Ekstraksi screenshot butuh kredensial Gemini |
+| Connector Facebook Page: komentar, Messenger, private reply | Must | Belum | Kanal MVP sejak PRD 4.0 |
+| Tempel pesan (teks/screenshot), Salin & buka, Sudah dikirim | Could | Selesai | Cadangan untuk kanal yang belum terhubung |
 | FE terhubung ke BE, panel trace, profil, merge, filter | Must | Selesai | Diverifikasi di browser |
 | Seed data + skrip reset | Must | Selesai | 30 lead dummy + Ani |
 | Evalset 18 kasus, pass^3, evaluasi identitas | Should | Selesai (parsial) | Format sendiri; `adk eval` belum dijalankan |
@@ -1341,19 +1412,20 @@ Bisa, sejauh platform menyediakan API resmi dengan izin yang sesuai.
   profesional milik sendiri. Pesan hanya bisa dikirim dalam jendela 24
   jam setelah pelanggan menghubungi, dan private reply hanya dalam 7
   hari setelah komentar.
-- TikTok dan LinkedIn punya API, tetapi aksesnya memerlukan approval atau
-  status partner. OmniLead menanganinya lewat **Kanal tanpa API**: pesan
-  ditempel sebagai screenshot atau teks, agen menyusun draf, dan
-  pengguna mengirim sendiri.
+- Facebook Page mendukung baca dan balas komentar serta Messenger, dengan
+  jendela 24 jam dan private reply 7 hari yang sama polanya dengan
+  Instagram.
+- Untuk kanal yang belum terhubung, pesan bisa ditempel sebagai screenshot
+  atau teks, agen menyusun draf, dan pengguna mengirim sendiri.
 
-### Kenapa TikTok dan LinkedIn tidak terhubung langsung?
+### Kenapa LinkedIn dan TikTok belum masuk MVP?
 
-TikTok Business Messaging API masih Open Beta dan memerlukan review
-keamanan data. Publikasi konten memerlukan audit sebelum bisa publik.
-LinkedIn membatasi Messaging API untuk partner yang disetujui dan
-mewajibkan setiap pesan dipicu member. Integrasi API keduanya ada di
-roadmap. Sementara itu, handoff manual tetap memberi profil terpadu dan
-draf tanpa melanggar ketentuan platform.
+Akses API keduanya bergantung pada persetujuan platform, bukan pada kode.
+TikTok Business Messaging API masih beta dan memerlukan review keamanan
+data. LinkedIn membatasi Messaging API untuk partner yang disetujui dan
+mewajibkan setiap pesan dipicu member. MVP fokus pada empat kanal yang API
+resminya bisa dipakai sekarang: WhatsApp, email, Instagram, dan Facebook.
+LinkedIn dan TikTok masuk pengembangan lanjutan.
 
 ### Apa bedanya dengan CRM atau social media management tool biasa?
 
@@ -1369,8 +1441,8 @@ MCP tidak menambah akses; ia hanya membungkus jalur di belakangnya. MCP
 LinkedIn yang bisa membaca DM memakai sesi login dan Playwright, dan MCP
 WhatsApp populer memakai emulasi WhatsApp Web. Keduanya melanggar
 ketentuan platform dan berisiko membuat akun atau nomor diblokir.
-OmniLead hanya memakai integrasi berbasis API resmi, dan untuk kanal
-yang API-nya tertutup memakai handoff manual.
+OmniLead hanya memakai integrasi berbasis API resmi. Kanal yang API-nya
+belum terbuka ditunda ke pengembangan lanjutan.
 
 ### Meta Business Agent gratis, kenapa butuh OmniLead?
 
@@ -1404,9 +1476,9 @@ ke-1.001 (sejak 1 Okt 2026). Template marketing, authentication, dan
 utility di luar jendela berbayar. Tanpa metode pembayaran, Meta berhenti
 mengirim setelah jatah gratis habis, sehingga tidak ada tagihan kejutan.
 
-API Gmail, Instagram, LinkedIn, dan TikTok tidak memungut biaya per
-panggilan. Gmail berbasis kuota; Instagram, LinkedIn, dan TikTok dibatasi
-akses dan review, bukan biaya.
+API Gmail, Instagram, dan Facebook tidak memungut biaya per panggilan.
+Gmail berbasis kuota; Instagram dan Facebook dibatasi izin dan review,
+bukan biaya.
 
 Demo memakai pola pelanggan-chat-duluan dengan nomor uji WA. Dalam
 produk nyata, biaya WA dibayar bisnis langsung ke Meta tanpa markup, dan
@@ -1470,13 +1542,13 @@ UU 27/2022 tentang Pelindungan Data Pribadi (lihat bagian Dampak).
     **Tangani manual**. Tombol **Salin & buka** dan **Sudah dikirim**
     terpisah: status baru berubah menjadi `sent_manually` setelah
     pengguna menekan **Sudah dikirim**.
--   Komentar IG yang menanyakan harga menampilkan dua usulan berdampingan:
+-   Komentar IG atau Facebook yang menanyakan harga menampilkan dua usulan berdampingan:
     balasan publik dan private reply DM, masing-masing dengan tombol
     persetujuan sendiri.
--   Kanal tanpa API memiliki tombol **Tempel pesan** (screenshot atau
-    teks). Draf untuk kanal ini menampilkan **Salin & buka di
-    TikTok/LinkedIn** dan **Sudah dikirim**, bukan Setujui dan Jalankan,
-    disertai label "Dikirim manual oleh pengguna".
+-   Tombol **Tempel pesan** (screenshot atau teks) tersedia untuk kanal
+    yang belum terhubung. Draf dari pesan tempelan menampilkan **Salin &
+    buka** dan **Sudah dikirim**, bukan Setujui dan Jalankan, disertai
+    label "Dikirim manual oleh pengguna".
 -   MCP server dan tools hanya ditampilkan sebagai kemampuan yang
     benar-benar terdeteksi dan diotorisasi.
 -   Setiap aksi mencatat identitas pelaksana, persetujuan pengguna,
