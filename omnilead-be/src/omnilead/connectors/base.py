@@ -53,5 +53,15 @@ class ChannelConnector(ABC):
     def reply_comment(self, comment_ref: str, text: str) -> str:
         """Balas sebuah komentar. Mengembalikan ID komentar balasan."""
 
+    def send_message(
+        self,
+        recipient: str,
+        text: str,
+        comment_ref: str | None = None,
+        context: dict | None = None,
+    ) -> str:
+        """Kirim DM/pesan/email. Default: tidak didukung (jatuh ke handoff)."""
+        raise ActionNotSupported(f"{self.channel.value}: send_message tidak tersedia")
+
     def supports(self, action: str) -> bool:
         return any(c.action == action and c.available for c in self.capabilities())
