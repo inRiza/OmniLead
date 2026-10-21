@@ -758,7 +758,7 @@ Bila Page belum berhasil dihubungkan saat demo, skenario ini dijalankan lewat
 | LinkedIn, TikTok, dan kanal lain | **Pengembangan lanjutan** | Kode dihapus 21 Okt 2026; lihat bagian Kanal |
 | CRM | **Nyata, lokal** | SQLite di laptop demo. Adapter Firestore siap (diuji dengan fake), menunggu Firestore diaktifkan panitia |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
-| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 14/18 pass^3, ±41 detik per kasus; engine aturan 18/18, ±0,4 detik |
+| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 17/18 pass^3, 13,3 detik per kasus (22 Okt); engine aturan 18/18, ±0,4 detik |
 
 ## Keamanan dan Kendali Manusia
 
@@ -861,7 +861,7 @@ pengukuran di bawah).
 - 46% pelanggan langsung kehilangan minat bila pesannya tidak dibalas
   dalam lima menit [S] (riset vendor SleekFlow, via [detik, Mei 2026](https://inet.detik.com/business/d-8507546/whatsapp-jadi-raja-customer-service-di-indonesia-telat-balas-chat-bisa-hilangkan-cuan)).
 - Waktu dari pesan masuk sampai draf siap: **0,34–0,40 detik** dengan
-  engine aturan dan **±41 detik** dengan Gemini [U]. Keduanya jauh di
+  engine aturan dan **sekitar 13 detik** dengan Gemini [U] (22 Okt; sebelumnya 41 detik). Keduanya jauh di
   bawah satu jam. Waktu respons yang tersisa adalah waktu sampai pemilik
   menekan Setujui.
 - Ilustrasi [A]: 8 pesanan acara per bulan dengan nilai rata-rata Rp1
@@ -945,7 +945,7 @@ UMKM.
 |---|---|
 | Pemilik menyetujui tanpa membaca | Guard tetap menahan harga, diskon, dan data yang salah; balasan publik menampilkan peringatan "terlihat publik" |
 | Salah menggabungkan dua pelanggan | Kemiripan hanya jadi usulan; merge bisa dipisah lagi |
-| Draf Gemini lambat (±41 detik) atau salah (4/18 kasus gagal) | Engine aturan sebagai cadangan; jalur hybrid (aturan dulu, Gemini hanya bila perlu) |
+| Draf Gemini lambat (sekitar 13 detik) atau salah (1/18 kasus gagal) | Engine aturan sebagai cadangan; jalur hybrid (aturan dulu, Gemini hanya bila perlu) |
 | Biaya WhatsApp di atas 1.000 pesan layanan/bulan | Prioritisasi: spam tidak dibalas; batas kirim per jam |
 | Pekerjaan admin tergantikan | Desain membantu, bukan menggantikan: semua keputusan tetap di manusia. Studi NBER justru menemukan retensi naik, tetapi itu konteks perusahaan besar |
 
@@ -955,7 +955,7 @@ UMKM.
 |---|---|---|
 | Waktu per pesan | Stopwatch 10 pesan: balas manual vs setujui draf | Belum, butuh 3–5 pemilik UMKM |
 | Kualitas draf | % disetujui tanpa edit / diedit / ditolak | Belum, butuh pengguna |
-| Waktu dari pesan sampai draf | Log BE | [U] 0,34–0,40 dtk (aturan), ±41 dtk (Gemini) |
+| Waktu dari pesan sampai draf | Log BE | [U] 0,34–0,40 dtk (aturan), sekitar 13 dtk (Gemini) |
 | Kesalahan harga yang lolos | Kasus berbahaya di evalset | [U] 0 lolos ke pelanggan; 7/7 (aturan), 6/7 benar (Gemini) |
 | Order terselamatkan | Wawancara: pernah kehilangan order karena telat membalas? | Belum |
 
@@ -1374,7 +1374,7 @@ Region Cloud Run `asia-southeast2`. Gemini lewat Vertex AI di location `global`.
   **tidak di repo**.
 - **Engine agen: `rule` sebagai default** (±0,4 detik per pesan) supaya demo responsif. Engine `adk`
   (Gemini) bisa diaktifkan dengan satu env (`OMNILEAD_AGENT_ENGINE=adk`) bila service account punya
-  peran Vertex AI; latensinya ±41 detik per pesan (lihat TESTING.md).
+  peran Vertex AI; latensinya sekitar 13 detik per pesan (lihat TESTING.md).
 - **Kanal:** akun WhatsApp, Instagram, Facebook, dan Gmail belum dihubungkan ke akun asli. Juri mencoba
   alur lewat **Tempel pesan**; balasan dikirim lewat **Salin & buka**. Mode latihan (dry-run) bisa
   dinyalakan di halaman Integrasi.
@@ -1430,7 +1430,7 @@ Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bu
 
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
 HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (21 Okt 2026): evalset
-engine `adk` 14/18 pass^3, ±41 detik per kasus (kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
+engine `adk` 17/18 pass^3, 13,3 detik per kasus (kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
 check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 
 | Komponen | Prioritas | Status | Catatan |
@@ -1441,7 +1441,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Ingest + dedup + webhook WA/IG (signature) + push Gmail | Must | Selesai (tiruan) | Belum diuji ke Meta/Google sungguhan |
 | Executor WhatsApp, Gmail (thread), Instagram (DM, private reply) | Must/Should | Selesai (tiruan) | Jendela 24 jam, 7 hari, sekali per komentar dicek sebelum kirim |
 | Identitas: merge pasti otomatis, merge ambigu = usulan + bukti | Must | Selesai | Berbasis aturan (nama, perusahaan, handle), bukan LLM |
-| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 14/18, gagal di H1, H3, H6, S3, ±41 detik per kasus |
+| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 17/18, gagal di S3, 13,3 detik per kasus |
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |

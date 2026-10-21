@@ -22,8 +22,8 @@ Status per 21 Okt 2026:
 - Connector WhatsApp, Gmail, Instagram, dan Facebook Page sudah ada di kode, tetapi baru diuji dengan HTTP tiruan;
   belum diuji ke akun asli. Selama kanal belum terhubung, pesan bisa masuk lewat **Tempel pesan** dan dibalas
   lewat **Salin & buka**.
-- Gemini (Vertex AI, location `global`) sudah dipanggil sungguhan: engine `adk` lulus 14/18 kasus evalset secara
-  konsisten (±41 detik per kasus); engine aturan 18/18. Rincian di `omnilead-agent/eval/results-adk.md`.
+- Gemini (Vertex AI, location `global`) sudah dipanggil sungguhan: engine `adk` lulus 17/18 kasus evalset secara
+  konsisten (sekitar 13 detik per kasus); engine aturan 18/18. Rincian di `omnilead-agent/eval/results-adk.md`.
 - Penyimpanan default SQLite lokal. Firestore hanya diperlukan bila di-deploy ke Cloud Run.
 
 ## Backend

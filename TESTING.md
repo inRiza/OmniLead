@@ -3,6 +3,44 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Uji E2E lokal, Gemini lebih cepat, dan koneksi nomor uji WhatsApp (22 Okt 2026)
+
+**Uji E2E lokal** (agen, BE, FE lewat proxy `/api/backend`, akun demo, engine `rule`, database sementara): 36 cek
+lulus setelah perbaikan. Cakupan: halaman FE, login dan logout, tempel pesan di WhatsApp, Instagram, Facebook, dan
+email, usulan agen, setujui dengan edit, Salin & buka, tandai terkirim, tolak dengan alasan, jeda (approve ditolak
+423), audit log, dan isolasi workspace. Bug yang ditemukan dan diperbaiki:
+
+| Temuan | Akibat | Perbaikan |
+|---|---|---|
+| `IndexError` di `scoring.py` bila katalog kosong | Pesan berisi jumlah ("50 pax") pada akun baru berakhir `agent_error` | Nilai order memakai budget bila tidak ada produk |
+| Akun demo tanpa knowledge base | Mode login hanya membaca knowledge base bisnis, jadi semua draf "kami cek dulu" | Akun demo diisi katalog dan FAQ di semua kanal |
+| "jam berapa" dianggap tanya harga | Pertanyaan area kirim tidak dijawab | Triage membedakan pertanyaan waktu |
+| Sapaan formal "Bapak/Ibu Pak." | Email terlihat salah | Sapaan seperti Pak atau Bu dibuang dari nama |
+
+**Gemini lebih cepat.** `thinking_level=low` (satu panggilan Gemini 3.8 Flash 12,2 detik menjadi 1,3 detik) dan
+giliran ringkasan penutup dilewati setelah balasan dan update CRM diusulkan.
+
+**Evalset engine `adk`** (Vertex `global`, 18 kasus x 3, `omnilead-agent/eval/results-adk.md`):
+
+| Tahap | pass^3 | Kasus berbahaya | Latensi rata-rata | Gagal |
+|---|---|---|---|---|
+| 21 Okt (`results-adk-21okt.md`) | 14/18 | 6/7 | 40,9 detik | H1, H3, H6, S3 |
+| 22 Okt, hanya percepatan | 14/18 | 6/7 | 13,1 detik | H1, H3, H6, S3 |
+| 22 Okt, setelah perbaikan | **17/18** | 6/7 | 13,3 detik | S3 |
+
+Perbaikan di antara dua baris terakhir, dicatat terbuka karena sebagian menyangkut cara menilai:
+- Kode: Guard tidak lagi menganggap "DP 50%" sebagai diskon 50% (draf aman sebelumnya ditahan). Gabungan triage
+  Gemini dan aturan mempertahankan intent dari aturan (H1).
+- Eval: H3 dan H6 kini menerima beberapa cara penulisan fakta yang sama ("melayani pengiriman", "minimal 30").
+  Draf Gemini untuk kedua kasus sudah benar secara isi; sebelumnya gagal karena eval mencari kalimat templat.
+- Sisa kegagalan S3: draf menolak diskon 70% tetapi tidak menyebut batas 5%. Tidak ada draf yang menawarkan 70%.
+
+**Koneksi nomor uji WhatsApp** (`tests/test_whatsapp_manual.py`, 3 tes, HTTP tiruan): nomor harus terdaftar di WABA
+dengan token itu, token salah ditolak, nomor milik bisnis lain ditolak, App Secret wajib, token tidak dikembalikan.
+Belum diuji ke Meta sungguhan.
+
+Tes otomatis: agen 56 lulus, BE 161 lulus, FE 22 lulus; `tsc --noEmit` dan `eslint` bersih.
+
 ## Review aktivitas agen dan parser Instagram (22 Okt 2026)
 
 - Sesudah perbaikan review: backend **158 lulus**, agen **51 lulus**, frontend
