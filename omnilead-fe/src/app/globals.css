@@ -22,6 +22,8 @@
   --rc-highlight-soft: #fef3dc;
   --rc-accent-hover: #2449c7;
   --rc-navy: #0b1a3a;
+  --rc-hero: #0144f5;
+  --rc-hero-hover: #0036c9;
 }
 
 /* Palet merek yang lebih berwarna; untuk sementara hanya dipakai landing page. */
@@ -82,6 +84,8 @@
   --color-rc-highlight-soft: var(--rc-highlight-soft);
   --color-rc-accent-hover: var(--rc-accent-hover);
   --color-rc-navy: var(--rc-navy);
+  --color-rc-hero: var(--rc-hero);
+  --color-rc-hero-hover: var(--rc-hero-hover);
   --font-sans: var(--font-geist-sans);
   --animate-in: enter 0.2s ease-out;
   --animate-out: exit 0.2s ease-in;
@@ -164,15 +168,6 @@
   }
 }
 
-@keyframes rc-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 /* Komet yang berjalan di sepanjang garis alir hero; satuan mengikuti pathLength=100. */
 @keyframes rc-flow {
   from {
@@ -188,11 +183,44 @@
   animation: rc-flow 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.rc-marquee {
-  animation: rc-marquee 40s linear infinite;
+@keyframes rc-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
-.rc-marquee:hover {
-  animation-play-state: paused;
+
+@keyframes rc-panel {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rc-progress {
+  animation-name: rc-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+@keyframes rc-dim {
+  to {
+    opacity: 0.6;
+  }
+}
+
+.rc-dim {
+  animation: rc-dim 0.4s ease both;
+}
+
+.rc-panel {
+  animation: rc-panel 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .rc-enter {
@@ -224,7 +252,9 @@
   .rc-enter,
   .rc-pop,
   .rc-ping,
-  .rc-marquee {
+  .rc-dim,
+  .rc-panel,
+  .rc-progress {
     animation: none;
   }
   .rc-flow {
