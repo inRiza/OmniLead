@@ -1,18 +1,21 @@
 "use client";
 
-import type { Activity, AgentTrace, LeadProfile } from "@/lib/types";
+import type { Activity, AgentTrace, LeadProfile, ProposedAction } from "@/lib/types";
 import { channelLabel, scoreLabel } from "@/lib/ui";
 import { ChannelIcon, ScoreBadge } from "@/components/primitives";
 import { TimeAgo } from "@/components/TimeAgo";
+import { AgentActivity } from "./AgentActivity";
 
 export function ActivityDetail({
   activity,
   lead,
   trace,
+  actions,
 }: {
   activity: Activity;
   lead: LeadProfile;
   trace?: AgentTrace;
+  actions?: ProposedAction[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -68,73 +71,7 @@ export function ActivityDetail({
         </p>
       </div>
 
-      {trace ? (
-        <details open className="rounded-lg border border-rc-border bg-rc-surface p-6">
-          <summary className="cursor-pointer text-sm font-medium text-rc-fg">
-            Langkah agen
-            <span className="ml-2 font-normal text-rc-fg-muted">
-              {trace.goal}
-            </span>
-          </summary>
-          <div className="mt-3 space-y-2 border-t border-rc-border pt-3 text-sm">
-            {trace.plan.length > 0 ? (
-              <div className="text-rc-fg-muted">
-                <span className="font-semibold text-rc-fg">Rencana</span>
-                <ol className="mt-1 list-decimal pl-5">
-                  {trace.plan.map((p, i) => (
-                    <li key={i}>{p}</li>
-                  ))}
-                </ol>
-              </div>
-            ) : null}
-            {trace.steps.map((s, i) => (
-              <div key={i} className="text-rc-fg-muted">
-                <span className="text-rc-fg-subtle">
-                  {String(i + 1).padStart(2, "0")}{" "}
-                </span>
-                <span className="font-semibold text-rc-fg">{s.tool}</span>{" "}
-                {s.input ? (
-                  <span className="text-rc-fg-subtle">({s.input})</span>
-                ) : null}
-                <div className="mt-0.5 pl-5 text-rc-fg-muted">{s.output}</div>
-              </div>
-            ))}
-            {trace.guard.length > 0 ? (
-              <div className="border-t border-rc-border pt-2">
-                <span className="font-semibold text-rc-fg">Guard</span>
-                {trace.guardSummary ? (
-                  <span className="ml-2 text-rc-fg-muted">{trace.guardSummary}</span>
-                ) : null}
-                <ul className="mt-1 space-y-0.5">
-                  {trace.guard.map((g, i) => (
-                    <li
-                      key={i}
-                      className={g.passed ? "text-rc-fg-muted" : "font-medium text-rc-danger"}
-                    >
-                      {g.passed ? "Lolos" : "Ditahan"}: {g.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {trace.status ? (
-              <p className="border-t border-rc-border pt-2 text-rc-fg-muted">
-                Status: {trace.status}
-              </p>
-            ) : null}
-          </div>
-        </details>
-      ) : (
-        <p className="text-sm text-rc-fg-muted">
-          {activity.eventStatus === "review"
-            ? "Pesan ini dicurigai berisi instruksi manipulatif dan perlu ditinjau manual."
-            : activity.eventStatus === "held"
-              ? "Agen dijeda. Pesan ini akan dianalisis setelah agen dilanjutkan."
-              : activity.eventStatus === "agent_error"
-                ? "Service agen tidak tersedia. Pesan belum dianalisis."
-                : "Belum ada jejak agen untuk pesan ini."}
-        </p>
-      )}
+      <AgentActivity activity={activity} trace={trace} actions={actions} />
     </div>
   );
 }

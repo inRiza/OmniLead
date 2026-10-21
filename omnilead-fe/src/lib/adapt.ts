@@ -59,6 +59,7 @@ export function adaptEvent(
   let status: Activity["status"] = "baru";
   if (e.status === "analyzed") status = pendingCount > 0 ? "menunggu" : "selesai";
   else if (e.status === "review" || e.status === "held") status = "menunggu";
+  else if (e.status === "processing") status = "diproses";
 
   const reasons: string[] = [];
   if (e.triage?.urgency_reason) reasons.push(e.triage.urgency_reason);
@@ -216,6 +217,7 @@ export function adaptTrace(
     guard,
     guardSummary: trace.guard_summary,
     status: trace.status,
+    activity: trace.activity ?? [],
   };
 }
 

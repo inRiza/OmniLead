@@ -27,6 +27,7 @@ type NavItem = {
 const main: NavItem[] = [
   { href: "/dashboard", label: "Beranda", icon: HomeIcon },
   { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
+  { href: "/dashboard/agent", label: "Aktivitas agen", icon: SparkIcon },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
   { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
 ];

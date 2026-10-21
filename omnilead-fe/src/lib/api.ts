@@ -1,3 +1,5 @@
+import type { AgentExecutionEvent } from "./types";
+
 // Klien REST ke omnilead-be. Tipe "Be*" = bentuk JSON dari backend apa adanya;
 // adapt.ts mengubahnya ke tipe FE.
 
@@ -66,6 +68,7 @@ export interface BeTrace {
   guard_summary?: string;
   status?: string;
   revisions?: number;
+  activity?: AgentExecutionEvent[];
 }
 
 export interface BeEvent {
@@ -79,7 +82,7 @@ export interface BeEvent {
   post_ref: string | null;
   comment_ref: string | null;
   lead_id: string | null;
-  status: "new" | "analyzed" | "review" | "held" | "agent_error";
+  status: "new" | "processing" | "analyzed" | "review" | "held" | "agent_error";
   triage: {
     urgency?: "tinggi" | "sedang" | "rendah";
     urgency_reason?: string;
@@ -341,9 +344,9 @@ export const api = {
   summary: () => request<BeSummaryItem[]>("/summary/today"),
   contentIdeas: () => request<BeContentIdeas>("/content-ideas"),
   pasteText: (body: { channel: string; text: string; handle?: string; name?: string }) =>
-    post<BeEvent>("/events/paste", body),
+    post<BeEvent>("/events/paste?background=true", body),
   pasteImage: (body: { channel: string; image_base64: string; mime_type: string }) =>
-    post<BeEvent>("/events/paste-image", body),
+    post<BeEvent>("/events/paste-image?background=true", body),
 
   approve: (id: string, editedText?: string) =>
     post<BeAction>(`/actions/${id}/approve`, { edited_text: editedText ?? null }),
@@ -353,7 +356,7 @@ export const api = {
   undoMerge: (id: string) => post<BeAction>(`/actions/${id}/undo-merge`),
   markSent: (id: string) => post<BeAction>(`/actions/${id}/sent`),
   handoff: (id: string) => request<HandoffPackage>(`/actions/${id}/handoff`),
-  reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze`),
+  reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze?background=true`),
 
   setPause: (paused: boolean) =>
     post<{ paused: boolean; reprocessed_events: number }>("/settings/pause", {

@@ -18,7 +18,7 @@ Kendali
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from omnilead.api.deps import (
     get_agent_client,
@@ -46,6 +46,7 @@ from omnilead.connectors import handoff
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, NotConnected
 from omnilead.connectors.registry import Registry
 from omnilead.ingest import IngestService
+from omnilead.analysis_state import visible_analysis_state
 from omnilead.scheduler import daily_summary
 from omnilead.models import (
     Action,
@@ -146,7 +147,9 @@ def post_event(
 
 @router.post("/events/paste", response_model=Event)
 def paste_event(
-    req: PasteEventRequest, ingest: IngestService = Depends(get_ingest)
+    req: PasteEventRequest, background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
+    ingest: IngestService = Depends(get_ingest)
 ) -> Event:
     """Kanal tanpa API: pengguna menempel teks pesan; diproses seperti event biasa."""
     ev = EventIn(
@@ -158,13 +161,16 @@ def paste_event(
         post_ref=req.post_ref,
         meta={"source": "paste"},
     )
-    event, _ = ingest.ingest(ev)
+    schedule = (lambda event, created: background_tasks.add_task(ingest.process_created, event, created)) if run_async else None
+    event, _ = ingest.ingest(ev, defer_analysis=schedule)
     return event
 
 
 @router.post("/events/paste-image", response_model=Event)
 def paste_image(
     req: PasteImageRequest,
+    background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
     ingest: IngestService = Depends(get_ingest),
     agent: AgentClient = Depends(get_agent_client),
 ) -> Event:
@@ -186,7 +192,8 @@ def paste_image(
         text=text,
         meta={"source": "screenshot"},
     )
-    event, _ = ingest.ingest(ev)
+    schedule = (lambda event, created: background_tasks.add_task(ingest.process_created, event, created)) if run_async else None
+    event, _ = ingest.ingest(ev, defer_analysis=schedule)
     return event
 
 
@@ -221,18 +228,29 @@ def list_events(
     limit: int = Query(100, ge=1, le=500),
     store: Store = Depends(get_store),
 ) -> list[Event]:
-    return store.list_events(lead_id=lead_id, limit=limit)
+    return [visible_analysis_state(event) for event in store.list_events(lead_id=lead_id, limit=limit)]
 
 
 @router.post("/events/{event_id}/analyze", response_model=Event)
 def reanalyze(
     event_id: str,
+    background_tasks: BackgroundTasks,
+    run_async: bool = Query(False, alias="background"),
     store: Store = Depends(get_store),
     ingest: IngestService = Depends(get_ingest),
 ) -> Event:
     event = store.get_event(event_id)
     if event is None:
         raise NOT_FOUND
+    event = visible_analysis_state(event)
+    if event.status == "processing":
+        raise HTTPException(status_code=409, detail="Pesan masih sedang dianalisis")
+    if event.status == "new" and (event.trace or {}).get("run_id"):
+        raise HTTPException(status_code=409, detail="Pesan sudah dijadwalkan untuk dianalisis")
+    if run_async:
+        event = ingest.prepare(event)
+        background_tasks.add_task(ingest.process, event, expected_run_id=event.trace["run_id"])
+        return event
     return ingest.process(event)
 
 

@@ -22,6 +22,7 @@ from omnilead_agent.schemas import (
     TriageResult,
 )
 from omnilead_agent.scoring import score_lead
+from omnilead_agent.progress import emit
 
 MAX_STEPS = 8
 
@@ -50,6 +51,7 @@ class Tools:
         self.trace.steps.append(
             TraceStep(n=len(self.trace.steps) + 1, tool=tool, input=input, result=result)
         )
+        emit("tool", "Tool selesai dijalankan", tool=tool, input=input, result=result)
 
     def record_external(self, tool: str, args: dict, result: object) -> None:
         """Catat panggilan tool eksternal (MCP) ke trace, ringkas."""
@@ -115,6 +117,8 @@ class Tools:
             {"channel": p.channel, "kind": p.kind},
             (p.text[:90] + "…") if len(p.text) > 90 else (p.text or str(p.payload)),
         )
+        emit("proposal", "Usulan tindakan disiapkan", kind=p.kind, text=p.text,
+             reason=p.reason, channel=p.channel, public=p.public)
 
 
 @dataclass

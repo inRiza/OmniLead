@@ -1,7 +1,73 @@
 # TESTING
 
-Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
+Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
+
+## Review aktivitas agen dan parser Instagram (22 Okt 2026)
+
+- Sesudah perbaikan review: backend **158 lulus**, agen **51 lulus**, frontend
+  **22 lulus**. Tes memakai rule engine atau transport/model tiruan, tanpa
+  pengiriman pesan Instagram atau panggilan model sungguhan.
+- Tes baru mencakup dua envelope pesan Instagram, komentar/live comments,
+  notifikasi status, echo, payload rusak, signature, dan isolasi bisnis.
+  Sampel Meta dengan ID akun dummy tidak dirutekan ke bisnis pengguna.
+- Review menemukan stream yang tidak membatalkan pekerja ketika terputus dan
+  analisis yang dapat tertinggal pada status processing setelah restart.
+  Keduanya diperbaiki: SDK asinkron dibatalkan, jumlah pekerja/kejadian dibatasi,
+  analisis memiliki batas waktu dan ID proses, serta analisis kedaluwarsa dapat
+  diproses ulang. Tes mencakup hasil proses lama yang datang setelah penggantinya.
+- Uji pembatalan awal mengalami race pada barrier tes; barrier dipindah ke dalam
+  coroutine SDK tiruan agar benar-benar menguji pembatalan panggilan yang berjalan.
+  Suite akhir lulus. Pembatasan pekerja bukan antrean persisten lintas instance.
+- Playwright membuka halaman aktivitas dengan akun demo sintetis pada desktop
+  dan mobile: tidak ada page error JavaScript maupun overflow horizontal mobile.
+  Pemeriksaan ini hanya membaca riwayat yang ada; tidak menyetujui pengiriman.
+- Dua POST dari tombol **Uji** Meta diterima pada 01.06 WIB, dengan bentuk
+  `changes[].field=messages` dan ID akun `0`. Parser kini mendukung bentuk ini
+  selain `entry.messaging[]`. Replay sampel bertanda tangan melalui tunnel
+  setelah restart menghasilkan HTTP 200, `accepted=0, unmapped_entries=1`.
+- Pemeriksaan 01.26 WIB: Conversations API HTTP 200 dengan 0 percakapan.
+  Log backend belum menunjukkan DM asli terkait pesan 01.18 WIB pada screenshot
+  pengguna. Status publikasi aplikasi belum dapat dipastikan. Penerimaan dan
+  pengiriman DM sungguhan tetap belum terverifikasi; hasil sampel tidak membuktikannya.
+
+## Aktivitas agen: pemeriksaan awal (22 Okt 2026)
+
+- Halaman `/dashboard/agent` dan panel aktivitas di Workspace ditambahkan. Agen
+  menerbitkan kejadian pelaksanaan melalui NDJSON; backend menyimpan kemajuan
+  pada trace per bisnis dan frontend memperbarui tampilan setiap tiga detik.
+- Pemeriksaan statis: TypeScript, ESLint, dan parsing sintaks Python lulus.
+  Backend dan service agen berhasil startup dan `/health` keduanya merespons 200.
+  Suite tes, browser, dan panggilan LLM untuk alur streaming baru belum dijalankan.
+- Diagnostik Instagram: callback login tercatat; koneksi akun yang sesuai
+  screenshot tersimpan sebagai connected. GET subscribed_apps merespons 200,
+  dengan `comments` dan `messages`. Saat diperiksa belum ada POST webhook DM
+  yang masuk ke backend. Status publikasi/konfigurasi aplikasi Meta masih
+  membutuhkan pemeriksaan di dashboard provider.
+- Pembacaan Conversations API dengan token tersimpan merespons 200, tetapi
+  daftar percakapan kosong. Izin `instagram_business_manage_messages` tercatat
+  pada koneksi. Pengiriman pesan sungguhan belum dicoba; hasil ini belum
+  membuktikan bahwa DM masuk atau balasan dapat dikirim.
+- Sebelum perubahan streaming, satu pesan sintetis melalui pipeline nyata
+  selesai dalam 42 detik, tanpa fallback, memakai konteks pengetahuan dan tone
+  profesional. Namun draf menyebut tutup 18.00 sedangkan sumber menyebut 17.00.
+  Kasus ini menunjukkan alur berjalan, tetapi ketepatan fakta belum lolos.
+
+## OAuth dan webhook melalui tunnel HTTPS lokal (21 Okt 2026)
+
+- Next.js sebelumnya menolak dev asset dari origin tunnel (403). Hostname dari
+  `OMNILEAD_FRONTEND_URL` kini masuk `allowedDevOrigins`; halaman login dan asetnya merespons 200.
+- Proxy FE meneruskan GET/POST webhook Meta, body utuh, dan header signature. Diagnostik melalui
+  HTTPS publik: challenge dengan verify token benar 200 dan body challenge sesuai; token salah 403;
+  POST tanpa signature 403; POST bertanda tangan dengan daftar event kosong 200. Tidak ada event
+  pelanggan atau pengiriman pesan pada pemeriksaan ini.
+- Login HTTPS awal menghasilkan 500 karena key enkripsi eksplisit belum terisi. Konfigurasi lokal
+  memakai kembali key lama `.secrets/oauth.key` (tanpa rotasi), lalu login akun sintetis berhasil
+  200 dengan cookie Secure. Sesi diagnostik di-logout setelah pemeriksaan.
+- Start Instagram menghasilkan redirect dengan callback HTTPS sesuai origin tunnel. Consent di
+  Instagram dan pendaftaran callback Meta masih dilakukan pengguna; belum terbukti selesai.
+- TypeScript dan lint lulus. Suite tes tidak dijalankan ulang. Diagnostik lokal:
+  `omnilead-be/data/local-runtime/diagnose-https-onboarding.py` (gitignored).
 
 ## Facebook Page, Gemini sungguhan, dan Docker (21 Okt 2026)
 
