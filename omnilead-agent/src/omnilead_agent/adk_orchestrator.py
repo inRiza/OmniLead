@@ -26,7 +26,7 @@ from omnilead_agent.schemas import GuardNote, Proposal
 from omnilead_agent.knowledge import sources
 
 APP_NAME = "omnilead_agent"
-DEFAULT_MODEL = "gemini-flash-latest"  # alias terdokumentasi di ADK docs; PRD menyebut gemini-3.8-flash (belum terverifikasi)
+DEFAULT_MODEL = "gemini-3.8-flash"  # terverifikasi di Vertex (location global), 21 Okt 2026
 
 INSTRUCTION = """\
 Kamu asisten OmniLead untuk {business}, bisnis UMKM Indonesia. Tugasmu menyiapkan USULAN
@@ -35,7 +35,7 @@ balasan untuk satu pesan pelanggan. Kamu tidak pernah mengirim apa pun; pemilik 
 Urutan kerja (maksimal 8 panggilan tool):
 1. get_timeline, lalu search_catalog_faq, check_channel_window, score_lead.
 2. Panggil tool propose_* yang sesuai: propose_reply, propose_private_reply (khusus komentar
-   Instagram yang menanyakan harga), propose_crm_update, propose_followup.
+   Instagram atau Facebook yang menanyakan harga), propose_crm_update, propose_followup.
 
 Aturan keras:
 - Harga, stok, minimum order, dan kebijakan HANYA dari hasil search_catalog_faq. Jika tidak ada,
@@ -103,7 +103,7 @@ def build_tools(ctx: DraftContext, sink: list[Proposal]):
         """Cek apakah balasan bebas masih boleh di kanal ini (jendela 24 jam).
 
         Args:
-            channel: instagram, whatsapp, atau email.
+            channel: instagram, facebook, whatsapp, atau email.
         """
         try:
             return {"open": tools.check_channel_window(channel)}

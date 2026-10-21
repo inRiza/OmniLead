@@ -26,7 +26,9 @@ import type {
   SummaryItem,
 } from "./types";
 
-const CHANNELS: Channel[] = ["instagram", "whatsapp", "email"];
+const CHANNELS: Channel[] = ["instagram", "facebook", "whatsapp", "email"];
+// Kanal dengan private reply (pesan atas komentar publik).
+const PRIVATE_REPLY: string[] = ["instagram", "facebook"];
 
 function asChannel(c: string): Channel {
   return (CHANNELS as string[]).includes(c) ? (c as Channel) : "email";
@@ -114,7 +116,7 @@ function title(a: BeAction): string {
     case "comment_post":
       return "Komentar baru di post";
     case "send_message":
-      return a.comment_ref && a.channel === "instagram"
+      return a.comment_ref && PRIVATE_REPLY.includes(a.channel)
         ? "Private reply (DM) berisi detail"
         : `Pesan ${channelLabel[asChannel(a.channel)]}`;
     case "crm_update":
@@ -158,7 +160,7 @@ export function adaptAction(a: BeAction, channels: BeChannel[]): ProposedAction 
     activityId: a.event_id ?? "",
     channel: asChannel(a.channel),
     kind:
-      a.kind === "send_message" && a.comment_ref && a.channel === "instagram"
+      a.kind === "send_message" && a.comment_ref && PRIVATE_REPLY.includes(a.channel)
         ? "private_reply"
         : a.kind === "comment_post"
           ? "reply_comment"

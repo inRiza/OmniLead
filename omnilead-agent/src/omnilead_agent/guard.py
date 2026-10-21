@@ -19,8 +19,12 @@ EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 OVERPROMISE = ("pasti sampai", "dijamin", "100% aman", "garansi uang kembali", "gratis selamanya")
 RUDE = ("bodoh", "goblok", "tolol", "diam kamu")
 
-# Batas byte per kanal/jenis (DM Instagram 1.000 byte).
-BYTE_LIMITS = {("instagram", "send_message"): 1000, ("instagram", "reply_comment"): 2200}
+# Batas byte per kanal/jenis (DM Instagram 1.000 byte; Messenger 2.000 karakter).
+BYTE_LIMITS = {
+    ("instagram", "send_message"): 1000,
+    ("instagram", "reply_comment"): 2200,
+    ("facebook", "send_message"): 2000,
+}
 
 
 def _amounts(text: str) -> list[int]:

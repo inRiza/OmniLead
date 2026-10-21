@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     instagram_access_token: str = ""
     instagram_graph_version: str = "v26.0"
 
+    # Facebook Page (Graph API + Messenger Platform). Login memakai aplikasi Meta yang sama
+    # (meta_app_id/meta_app_secret); token di bawah ini hanya untuk mode lokal tanpa login.
+    facebook_page_id: str = ""
+    facebook_page_access_token: str = ""
+    facebook_graph_version: str = "v21.0"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -35,7 +35,7 @@ class AppSettingsPatch(BaseModel):
 
 
 class PasteEventRequest(BaseModel):
-    """Pesan dari Instagram, WhatsApp, atau email yang ditempel pengguna."""
+    """Pesan dari Instagram, Facebook, WhatsApp, atau email yang ditempel pengguna."""
 
     channel: Channel
     text: str = Field(min_length=1)

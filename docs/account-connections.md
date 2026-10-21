@@ -5,7 +5,7 @@ lalu membuka **Akun & Integrasi**. Tombol **Hubungkan** membuka halaman resmi
 platform. Token diperoleh dan disimpan backend; pengguna tidak perlu mengisi token.
 Satu akun pengguna dapat mengelola beberapa bisnis; tambah bisnis di dashboard dan
 pilih bisnis aktif dari header. Satu akun platform aktif per kanal untuk setiap bisnis. Tombol **Hubungkan ulang / ganti akun**
-mengganti akun tersebut. Kanal aktif hanya Instagram, WhatsApp, dan email. LinkedIn dan TikTok sudah dihapus dari pilihan kanal serta OAuth.
+mengganti akun tersebut. Kanal aktif: Instagram, Facebook Page, WhatsApp, dan email. LinkedIn dan TikTok masuk pengembangan lanjutan dan tidak ada di pilihan kanal maupun OAuth.
 
 ## Menjalankan lokal
 
@@ -28,6 +28,7 @@ Daftarkan redirect URI **persis** berikut pada aplikasi masing-masing:
 | Platform | Redirect URI lokal |
 |---|---|
 | Instagram | `http://localhost:3000/api/backend/auth/oauth/instagram/callback` |
+| Facebook Page | `http://localhost:3000/api/backend/auth/oauth/facebook/callback` |
 | Google Gmail | `http://localhost:3000/api/backend/auth/oauth/gmail/callback` |
 
 Untuk deployment ganti `http://localhost:3000` dengan origin HTTPS FE, bukan URL BE.
@@ -56,6 +57,28 @@ kedaluwarsa atau dicabut diarahkan ke **Hubungkan ulang**.
 
 Rujukan: [Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/),
 [koleksi resmi Meta](https://www.postman.com/meta/instagram/folder/6raa77c/instagram-api-with-instagram-login).
+
+### Facebook Page
+
+- Pakai aplikasi Meta yang sama dengan WhatsApp (`OMNILEAD_META_APP_ID`, `OMNILEAD_META_APP_SECRET`).
+  Tambahkan produk **Facebook Login** dan **Messenger**, lalu daftarkan redirect URI di atas.
+- Izin yang diminta: `pages_show_list`, `pages_messaging`, `pages_read_engagement`,
+  `pages_read_user_content`, `pages_manage_engagement`, `pages_manage_metadata`. Cek ulang nama izin di
+  dashboard Meta saat setup; hanya `pages_messaging` yang sudah dicocokkan dengan dokumen resmi.
+- Konfigurasikan webhook objek **Page** ke BE `/webhooks/facebook`, verify token
+  `OMNILEAD_META_VERIFY_TOKEN`, field `feed` dan `messages`. Signature diverifikasi memakai
+  `OMNILEAD_META_APP_SECRET`. Backend mendaftarkan langganan Page setelah OAuth berhasil.
+- Dengan Standard Access, Messenger dan private reply hanya menjangkau akun yang punya role di aplikasi;
+  untuk pelanggan sungguhan perlu App Review.
+
+Alur kode: authorization code → user token → user token jangka panjang → cek izin yang diberikan →
+daftar Page (`/me/accounts`, hanya Page dengan tugas MESSAGING) → satu Page langsung terhubung, beberapa
+Page dipilih di halaman Integrasi (pilihan terikat sesi, berlaku 10 menit) → langganan webhook → simpan
+Page access token terenkripsi. Page token dari user token jangka panjang tidak kedaluwarsa; token yang dicabut
+diarahkan ke **Hubungkan ulang**.
+
+Rujukan: [Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies),
+[Messenger policy](https://developers.facebook.com/docs/messenger-platform/policy/policy-overview).
 
 ### Gmail
 

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class Channel(StrEnum):
     INSTAGRAM = "instagram"
+    FACEBOOK = "facebook"
     WHATSAPP = "whatsapp"
     EMAIL = "email"
 

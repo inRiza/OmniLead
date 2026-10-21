@@ -12,7 +12,7 @@ import { channelLabel } from "@/lib/ui";
 import { BookOpen, ChevronRight, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/dashboard/SettingsDialog";
 
-const channels: Channel[] = ["instagram", "whatsapp", "email"];
+const channels: Channel[] = ["instagram", "facebook", "whatsapp", "email"];
 const tones: Record<ChannelAgentConfig["tone"], string> = {
   friendly: "Ramah & hangat", professional: "Profesional", casual: "Santai", concise: "Singkat & jelas", custom: "Gaya sendiri",
 };

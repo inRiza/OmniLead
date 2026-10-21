@@ -1,4 +1,4 @@
-"""Webhook kanal masuk: WhatsApp, Instagram, dan push Gmail.
+"""Webhook kanal masuk: WhatsApp, Instagram, Facebook Page, dan push Gmail.
 
 Aturan:
 - Verifikasi Meta: `hub.mode=subscribe` + `hub.verify_token` -> balas `hub.challenge`.
@@ -107,6 +107,42 @@ def parse_instagram(payload: dict) -> list[EventIn]:
     return events
 
 
+def parse_facebook(payload: dict) -> list[EventIn]:
+    """Webhook Page: komentar lewat field `feed`, Messenger lewat `messaging`.
+
+    Komentar dan pesan dari Page itu sendiri (balasan kita) diabaikan supaya
+    tidak memicu agen membalas dirinya sendiri.
+    """
+    events: list[EventIn] = []
+    for entry in payload.get("entry", []):
+        page_id = str(entry.get("id", ""))
+        for change in entry.get("changes", []):
+            if change.get("field") != "feed":
+                continue
+            v = change.get("value", {})
+            if v.get("item") != "comment" or v.get("verb") != "add":
+                continue
+            who = v.get("from") or {}
+            if not v.get("comment_id") or not v.get("message") or str(who.get("id", "")) == page_id:
+                continue
+            events.append(EventIn(
+                channel=Channel.FACEBOOK, kind="comment", external_id=v["comment_id"],
+                sender=Sender(handle=str(who.get("id", "")), name=who.get("name")),
+                text=v["message"], post_ref=v.get("post_id"),
+                comment_ref=v["comment_id"], ts=_ts(v.get("created_time") or entry.get("time")),
+            ))
+        for m in entry.get("messaging", []):
+            msg = m.get("message") or {}
+            if msg.get("is_echo") or not msg.get("text") or not msg.get("mid"):
+                continue
+            events.append(EventIn(
+                channel=Channel.FACEBOOK, kind="dm", external_id=msg["mid"],
+                sender=Sender(handle=str(m.get("sender", {}).get("id", ""))),
+                text=msg["text"], ts=_ts(m.get("timestamp")),
+            ))
+    return events
+
+
 def _ingest_all(ingest: IngestService, events: list[EventIn]) -> None:
     for ev in events:
         try:
@@ -198,6 +234,43 @@ async def instagram_receive(
                 accepted += len(events)
         return {"status": "ok", "accepted": accepted}
     events = parse_instagram(payload)
+    background.add_task(_ingest_all, ingest, events)
+    return {"status": "ok", "accepted": len(events)}
+
+
+# --- Facebook Page ---
+
+
+@router.get("/facebook")
+def facebook_verify(
+    mode: str | None = Query(None, alias="hub.mode"),
+    token: str | None = Query(None, alias="hub.verify_token"),
+    challenge: str | None = Query(None, alias="hub.challenge"),
+    settings: Settings = Depends(get_settings),
+):
+    return _verify_challenge(settings, mode, token, challenge)
+
+
+@router.post("/facebook")
+async def facebook_receive(
+    request: Request,
+    background: BackgroundTasks,
+    settings: Settings = Depends(get_settings),
+    ingest: IngestService = Depends(get_ingest),
+) -> dict:
+    payload = await _signed_json(request, settings)
+    if settings.auth_enabled:
+        accepted = 0
+        for entry in payload.get("entry", []):
+            workspace = get_accounts().asset_workspace("facebook", str(entry.get("id", "")))
+            if workspace:
+                events = parse_facebook({"entry": [entry]})
+                for event in events:
+                    event.meta["business_account_id"] = str(entry["id"])
+                background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                accepted += len(events)
+        return {"status": "ok", "accepted": accepted}
+    events = parse_facebook(payload)
     background.add_task(_ingest_all, ingest, events)
     return {"status": "ok", "accepted": len(events)}
 

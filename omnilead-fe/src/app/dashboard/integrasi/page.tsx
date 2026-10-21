@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, type Connection, type WhatsAppAccounts } from "@/lib/api";
+import { api, type Connection, type FacebookPages, type WhatsAppAccounts } from "@/lib/api";
 import { whatsappSignup } from "@/lib/whatsapp-signup";
 import { channelLabel } from "@/lib/ui";
 import { Button } from "@/components/action/button";
@@ -17,6 +17,7 @@ const actionLabel: Record<string, string> = {
 };
 const explanation: Record<string, string> = {
   instagram: "Hubungkan akun Business atau Creator untuk mengelola komentar dan pesan pelanggan.",
+  facebook: "Hubungkan Facebook Page bisnis untuk mengelola komentar di post dan pesan Messenger.",
   email: "Izinkan OmniLead membaca dan membalas email bisnis melalui Gmail.",
   whatsapp: "Pilih akun bisnis dan nomor WhatsApp melalui jendela resmi Meta.",
 };
@@ -34,6 +35,8 @@ export default function IntegrasiPage() {
   const [whatsapp, setWhatsapp] = useState<WhatsAppAccounts | null>(null);
   const [accountId, setAccountId] = useState("");
   const [pin, setPin] = useState("");
+  const [facebook, setFacebook] = useState<FacebookPages | null>(null);
+  const [pageId, setPageId] = useState("");
 
   const loadConnections = useCallback(async () => {
     if (!session.enabled) return;
@@ -49,6 +52,11 @@ export default function IntegrasiPage() {
       if (result === "connected") setNotice("Akun berhasil terhubung. Anda dapat mulai mengelola aktivitasnya.");
       if (result === "cancelled") setError("Penghubungan dibatalkan. Akun sebelumnya tetap dapat digunakan.");
       if (result === "failed") setError("Akun belum berhasil dihubungkan. Pastikan semua izin diberikan dan coba kembali. Jika berulang, hubungi pengelola OmniLead.");
+      if (result === "select" && query.get("provider") === "facebook") {
+        api.facebookPages()
+          .then((pages) => { setFacebook(pages); setPageId(pages.pages[0]?.id ?? ""); })
+          .catch((e) => setError(e instanceof Error ? e.message : "Pilihan Page tidak tersedia. Hubungkan ulang Facebook."));
+      }
       if (result) window.history.replaceState({}, "", "/dashboard/integrasi");
       void loadConnections();
     }, 0);
@@ -119,6 +127,20 @@ export default function IntegrasiPage() {
           <label className="mt-4 block text-sm font-medium">Nomor bisnis<select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={field}>{whatsapp.accounts.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
           {chosen && !chosen.registered && <label className="mt-4 block text-sm font-medium">PIN verifikasi dua langkah<input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))} pattern="[0-9]{6}" minLength={6} maxLength={6} required className={field} /><span className="mt-1 block text-sm text-rc-fg-muted">Gunakan PIN 6 digit nomor bisnis ini, atau buat PIN untuk nomor yang baru didaftarkan.</span></label>}
           <div className="mt-4 flex gap-2"><Button purpose="action" type="submit" style="primary" disabled={busy !== null || !accountId}>Gunakan nomor ini</Button><Button purpose="action" disabled={busy !== null} onClick={() => { setWhatsapp(null); setPin(""); }}>Batal</Button></div>
+        </form>}
+
+        {facebook && <form className="rounded-xl border border-rc-border bg-rc-surface p-5" onSubmit={(e) => {
+          e.preventDefault();
+          void perform("facebook-select", async () => {
+            await api.facebookSelect(pageId);
+            setFacebook(null);
+            await Promise.all([loadConnections(), d.refresh()]); setNotice("Facebook Page berhasil terhubung.");
+          });
+        }}>
+          <h2 className="text-lg font-semibold">Pilih Facebook Page</h2>
+          <p className="mt-1 text-sm text-rc-fg-muted">Akun Anda mengelola beberapa Page. Pilih satu Page untuk bisnis ini.</p>
+          <label className="mt-4 block text-sm font-medium">Page<select value={pageId} onChange={(e) => setPageId(e.target.value)} className={field}>{facebook.pages.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
+          <div className="mt-4 flex gap-2"><Button purpose="action" type="submit" style="primary" disabled={busy !== null || !pageId}>Gunakan Page ini</Button><Button purpose="action" disabled={busy !== null} onClick={() => setFacebook(null)}>Batal</Button></div>
         </form>}
 
         {d.channels.map((channel) => {

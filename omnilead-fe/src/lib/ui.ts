@@ -20,6 +20,7 @@ export function timeAgo(iso: string): string {
 
 export const channelLabel: Record<Channel, string> = {
   instagram: "Instagram",
+  facebook: "Facebook",
   whatsapp: "WhatsApp",
   email: "Email",
 };

@@ -3,6 +3,7 @@
 from omnilead.config import Settings
 from omnilead.connectors.base import ActionNotSupported, ChannelConnector, NotConnected
 import httpx
+from omnilead.connectors.facebook import FacebookConnector
 from omnilead.connectors.gmail import GmailConnector
 from omnilead.connectors.instagram import InstagramConnector
 from omnilead.connectors.whatsapp import WhatsAppConnector
@@ -55,6 +56,7 @@ class Registry:
     def __init__(self, settings: Settings, client: httpx.Client | None = None, on_auth_error=None):
         self._connectors: dict[Channel, ChannelConnector] = {
             Channel.INSTAGRAM: InstagramConnector(settings, client),
+            Channel.FACEBOOK: FacebookConnector(settings, client),
             Channel.WHATSAPP: WhatsAppConnector(settings, client),
             Channel.EMAIL: GmailConnector(settings, client),
         }

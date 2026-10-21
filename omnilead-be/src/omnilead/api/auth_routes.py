@@ -1,5 +1,3 @@
-"""Cookie sessions and channel authorization. Platform tokens never leave the backend."""
-
 import re
 import time
 from collections import defaultdict, deque
@@ -209,8 +207,9 @@ def callback(provider: str, request: Request, code: str = "", state: str = "", e
             get_accounts().consume_state(state, provider, request.cookies.get(COOKIE, ""))
             result = "cancelled"
         else:
-            get_oauth().complete(provider, code, state, request.cookies[COOKIE], user["workspace_id"])
-            store_for_workspace(user["workspace_id"]).audit("channel_connected", provider, actor=user["email"], channel="email" if provider == "gmail" else provider)
+            result = get_oauth().complete(provider, code, state, request.cookies[COOKIE], user["workspace_id"])
+            if result == "connected":
+                store_for_workspace(user["workspace_id"]).audit("channel_connected", provider, actor=user["email"], channel="email" if provider == "gmail" else provider)
     except (ValueError, HTTPException):
         result = "failed"
     # Fixed destination and codes only: no provider error text, tokens, or open redirect.
@@ -244,6 +243,28 @@ def whatsapp_select(body: WhatsAppSelection, request: Request, user=Depends(curr
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from None
     store_for_workspace(user["workspace_id"]).audit("channel_connected", "whatsapp", actor=user["email"], channel="whatsapp")
+    return {"ok": True}
+
+
+class FacebookSelection(BaseModel):
+    page_id: str = Field(pattern=r"^\d{1,64}$")
+
+
+@router.get("/connections/facebook/pages")
+def facebook_pages(request: Request, user=Depends(current_user)) -> dict:
+    try:
+        return get_oauth().facebook_pages(user["workspace_id"], request.cookies[COOKIE])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+
+@router.post("/connections/facebook/select")
+def facebook_select(body: FacebookSelection, request: Request, user=Depends(current_user)) -> dict:
+    try:
+        get_oauth().facebook_select(user["workspace_id"], request.cookies[COOKIE], body.page_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    store_for_workspace(user["workspace_id"]).audit("channel_connected", "facebook", actor=user["email"], channel="facebook")
     return {"ok": True}
 
 
