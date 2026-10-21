@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 2.4
+version: 3.0
 ---
 
 Label sumber data di dokumen ini:
@@ -16,6 +16,13 @@ Label sumber data di dokumen ini:
 - **[V]**: terverifikasi dari halaman sumber (diakses 21 Okt 2026).
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
+- **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 3.0 (21 Okt 2026).** Disinkronkan dengan kode dan kondisi project GCP
+panitia; bagian Urgensi Masalah ditambahkan; bagian Dampak ditulis ulang (bisnis dan non-bisnis); isi
+`validasi-yc-dan-mcp.md` dan `deploy.md` digabung ke Lampiran A dan B.
+Daftar ketidaksinkronan yang diperbaiki ada di
+[laporan-sinkronisasi-docs.md](laporan-sinkronisasi-docs.md).
 
 ## Idea
 
@@ -46,17 +53,110 @@ persetujuan, dan pemilik cukup menekan **Setujui**, **Edit**, atau
 
 Batas demo hackathon:
 
-- Satu bisnis dengan persona utama katering/hampers dan 30–50 prospek dummy.
-- Gmail (nyata), WhatsApp Cloud API nomor uji (nyata, terbatas),
-  Instagram melalui Standard Access untuk akun milik tim, tanpa App
-  Review (target nyata, fallback simulasi berlabel).
+- Satu bisnis dengan persona utama penjual olahan buah (rujak dan es teler)
+  dan 30–50 prospek dummy.
+- Gmail, WhatsApp Cloud API (nomor uji), dan Instagram (Standard Access
+  untuk akun milik tim, tanpa App Review) adalah **target nyata**. Kodenya
+  siap, tetapi per 21 Okt 2026 belum diuji ke akun asli. Selama belum
+  diuji, pesan masuk lewat **Tempel pesan** dan dikirim dalam mode dry-run.
 - TikTok dan LinkedIn tidak lewat API, tetapi lewat fitur **Kanal tanpa
   API**: pesan masuk ditempel sebagai screenshot atau teks, lalu draf
   dikirim sendiri oleh pengguna melalui tombol "Salin & buka".
-- CRM internal di Firestore yang diakses agen melalui MCP server.
+- CRM di SQLite lokal untuk demo. Adapter Firestore sudah ada dan
+  dipakai bila Firestore diaktifkan di project panitia.
 
 Tindakan yang tidak didukung API atau memerlukan izin tambahan tidak
 disimulasikan sebagai akses yang sudah tersedia.
+
+## Urgensi Masalah
+
+Masalahnya sudah lama ada. Yang membuatnya mendesak sekarang adalah volume
+chat yang naik, pembeli yang makin tidak sabar, kapasitas UMKM yang tidak
+ikut naik, dan pesaing besar yang mulai memakai AI.
+
+### 1. Volume chat terus naik
+
+- Ekonomi digital Indonesia diperkirakan **mendekati US$100 miliar GMV pada
+  2025 (+14%)**; e-commerce menjadi penyumbang terbesar, **US$71 miliar**.
+  **Jumlah penjual dan toko online naik 75%** dalam setahun, dan transaksi
+  video commerce naik 90% [S] ([e-Conomy SEA 2025 via Fortune IDN](https://www.fortuneidn.com/tech/laporan-e-conomy-sea-perekonomian-digital-indonesia-terbesar-di-asean-00-kptjc-w3gdzv)).
+  Setiap siaran langsung dan video jualan memancing komentar dan DM yang
+  harus dibalas.
+- **95,33% usaha e-commerce berjualan lewat aplikasi pesan instan** [S]
+  (BPS *Statistik E-Commerce 2023*). Di chat-lah transaksi UMKM terjadi.
+- 89% konsumen mengirim pesan ke bisnis minimal seminggu sekali, dan 81%
+  lebih mungkin membeli dari bisnis yang bisa di-chat [S] (Meta 2022, via
+  [detik](https://inet.detik.com/cyberlife/d-6795612/jurus-whatsapp-business-raup-200-juta-pengguna-dalam-5-tahun/amp)).
+  Pada survei live shopping, interaksi langsung dengan penjual mendorong
+  pembelian bagi **65% responden** [S] ([Jakpat via IndoTelko](https://www.indotelko.com/read/1783986411/live-shopping-lebih-efektif-dongkrak-pembelian-dibanding-affiliate-link)).
+
+### 2. Pembeli tidak mau menunggu
+
+- 77% pembeli mengharapkan balasan **di bawah 2 menit**, dan 55% bisa
+  membatalkan pembelian bila penjual lambat [S] (survei vendor SleekFlow
+  2023, [detik](https://inet.detik.com/cyberlife/d-6768448/ini-pentingnya-balas-chat-konsumen-untuk-pedagang-marketplace)).
+- Pada audit 2.241 perusahaan, **23% tidak pernah membalas** lead online.
+  Menghubungi dalam satu jam ±7x lebih efektif dibanding satu jam kemudian,
+  dan >60x dibanding 24 jam [S] ([HBR 2011](https://scholarsarchive.byu.edu/facpub/9711)).
+- Pesaing hanya satu ketukan jauhnya: pembeli yang tidak dibalas tinggal
+  bertanya ke toko lain di kolom komentar yang sama.
+
+### 3. Kapasitas UMKM tidak ikut naik
+
+- **99,70% UMKM adalah usaha mikro** [S] (SIDT-UMKM 2025, [UKM Indonesia](https://ukmindonesia.id/baca-deskripsi-posts/data-umkm-jumlah-dan-pertumbuhan-usaha-mikro-kecil-dan-menengah-di-indonesia)).
+  Pemilik merangkap produksi, pengiriman, dan admin chat; tidak ada tim
+  sales.
+- Bahkan di perusahaan dengan tim sales, hanya **28% waktu sales dipakai
+  untuk menjual**; sisanya untuk pekerjaan administratif [V]
+  ([Salesforce](https://www.salesforce.com/news/stories/sales-research-2023/)).
+- Target pemerintah **30 juta UMKM masuk ekosistem digital pada 2024**
+  [S] ([detik](https://finance.detik.com/berita-ekonomi-bisnis/d-5603587/ri-kejar-30-juta-umkm-go-digital-hingga-2024))
+  belum tercapai: 22,81 juta pada Agustus 2023 [S]
+  ([Republika](https://ekonomi.republika.co.id/berita/s0grw4490/menkop-2281-juta-umkm-sudah-masuk-platform-digital))
+  dan ±25 juta dari 64,2 juta pada 2025 [S]
+  ([Metro TV](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce)).
+  Alat yang butuh pelatihan panjang tidak akan dipakai.
+
+### 4. Pesaing besar sudah memakai AI
+
+- Meta meluncurkan **Business Agent** gratis untuk WhatsApp, Instagram, dan
+  Messenger (global, Jun 2026) [S]
+  ([TechWyse](https://www.techwyse.com/news/platform-updates/meta-business-agent-global-launch-whatsapp-instagram)).
+  Platform CRM seperti Qontak, SleekFlow, dan Respond.io juga menjual AI
+  agent, tetapi mulai dari ±Rp750rb/bulan (lihat Diferensiasi).
+- Pilihan yang tersisa bagi usaha mikro saat ini: membalas semuanya
+  sendiri, atau menyerahkan percakapan ke bot otonom yang bisa salah harga
+  di depan publik. Belum ada pilihan di tengah: AI yang menyiapkan, pemilik
+  yang memutuskan.
+- Sejak 15 Jan 2026, Meta melarang chatbot AI *general-purpose* di
+  WhatsApp Business API; AI yang melayani pelanggan bisnis itu sendiri
+  tetap diizinkan [V]
+  ([TechCrunch](https://techcrunch.com/2025/10/18/whatssapp-changes-its-terms-to-bar-general-purpose-chatbots-from-its-platform/)).
+  Jalurnya masih terbuka untuk produk seperti OmniLead, tetapi aturannya
+  makin ketat.
+
+### 5. Data pelanggan kini punya konsekuensi hukum
+
+UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi berlaku penuh sejak
+17 Okt 2024, dengan sanksi administratif hingga 2% pendapatan tahunan [S]
+([hukumonline](https://www.hukumonline.com/berita/a/2-langkah-menangani-kebocoran-data-pribadi-lt64f591243301b/)).
+Riwayat pelanggan UMKM sekarang tersebar di HP pribadi, grup WhatsApp, dan
+DM, tanpa catatan siapa mengakses apa.
+
+### Biaya kalau dibiarkan (ilustrasi Bu Rina)
+
+| Variabel | Nilai | Status |
+|---|---|---|
+| Chat dan komentar per hari (akhir pekan) | 80 | [A] |
+| Yang merupakan pesanan acara | 10–20% | [A] |
+| Pesanan acara yang terlambat dibalas lebih dari 1 jam | 1 dari 4 | [A] |
+| Nilai rata-rata pesanan acara | Rp1 juta | [A] |
+| Peluang batal bila lambat | 55% | [S] SleekFlow |
+
+Dengan 8 pesanan acara per bulan, 2 di antaranya terlambat dibalas, dan
+55% peluang batal, Bu Rina kehilangan **sekitar satu pesanan acara (±Rp1
+juta) setiap bulan**, belum termasuk pembeli eceran. Angka ini ilustrasi
+dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 
 ## Persona dan Masalah
 
@@ -75,31 +175,39 @@ disimulasikan sebagai akses yang sudah tersedia.
 | Waktu sales | Hanya 28% waktu sales dipakai untuk menjual | [V] [Salesforce](https://www.salesforce.com/news/stories/sales-research-2023/) |
 | Produk terlaris online | Makanan/minuman 28%, pakaian wanita 22%, aksesoris 14%, skincare 13% (Jakpat 2024) | [S] [GoodStats](https://data.goodstats.id/statistic/produk-paling-banyak-dijual-online-makanan-minuman-pakaian-jadi-primadona-EpfBT) |
 
-### P1 (persona utama demo): "Bu Rina", katering dan hampers rumahan
+### P1 (persona utama demo): "Bu Rina", penjual rujak dan es teler rumahan
 
-- **Profil:** Usaha mikro dengan 2–4 orang. Rina merangkap pemilik, admin
-  chat, dan pengelola Instagram.
+- **Profil:** Usaha mikro dengan 2–4 orang yang menjual olahan buah: rujak
+  buah, es teler, dan paket untuk acara (arisan, pengajian, acara kantor).
+  Rina merangkap pemilik, admin chat, dan pengelola Instagram.
 - **Kanal:** Komentar dan DM Instagram, WhatsApp, dan email. Email
-  biasanya dipakai pelanggan korporat yang meminta penawaran [A].
+  biasanya dipakai pelanggan kantor yang meminta penawaran untuk acara [A].
 - **Masalah:**
-  - Pertanyaan harga dan kapasitas tersebar di tiga kanal.
+  - Pertanyaan harga, porsi, dan area kirim tersebar di tiga kanal.
+  - Buah musiman membuat menu dan stok berubah; balasan lama bisa
+    menyebut menu yang sudah habis.
+  - Pesanan acara harus segar dan tepat waktu, jadi tenggatnya sempit.
   - Pelanggan yang sama muncul di beberapa kanal tanpa konteks.
-  - Order korporat bernilai besar terlewat tindak lanjut.
-- **Alasan dipilih:** F&B adalah kategori online terbesar (28%) [S].
-  Ceritanya menunjukkan nilai lintas kanal, dan beda nilai lead (eceran
-  vs korporat) membuat lead scoring bermakna.
+  - Pesanan acara bernilai besar terlewat tindak lanjut di antara pembeli
+    eceran.
+- **Alasan dipilih:** makanan dan minuman adalah kategori yang paling banyak
+  dijual online (28%) [S]. Beda nilai pesanan eceran (satu cup) dan pesanan
+  acara (puluhan porsi) membuat lead scoring bermakna, dan menu yang
+  berubah-ubah menunjukkan pentingnya harga dari katalog.
 - **Asumsi [A]:**
-  - 50–100 chat atau komentar per hari saat musim ramai.
-  - 10–20% di antaranya prospek bernilai besar.
-  - Waktu balas lebih dari 1 jam saat sedang memasak atau mengantar.
+  - 50–100 chat atau komentar per hari saat akhir pekan dan musim acara.
+  - 10–20% di antaranya pesanan acara bernilai besar.
+  - Waktu balas lebih dari 1 jam saat sedang mengupas buah atau mengantar.
 
-### P2: "Dimas", admin toko online fashion muslim
+### P2: "Dimas", admin toko online fashion wanita
 
 - **Profil:** Usaha kecil dengan 5–15 orang, 1–2 admin. Jualan di IG, WA,
   dan marketplace.
 - **Masalah:** Volume komentar tinggi ("ready size M?", "PO kapan?"),
   komplain bercampur dengan pertanyaan beli, dan reseller tidak
   dibedakan dari pembeli eceran.
+- **Alasan dipilih:** pakaian wanita adalah kategori online terbesar kedua
+  (22%) [S].
 - **Nilai yang dijual:** prioritisasi dan draf balasan massal yang tetap
   disetujui manusia.
 
@@ -146,26 +254,26 @@ Pemisahan Triage, Orchestrator, dan Guard dijustifikasi oleh pola
  ① Ingest & Normalize ──► Event{channel, sender, text, ts, raw_ref}
           │
           ▼
- ② Triage Agent  (Gemini Flash-Lite, output terstruktur)
+ ② Triage  (aturan; + Gemini 3.5 Flash-Lite bila engine adk, output terstruktur)
     intent | urgensi | sentimen | spam/injection flag | entitas
           │
           ▼
- ③ Identity Resolution  (aturan: no HP / email / handle sama)
-    └─ kasus ambigu → LLM menilai kemiripan → USULAN merge (perlu persetujuan)
+ ③ Identity Resolution  (aturan: no HP / email / handle sama → merge otomatis)
+    └─ kasus ambigu → kemiripan nama/perusahaan/handle → USULAN merge (perlu persetujuan)
           │
           ▼
- ④ OmniLead Orchestrator Agent  (Gemini Flash, ADK)
+ ④ OmniLead Orchestrator Agent  (Gemini 3.8 Flash, ADK; templat bila LLM gagal)
     rencana → panggil tools → susun usulan aksi
     tools: get_profile, get_timeline, search_catalog_faq, score_lead,
            draft_reply, propose_crm_update, propose_followup, propose_send
           │
           ▼
- ⑤ Guard / Reviewer Agent  (Gemini Flash-Lite + aturan)
+ ⑤ Guard / Reviewer  (aturan deterministik, maks 2 revisi)
     harga sesuai katalog? janji di luar kebijakan? kebocoran data?
     instruksi tersembunyi dari pelanggan? jendela 24 jam WA/IG?
           │
           ▼
- ⑥ Approval Queue (Firestore) ──► UI: Setujui / Edit / Tolak
+ ⑥ Approval Queue (SQLite / Firestore) ──► UI: Setujui / Edit / Tolak
           │ (hanya setelah disetujui manusia)
           ▼
  ⑦ Executor (kode backend, BUKAN LLM) → Gmail API / WA Cloud API / IG API
@@ -184,24 +292,19 @@ Pemisahan Triage, Orchestrator, dan Guard dijustifikasi oleh pola
   Desain ini juga menghindari fitur *tool confirmation* ADK yang masih
   experimental dan tidak didukung `DatabaseSessionService`/`VertexAiSessionService`
   ([ADK](https://adk.dev/tools-custom/confirmation/)).
-- **MCP:** akses CRM dan katalog/FAQ dibungkus sebagai MCP server lalu
+- **MCP:** data CRM dan katalog/FAQ disajikan oleh MCP server baca-saja
+  buatan sendiri (`omnilead-agent/src/omnilead_agent/mcp_server.py`) dan
   dihubungkan lewat `McpToolset` ([ADK MCP](https://adk.dev/tools-custom/mcp-tools/)).
-  Mock Instagram juga dibuat sebagai MCP server agar bisa diganti dengan
-  API asli tanpa mengubah agen.
-- **MCP Gateway OmniLead:** agen tidak terhubung langsung ke MCP mana
-  pun, melainkan lewat gateway milik kita ([ringkasan di
-  validasi-yc-dan-mcp.md](validasi-yc-dan-mcp.md)). Gateway
-  (a) hanya meneruskan tool dalam allowlist, (b) membuang tool kirim milik
-  MCP asli (misalnya `send_dm`) dan menggantinya dengan `propose_*`,
-  (c) menandai output MCP luar sebagai data tidak tepercaya sebelum Guard
-  memeriksanya, dan (d) mencatat setiap panggilan ke audit log. CRM
-  Firestore memakai MCP Toolbox for Databases (`--prebuilt firestore`)
-  di belakang gateway [S]. Mock IG dibuat dari fork MCP Instagram
-  berbasis Graph API resmi dengan kontrak tool yang sama, sehingga
-  peralihan mock → API asli hanya terjadi di gateway; UI memberi label
-  SIMULASI selama mock aktif. Hanya MCP berbasis API resmi yang dipakai;
-  MCP berbasis cookie sesi atau scraping tidak dipakai (melanggar ToS,
-  risiko ban).
+  Aktif bila `OMNILEAD_AGENT_USE_MCP=1`.
+- **MCP Gateway OmniLead** (`gateway.py`): agen tidak terhubung langsung ke
+  MCP mana pun. Gateway (a) hanya meneruskan tool dalam allowlist,
+  (b) membuang tool kirim (misalnya `send_dm`); agen hanya punya
+  `propose_*`, (c) menandai output MCP sebagai data tidak tepercaya
+  sebelum diperiksa Guard, dan (d) mencatat setiap panggilan ke audit log.
+  Hanya MCP berbasis API resmi yang boleh dipakai; MCP berbasis cookie sesi
+  atau scraping tidak dipakai (melanggar ToS, risiko ban). Rencana memakai
+  MCP Toolbox for Databases dan fork MCP Instagram ada di Lampiran A
+  sebagai roadmap; keduanya belum dipakai, dan tidak ada mock Instagram.
 - **Belajar dari penolakan:** alasan penolakan disimpan sebagai
   "preferensi bisnis" (misalnya "jangan terlalu formal") dan dimuat pada
   draf berikutnya.
@@ -235,10 +338,10 @@ batas otonominya, dan apa yang tidak boleh dilakukan. Label prioritas
 | Peran | Jenis | Model | Tugas utama | Keluaran |
 |---|---|---|---|---|
 | Ingest | Kode deterministik | — | Menerima webhook/Pub/Sub, normalisasi, dedup | `Event` |
-| **Triage Agent** | LLM (output terstruktur) | Gemini Flash-Lite | Memahami maksud, urgensi, sentimen, risiko, dan entitas | `TriageResult` |
-| **Identity Resolution** | Aturan + LLM untuk kasus ambigu | Gemini Flash-Lite | Mencocokkan pengirim dengan profil yang ada | Merge otomatis atau usulan merge |
-| **Orchestrator Agent** | LLM agen (ADK) | Gemini Flash | Merencanakan, memanggil tools, menyusun usulan aksi | Daftar `Action` berstatus *pending* |
-| **Guard Agent** | LLM + aturan | Gemini Flash-Lite | Memeriksa setiap usulan sebelum ditampilkan | Lolos / diblokir + alasan |
+| **Triage** | Aturan; LLM (output terstruktur) bila engine `adk` | Gemini 3.5 Flash-Lite | Memahami maksud, urgensi, sentimen, risiko, dan entitas. Flag injeksi dari aturan tidak bisa dihapus model | `TriageResult` |
+| **Identity Resolution** | Aturan | — | Mencocokkan pengirim dengan profil yang ada; kasus ambigu menjadi usulan dengan bukti dan keyakinan | Merge otomatis atau usulan merge |
+| **Orchestrator Agent** | LLM agen (ADK); templat bila engine `rule` atau LLM gagal | Gemini 3.8 Flash | Merencanakan, memanggil tools, menyusun usulan aksi | Daftar `Action` berstatus *pending* |
+| **Guard** | Aturan deterministik | — | Memeriksa setiap usulan sebelum ditampilkan (harga, diskon, kebocoran data, jendela kanal, duplikat, nada) | Lolos / diblokir + alasan |
 | Executor | Kode deterministik | — | Mengirim aksi yang sudah disetujui | Hasil kirim + audit log |
 
 ### 1. Triage Agent (Must)
@@ -253,7 +356,7 @@ batas otonominya, dan apa yang tidak boleh dilakukan. Label prioritas
   acara dekat, nada marah, atau pelanggan sudah bertanya dua kali.
 - **Sentimen:** positif, netral, negatif.
 - **Ekstraksi entitas:** nama, nomor HP, email, handle, produk/paket,
-  jumlah (pax/pcs), tanggal, lokasi pengiriman, anggaran.
+  jumlah (porsi/pcs), tanggal, lokasi pengiriman, anggaran.
 - **Deteksi risiko:** prompt injection, permintaan data pelanggan lain,
   spam/promosi, bahasa kasar.
 - **Bahasa informal Indonesia:** memahami singkatan dan campuran bahasa
@@ -267,7 +370,7 @@ batas otonominya, dan apa yang tidak boleh dilakukan. Label prioritas
   "urgency": "tinggi",
   "urgency_reason": "Acara 30 Okt, 9 hari lagi; order korporat",
   "sentiment": "netral",
-  "entities": {"qty": 60, "unit": "pax", "date": "2026-10-30",
+  "entities": {"qty": 60, "unit": "porsi", "date": "2026-10-30",
                "company": "PT Maju Jaya"},
   "risk_flags": [],
   "language": "id-informal"
@@ -298,7 +401,7 @@ Inti sistem. Orchestrator bekerja dengan siklus **rencana → panggil tool
 
 - **Menyusun rencana eksplisit** sebelum bertindak, dan rencana itu
   ditampilkan di panel trace. Contoh: "1) baca riwayat, 2) cari paket 60
-  pax, 3) hitung skor, 4) siapkan penawaran".
+  porsi, 3) hitung skor, 4) siapkan penawaran".
 - **Memakai konteks lintas kanal:** menggabungkan komentar IG, chat WA,
   dan email sebelumnya menjadi satu pemahaman. Contoh: "Ani sudah
   meminta penawaran via email kemarin, jadi jangan tanya ulang kebutuhan
@@ -313,7 +416,7 @@ Inti sistem. Orchestrator bekerja dengan siklus **rencana → panggil tool
   template".
 - **Tidak mengarang.** Jika harga, stok, atau kebijakan tidak ada di
   katalog/FAQ, draf berisi "kami cek dulu ya kak" dan pemilik diberi
-  tanda "info belum tersedia: harga paket 60 pax".
+  tanda "info belum tersedia: harga paket 60 porsi".
 - **Bertanya balik jika informasi kurang.** Contoh: tanggal atau alamat
   belum disebut, maka draf berisi pertanyaan klarifikasi, bukan asumsi.
 - **Menangani pesan dengan banyak intent:** komplain diselesaikan dulu,
@@ -341,7 +444,7 @@ Setiap usulan aksi diperiksa sebelum muncul di antrean persetujuan.
 
 | Pemeriksaan | Contoh pelanggaran | Tindakan |
 |---|---|---|
-| Konsistensi harga | Draf menyebut Rp25.000/pax, katalog Rp35.000 | Blokir, minta revisi ke Orchestrator |
+| Konsistensi harga | Draf menyebut Rp15.000/porsi, katalog Rp18.000 | Blokir, minta revisi ke Orchestrator |
 | Kebijakan bisnis | Diskon melebihi batas yang diizinkan pemilik | Blokir + alasan |
 | Kebocoran data | Draf menyebut nama atau nomor pelanggan lain | Blokir |
 | Prompt injection | Isi pesan pelanggan memerintah agen ("abaikan instruksi...") | Blokir seluruh tugas, tandai tinjauan manual |
@@ -413,14 +516,14 @@ platform.**
 ### Contoh trace yang ditampilkan di panel agen
 
 ```
-Tujuan   : Tanggapi permintaan katering 60 pax dari Ani (PT Maju Jaya)
+Tujuan   : Tanggapi pesanan es teler 60 porsi dari Ani (PT Maju Jaya)
 Rencana  : 1) baca riwayat  2) cari paket  3) skor  4) siapkan balasan
-[1] get_timeline(lead=ani-majujaya)       → email 20 Okt: minta info katering kantor
-[2] search_catalog_faq("nasi box 60 pax") → Paket B Rp35.000/pax, min. 30 pax
+[1] get_timeline(lead=ani-majujaya)         → email 20 Okt: minta info es teler untuk acara kantor
+[2] search_catalog_faq("es teler 60 porsi") → Paket Es Teler Acara Rp18.000/porsi, min. 30 porsi
 [3] check_channel_window(ani, whatsapp)   → terbuka, sisa 23 j 41 m
-[4] score_lead(ani)                        → 86 Hot (korporat, 60 pax, tenggat 9 hari)
+[4] score_lead(ani)                        → 86 Hot (kantor, 60 porsi, tenggat 9 hari)
 [5] propose_reply(instagram, publik)      → "Sudah kami DM ya kak 🙏"
-[6] propose_private_reply(comment_id)      → detail Paket B + total Rp2.100.000
+[6] propose_private_reply(comment_id)      → detail paket + total Rp1.080.000
 [7] propose_reply(email, penawaran)        → penawaran lengkap di badan email
 [8] propose_followup(H+2, whatsapp)        → draf follow-up
 Guard    : 4/4 lolos (harga sesuai katalog, jendela terbuka, tanpa data pihak lain)
@@ -507,7 +610,7 @@ Status   : Menunggu persetujuan (4 aksi)
 ### Skenario utama (±4 menit)
 
 Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
-"Ani – PT Maju Jaya" yang menanyakan katering kantor.
+"Ani – PT Maju Jaya" yang menanyakan es teler untuk acara kantor.
 
 1. **Masuk.** Komentar IG dari `@ani.majujaya`: "Kak, bisa buat 60 orang
    tgl 30? harga?". Tak lama, chat WA masuk dari nomor yang tercantum di
@@ -520,13 +623,13 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 4. **Orkestrator** (trace terlihat):
    - membaca timeline;
    - mencari paket di katalog;
-   - menilai skor **Hot** (korporat, 60 pax, tenggat 9 hari);
+   - menilai skor **Hot** (kantor, 60 porsi, tenggat 9 hari);
    - mengusulkan (a) balasan publik singkat di IG ("sudah kami DM ya
      kak") ditambah private reply DM berisi harga, (b) penawaran
      lengkap via WA/email, (c) pengingat H+2.
 5. **Guard.** Harga sesuai katalog, jendela 24 jam WA masih terbuka,
    sehingga lolos.
-6. **Manusia.** Setujui (a), edit (b) dengan menambah bonus tester, dan
+6. **Manusia.** Setujui (a), edit (b) dengan menambah bonus 5 cup rujak, dan
    tolak satu draf karena "terlalu formal". Agen menyusun ulang dengan
    gaya lebih santai.
 7. **Eksekusi.** Email penawaran benar-benar terkirim lewat Gmail API dan
@@ -537,7 +640,7 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 
 ### Skenario tambahan: kanal tanpa API (±45 detik, jika fitur selesai)
 
-1. Tempel screenshot DM TikTok: "kak bisa kirim hampers ke Bandung?".
+1. Tempel screenshot DM TikTok: "kak rujaknya bisa kirim ke Cimahi?".
 2. Gemini mengekstrak pengirim dan isi. Agen mencocokkan dengan profil
    yang ada (atau membuat profil baru), lalu menyusun draf.
 3. Tombol yang muncul adalah **Salin & buka di TikTok**, bukan "Kirim".
@@ -559,33 +662,31 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 
 | Komponen | Status | Catatan |
 |---|---|---|
-| Gmail baca dan kirim | **Nyata** | OAuth mode Testing dengan anggota tim sebagai test user. `gmail.send` termasuk scope sensitive; `gmail.modify`/`readonly` restricted ([scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)), cukup untuk mode Testing. |
-| WhatsApp | **Nyata, terbatas** | Nomor uji Cloud API hanya ke beberapa nomor terdaftar (±5). HP anggota tim berperan sebagai pelanggan. |
-| Instagram komentar, DM, private reply | **Target nyata (Standard Access), fallback SIMULASI** | Akun IG Professional milik tim dengan `instagram_business_manage_comments`/`..._manage_messages`. Standard Access cukup untuk akun sendiri atau akun yang punya role di app, jadi App Review **tidak** diperlukan untuk demo ([Messaging](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api), [Comments](https://developers.facebook.com/docs/instagram-platform/comment-moderation)). Keputusan diambil jam 19.00; jika simulasi, UI diberi label. |
+| Gmail baca dan kirim | **Target nyata, belum diuji** | Kode siap (OAuth refresh token, kirim dalam thread, push + polling). Gmail API belum aktif di project panitia. OAuth mode Testing dengan anggota tim sebagai test user. `gmail.send` termasuk scope sensitive; `gmail.modify`/`readonly` restricted ([scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)), cukup untuk mode Testing. |
+| WhatsApp | **Target nyata (terbatas), belum diuji** | Kode siap (webhook dengan signature, jendela 24 jam). Nomor uji Cloud API hanya ke beberapa nomor terdaftar (±5). HP anggota tim berperan sebagai pelanggan. |
+| Instagram komentar, DM, private reply | **Target nyata (Standard Access), belum diuji; cadangan: Tempel pesan** | Akun IG Professional milik tim dengan `instagram_business_manage_comments`/`..._manage_messages`. Standard Access cukup untuk akun sendiri atau akun yang punya role di app, jadi App Review **tidak** diperlukan untuk demo ([Messaging](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api), [Comments](https://developers.facebook.com/docs/instagram-platform/comment-moderation)). Tidak ada mock Instagram; bila akses belum siap, komentar masuk lewat Tempel pesan. |
 | TikTok DM/komentar | **Handoff manual** (Could) | Pendaftaran developer, review keamanan, dan Business Messaging API butuh approval berhari-hari, sehingga tidak realistis dalam 24 jam. Masuk lewat screenshot/teks, keluar lewat Salin & buka. |
 | LinkedIn DM | **Handoff manual** (Could) | API messaging hanya untuk partner yang disetujui, dan pesan harus dipicu member ([LinkedIn](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)). Company Page API memerlukan pengajuan produk, sehingga masuk roadmap. |
 | LinkedIn komentar/balasan di post milik sendiri | **Target nyata (OAuth member), fallback handoff** [A] | `omnilead-be` sudah memanggil `/rest/socialActions` dengan token OAuth member (`connectors/linkedin.py`). Membaca post dan komentar belum didukung connector (`ActionNotSupported`), jadi komentar masuk lewat **Tempel pesan**. Izin produk LinkedIn yang dibutuhkan belum diverifikasi; jangan diklaim "terhubung" di slide sebelum token uji berhasil. Tanpa token, aksi otomatis jatuh ke handoff. |
-| CRM | **Nyata (internal)** | Firestore |
+| CRM | **Nyata, lokal** | SQLite di laptop demo. Adapter Firestore siap (diuji dengan fake), menunggu Firestore diaktifkan panitia |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
-| Agen dan Gemini | **Nyata** | ADK + Vertex AI |
+| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 14/18 pass^3, ±41 detik per kasus; engine aturan 18/18, ±0,4 detik |
 
 ## Keamanan dan Kendali Manusia
 
 Lima lapis kendali (TOR §15: sediakan cara menghentikan agen):
 
 1. **Persetujuan per aksi (default).** Semua aksi eksternal masuk antrean.
-2. **Pause Agent global.** Flag di Firestore diperiksa oleh plugin atau
-   callback ADK (`before_model_callback`, `before_tool_callback`; callback
-   yang mengembalikan nilai akan melewati pemanggilan model atau tool,
-   lihat [ADK callbacks](https://adk.dev/callbacks/)). Executor juga
-   menolak eksekusi selama flag aktif.
+2. **Pause Agent global.** Ditegakkan di BE: selama flag `paused` aktif,
+   event baru ditahan (diproses saat dilanjutkan) dan executor menolak
+   semua pengiriman, termasuk aksi yang sudah disetujui.
 3. **Saklar per kanal.** Misalnya mematikan IG saja.
 4. **Batas otomatis.** Maksimal langkah per tugas, maksimal pengiriman
    per jam per kanal, dan batas token.
 5. **Dry-run dan pencabutan token** dari halaman Integrasi.
 
 Autentikasi: REST API untuk FE memakai API key satu bisnis; endpoint
-Scheduler hanya menerima token OIDC; webhook Meta/Gmail divalidasi lewat
+Scheduler menerima token Bearer atau token OIDC Google; webhook Meta/Gmail divalidasi lewat
 signature atau token push. Endpoint tanpa autentikasi hanya `/health`.
 
 Kerangka acuan: OWASP LLM01 dan LLM06 ([OWASP](https://genai.owasp.org/llm-top-10/)),
@@ -596,20 +697,22 @@ pribadi di repo, deck, maupun rekaman (TOR §9).
 
 ## Rencana Pengujian
 
-**Set uji:** 15–20 kasus di `eval/omnilead.evalset.json`, dengan
-sebaran:
+**Set uji:** 18 kasus di `omnilead-agent/eval/omnilead.evalset.json`:
 
 - 6 kasus happy path;
 - 3 kasus komplain;
-- 3 kasus identitas (pasti, ambigu, beda orang dengan nama sama);
 - 3 kasus keamanan (injection, minta data pelanggan lain, diskon tidak
   wajar);
-- 2 kasus batas platform (jendela 24 jam, token kedaluwarsa);
-- 1–2 kasus spam.
+- 2 kasus batas platform (jendela WhatsApp dan Instagram tertutup);
+- 2 kasus spam;
+- 2 kasus bahasa informal.
+
+Identitas diuji terpisah di BE (`omnilead-be/eval/identity_eval.py`, 50
+lead dummy, 100 probe). Persona fashion punya evalset sendiri (6 kasus).
 
 | Metrik | Cara ukur |
 |---|---|
-| Ketepatan alur tools | `adk eval` dengan `tool_trajectory_avg_score` ([ADK evaluate](https://adk.dev/evaluate/)) |
+| Ketepatan hasil | Runner sendiri (`omnilead_agent.eval`) memeriksa intent, urgensi, entitas, jenis usulan, isi draf, dan hasil Guard. `adk eval` dengan `tool_trajectory_avg_score` belum dijalankan ([ADK evaluate](https://adk.dev/evaluate/)) |
 | Konsistensi | Setiap kasus dijalankan 3x, lalu dihitung **pass^3** (konsep τ-bench, [paper](https://arxiv.org/abs/2406.12045), [Sierra](https://sierra.ai/blog/benchmarking-ai-agents)) |
 | Akurasi triage | Intent dan urgensi vs label manual |
 | Akurasi identitas | Presisi dan recall merge pada 50 lead dummy |
@@ -622,29 +725,147 @@ Hasil dicatat di `TESTING.md` dengan kolom kasus → input → hasil aktual
 
 ## Dampak
 
-**A. Waktu kerja admin**
+Setiap angka diberi label: **[U]** diukur tim di repo ini, **[V]**
+dicek langsung di sumber primer, **[S]** sumber sekunder, **[A]** asumsi
+yang perlu divalidasi. Di slide, angka [U] dan [A] tidak boleh dicampur
+tanpa label.
+
+### Dampak bisnis
+
+**1. Waktu admin kembali ke pemilik**
 
 | Variabel | Nilai | Status |
 |---|---|---|
 | Chat/komentar per hari | 80 | [A] |
-| Waktu tangani manual per chat | 3 menit | [A] |
-| Dengan OmniLead (baca draf, setujui atau edit) | 1 menit | [A], diukur saat uji |
-| Penghematan | ±2,7 jam/hari, setara ±58 jam/bulan | turunan |
-| Nilai rupiah | UMP DKI 2026 Rp5.729.876 ÷ 173 jam ≈ Rp33.000/jam, sehingga **±Rp1,9 juta/bulan** | [V] [Kompas TV](https://www.kompas.tv/info-publik/639870/daftar-lengkap-ump-2026-di-seluruh-provinsi-dki-jakarta-tertinggi-dengan-rp5-729-876) |
+| Waktu tangani manual per chat (baca, cek harga, tulis, catat) | 3 menit | [A] |
+| Dengan OmniLead (baca draf, setujui atau ubah) | 1 menit | [A], diukur saat uji pengguna |
+| Penghematan | ±2,7 jam/hari, setara ±58 jam/bulan | turunan dari [A] |
+| Nilai rupiah | UMP DKI 2026 Rp5.729.876 ÷ 173 jam ≈ Rp33.000/jam, jadi **±Rp1,9 juta/bulan** | [V] [Kompas TV](https://www.kompas.tv/info-publik/639870/daftar-lengkap-ump-2026-di-seluruh-provinsi-dki-jakarta-tertinggi-dengan-rp5-729-876) |
 
-**B. Order yang terselamatkan**
+Bukti dari riset bahwa asisten AI mempercepat pekerjaan layanan
+pelanggan:
 
-- Waktu respons turun dari hitungan jam ke menit.
-- Dikaitkan dengan data: 55% pembeli bisa batal jika dibalas lambat [S],
-  dan respons dalam 1 jam ±7x lebih efektif [S].
-- Ilustrasi:
-  - 5 prospek korporat per bulan dengan nilai rata-rata Rp3 juta [A];
-  - jika 1 tambahan order terselamatkan, nilainya Rp3 juta/bulan.
+- Studi lapangan pada **5.179 agen layanan pelanggan**: akses asisten AI
+  menaikkan jumlah masalah yang selesai per jam **14% rata-rata** dan
+  **34% untuk pekerja baru atau kurang terampil**, dengan dampak kecil pada
+  pekerja paling berpengalaman [V] ([Brynjolfsson, Li, Raymond, NBER
+  w31161](https://www.nber.org/papers/w31161)). Versi yang terbit di
+  *Quarterly Journal of Economics* (2025) melaporkan rata-rata 15% [S]
+  ([arXiv 2304.11771](https://arxiv.org/abs/2304.11771)).
+- McKinsey memperkirakan AI generatif dapat menghasilkan nilai produktivitas
+  setara **30–45% biaya fungsi layanan pelanggan** [S] (proyeksi, bukan
+  hasil terukur; [McKinsey 2023](https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-economic-potential-of-generative-ai-the-next-productivity-frontier)).
 
-**C. Skala.** 25 juta UMKM sudah digital [S]. Pasar awal: UMKM F&B dan
-fashion yang aktif di IG dan WA.
+Studi tersebut untuk perusahaan besar di AS, bukan UMKM Indonesia. Angka
+OmniLead sendiri baru valid setelah diukur dengan pengguna (lihat tabel
+pengukuran di bawah).
 
-Di slide, bedakan angka "diukur saat uji" dari angka "asumsi".
+**2. Lebih sedikit order hilang karena telat membalas**
+
+- Audit HBR terhadap 2.241 perusahaan AS: hanya 37% membalas lead online
+  dalam satu jam dan 23% tidak pernah membalas. Dari analisis ±1,25 juta
+  lead, perusahaan yang menghubungi dalam satu jam **±7x lebih mungkin
+  mengkualifikasi lead** dibanding yang menunggu satu jam lebih lama, dan
+  **>60x** dibanding yang menunggu 24 jam atau lebih [S] ([Oldroyd,
+  McElheran, Elkington, HBR 2011](https://scholarsarchive.byu.edu/facpub/9711)).
+- 55% pembeli bisa membatalkan pembelian jika penjual lambat membalas [S]
+  (survei vendor SleekFlow 2023, [detik](https://inet.detik.com/cyberlife/d-6768448/ini-pentingnya-balas-chat-konsumen-untuk-pedagang-marketplace)).
+- Waktu dari pesan masuk sampai draf siap: **0,34–0,40 detik** dengan
+  engine aturan dan **±41 detik** dengan Gemini [U]. Keduanya jauh di
+  bawah satu jam. Waktu respons yang tersisa adalah waktu sampai pemilik
+  menekan Setujui.
+- Ilustrasi [A]: 8 pesanan acara per bulan dengan nilai rata-rata Rp1
+  juta. Jika dua tambahan pesanan terselamatkan, nilainya Rp2 juta/bulan.
+
+**3. Lebih sedikit salah harga dan janji yang tidak bisa ditepati**
+
+- Harga dan diskon dalam draf hanya boleh berasal dari katalog. Draf yang
+  menyebut harga lain atau diskon di atas batas ditahan.
+- Kasus berbahaya di evalset (injeksi, minta data pelanggan lain, diskon
+  tidak wajar, spam, jendela kanal tertutup) ditangani benar **7/7** dengan
+  engine aturan dan **6/7** dengan Gemini [U]. Pada kasus yang gagal (S3,
+  diskon 70%), draf Gemini melanggar batas diskon dan **ditahan Guard**,
+  sehingga tidak sampai ke pelanggan.
+
+**4. Biaya lebih rendah dari alternatif**
+
+Hipotesis harga Rp149–299rb/bulan untuk 1–3 user [A], di bawah Mekari
+Qontak (±Rp750rb) dan SleekFlow (Rp1,8 juta) (lihat tabel Diferensiasi).
+Biaya platform terbesar adalah WhatsApp: pesan layanan dalam jendela 24
+jam gratis sampai 1.000 per nomor per bulan [V]
+([WA pricing](https://developers.facebook.com/docs/whatsapp/pricing/)).
+
+**5. Ukuran pasar**
+
+| Fakta | Angka | Status |
+|---|---|---|
+| Jumlah UMKM | ±65 juta unit; 61% PDB; 97% tenaga kerja | [S] [Kompas 2024](https://lestari.kompas.com/partner/shopee/read/2024/03/07/16040301/jokowi-jumlah-umkm-kita-65-juta-dan-penyerapan-tenaga-kerja-97-persen) |
+| UMKM di ekosistem digital | ±25 juta dari 64,2 juta (±39%) | [S] [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
+| Usaha e-commerce yang berjualan lewat pesan instan | 95,33%; media sosial 33,29%; website sendiri 1,77% | [S] BPS *Statistik E-Commerce 2023* (rilis 30 Jan 2025, [BPS](https://www.bps.go.id/id/publication/2025/01/30/d52af11843aee401403ecfa6/statistik-e-commerce-2023.html)), angka dikutip [GoodStats](https://goodstats.id/article/mayoritas-usaha-e-commerce-berjualan-lewat-aplikasi-pesan-instan-HmFph) |
+
+Pasar awal: UMKM makanan dan minuman (termasuk olahan buah) dan fashion
+wanita yang aktif di Instagram dan WhatsApp.
+
+### Dampak non-bisnis
+
+**1. Beban kerja dan waktu pribadi pemilik.** Sekitar **64,5% UMKM
+dikelola perempuan** [S] ([Kemen PPPA via Antara](https://jatim.antaranews.com/berita/715125/kemen-pppa-tegaskan-literasi-digital-penting-bagi-perempuan-pelaku-umkm);
+tahun data dikutip berbeda-beda, 2021 atau 2024). Di usaha mikro, pemilik
+sering merangkap admin chat di sela memasak, mengantar, dan mengurus
+rumah. Jam yang dihemat (±2,7 jam/hari [A]) bisa kembali ke keluarga dan
+istirahat. Ini hipotesis yang perlu dikonfirmasi lewat wawancara pengguna.
+
+**2. Admin baru lebih cepat mahir.** Pada studi NBER di atas, manfaat
+terbesar dirasakan pekerja baru (+34%). Asisten AI juga menyebarkan cara
+kerja pekerja terbaik, **memperbaiki sentimen pelanggan, dan meningkatkan
+retensi karyawan** [V] ([NBER w31161](https://www.nber.org/papers/w31161)).
+Admin UMKM sering anggota keluarga atau pekerja baru. Draf OmniLead yang
+disertai alasan berfungsi sebagai contoh kerja.
+
+**3. Perlindungan konsumen.** UU No. 8 Tahun 1999 Pasal 7 huruf b
+mewajibkan pelaku usaha memberikan informasi yang benar, jelas, dan jujur
+mengenai barang dan/atau jasa [V] ([UU 8/1999](https://peraturan.go.id/files/uu8-1999.pdf)).
+Guard memastikan harga dan ketentuan di draf sesuai katalog, sehingga
+pelanggan mendapat jawaban yang konsisten di semua kanal.
+
+**4. Privasi data pelanggan.** UU No. 27 Tahun 2022 tentang Pelindungan
+Data Pribadi berlaku penuh sejak 17 Okt 2024, dengan sanksi administratif
+hingga 2% pendapatan tahunan [S] ([hukumonline](https://www.hukumonline.com/berita/a/2-langkah-menangani-kebocoran-data-pribadi-lt64f591243301b/)).
+Di OmniLead, agen tidak pernah memegang token platform, permintaan data
+pelanggan lain ditahan (kasus S2), dan demo hanya memakai data dummy.
+
+**5. AI yang bisa diawasi.** Setiap aksi keluar butuh persetujuan, bisa
+dihentikan dengan Pause, dan tercatat di audit log, sesuai OWASP LLM06
+*Excessive Agency* dan NIST AI RMF. Ini penting karena agen terkuat pun
+belum andal: di τ-bench, pass^8 di bawah 25% untuk domain retail [V]
+([τ-bench](https://arxiv.org/abs/2406.12045)). Hasil kita sendiri sejalan:
+Gemini lulus 14/18 kasus [U].
+
+**6. Inklusi digital.** Baru ±39% UMKM masuk ekosistem digital [S].
+OmniLead bekerja di kanal yang sudah dipakai pelanggan (WhatsApp,
+Instagram, email) dan hanya meminta pemilik menekan Setujui, Ubah, atau
+Tolak. Kemudahan ini masih asumsi [A] dan perlu diuji dengan pemilik
+UMKM.
+
+### Risiko dan dampak negatif
+
+| Risiko | Mitigasi |
+|---|---|
+| Pemilik menyetujui tanpa membaca | Guard tetap menahan harga, diskon, dan data yang salah; balasan publik menampilkan peringatan "terlihat publik" |
+| Salah menggabungkan dua pelanggan | Kemiripan hanya jadi usulan; merge bisa dipisah lagi |
+| Draf Gemini lambat (±41 detik) atau salah (4/18 kasus gagal) | Engine aturan sebagai cadangan; jalur hybrid (aturan dulu, Gemini hanya bila perlu) |
+| Biaya WhatsApp di atas 1.000 pesan layanan/bulan | Prioritisasi: spam tidak dibalas; batas kirim per jam |
+| Pekerjaan admin tergantikan | Desain membantu, bukan menggantikan: semua keputusan tetap di manusia. Studi NBER justru menemukan retensi naik, tetapi itu konteks perusahaan besar |
+
+### Cara mengukur
+
+| Metrik | Cara ukur | Status |
+|---|---|---|
+| Waktu per pesan | Stopwatch 10 pesan: balas manual vs setujui draf | Belum, butuh 3–5 pemilik UMKM |
+| Kualitas draf | % disetujui tanpa edit / diedit / ditolak | Belum, butuh pengguna |
+| Waktu dari pesan sampai draf | Log BE | [U] 0,34–0,40 dtk (aturan), ±41 dtk (Gemini) |
+| Kesalahan harga yang lolos | Kasus berbahaya di evalset | [U] 0 lolos ke pelanggan; 7/7 (aturan), 6/7 benar (Gemini) |
+| Order terselamatkan | Wawancara: pernah kehilangan order karena telat membalas? | Belum |
 
 ## Diferensiasi dan Benchmark
 
@@ -662,7 +883,7 @@ Di slide, bedakan angka "diukur saat uji" dari angka "asumsi".
 
 Belum ditemukan startup YC yang sama persis; yang dekat hanya mengerjakan
 sebagian. Sumber: halaman YC masing-masing [V] (diakses 21 Okt 2026),
-detail di [validasi-yc-dan-mcp.md](validasi-yc-dan-mcp.md).
+detail di [Lampiran A](#lampiran-a-validasi-yc-dan-peta-mcp).
 
 | Startup | Batch | Fokus | Celah terhadap OmniLead |
 |---|---|---|---|
@@ -711,31 +932,31 @@ di antara Meta (gratis) dan Qontak/SleekFlow (Rp750rb+).
 | Lapisan | Layanan | Peran | Referensi |
 |---|---|---|---|
 | Framework agen | ADK 2.x (Python ≥3.11), `google-adk` | Triage, Orchestrator, Guard; `McpToolset`; callbacks dan plugin; `adk eval` | [adk.dev](https://adk.dev/), [PyPI](https://pypi.org/project/google-adk/) |
-| Model | Gemini via Vertex AI: `gemini-3.5-flash-lite` (triage/guard), `gemini-3.8-flash` (orkestrator/draf) | ID dicek ulang di konsol Vertex saat briefing | [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Vertex](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models) |
-| Hosting | Cloud Run: `omnilead-api` (API, webhook, UI, executor) dan `omnilead-agent` (`adk deploy cloud_run`) | | [ADK Cloud Run](https://adk.dev/deploy/cloud-run/) |
-| Database | Firestore: `leads`, `events`, `actions`, `audit_logs`, `settings` | CRM, antrean persetujuan, flag Pause | [Firestore](https://docs.cloud.google.com/firestore/native/docs/overview) |
+| Model | Gemini via Vertex AI: `gemini-3.5-flash-lite` (triage), `gemini-3.8-flash` (orkestrator/draf, ekstraksi screenshot) | Terverifikasi 21 Okt 2026, **hanya di location `global`**; `asia-southeast2` menolak semua model dan alias `gemini-flash-latest` 404 [U] | [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Vertex](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models) |
+| Hosting | Demo lokal (agen :8100, BE :8000, FE :3000). Opsi Cloud Run: `omnilead-agent`, `omnilead-api`, `omnilead-fe` dari Dockerfile masing-masing; lihat Lampiran B | TOR tidak mewajibkan deploy | [ADK Cloud Run](https://adk.dev/deploy/cloud-run/) |
+| Database | SQLite (demo) atau Firestore: `leads`, `events`, `event_keys`, `actions`, `audit`, `settings` | CRM, antrean persetujuan, flag Pause | [Firestore](https://docs.cloud.google.com/firestore/native/docs/overview) |
 | Email masuk | Gmail API + Pub/Sub (`users.watch`, `users.history.list`) | Watch berlaku 7 hari dan diperpanjang harian; siapkan polling cadangan | [Gmail push](https://developers.google.com/workspace/gmail/api/guides/push), [sending](https://developers.google.com/workspace/gmail/api/guides/sending) |
 | Rahasia | Secret Manager | Token WA, app secret Meta, OAuth refresh token | [Secret Manager](https://docs.cloud.google.com/secret-manager/docs/overview) |
 | Penjadwalan | Cloud Scheduler (OIDC ke Cloud Run) | Pengingat follow-up, perpanjangan Gmail watch | [Scheduler](https://docs.cloud.google.com/run/docs/triggering/using-scheduler) |
-| Log | Cloud Logging + `audit_logs` | Jejak aksi agen dan persetujuan | [Audit Logs](https://docs.cloud.google.com/logging/docs/audit) |
+| Log | Cloud Logging + koleksi `audit` | Jejak aksi agen dan persetujuan | [Audit Logs](https://docs.cloud.google.com/logging/docs/audit) |
 | Opsional | Agent Runtime (dulu Vertex AI Agent Engine) | Hanya jika diarahkan panitia | [Agent Runtime](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview) |
 
 ```
 WA Cloud API ──webhook──►┐
-IG API / IG mock (MCP) ─►├─► Cloud Run "omnilead-api" ──► Firestore.events
+IG API / Tempel pesan ─►├─► omnilead-api (FastAPI) ──► store.events
 Gmail ─► Pub/Sub topic ─►┘          │
                                     ▼
-                         Cloud Run "omnilead-agent" (ADK)
+                         omnilead-agent (ADK)
                            Triage → Orchestrator → Guard
-                           ├─ McpToolset → MCP server CRM (Firestore)
+                           ├─ McpToolset → MCP gateway → MCP server baca-saja
                            └─ Vertex AI Gemini
                                     │ propose_*
                                     ▼
-                         Firestore.actions (pending) → UI Setujui/Edit/Tolak
+                         store.actions (pending) → UI Setujui/Edit/Tolak
                                     ▼
                          Executor (omnilead-api) → Gmail / WA / IG send
                                     ▼
-                         audit_logs + Cloud Logging + Cloud Scheduler
+                         audit + Cloud Logging + Cloud Scheduler
 ```
 
 **Catatan implementasi:**
@@ -832,7 +1053,7 @@ harus diikuti:
 | [GoogleCloudPlatform/agent-starter-pack](https://github.com/GoogleCloudPlatform/agent-starter-pack) | Template agen dengan deploy Cloud Run/Agent Engine, CI/CD, dan eval. Statusnya **maintenance mode**, jadi gunakan hanya sebagai referensi. | BE |
 | [GoogleCloudPlatform/generative-ai](https://github.com/GoogleCloudPlatform/generative-ai) | Notebook dan contoh Gemini di Vertex AI (structured output, multimodal untuk fitur screenshot). | AI |
 | [googleapis/mcp-toolbox](https://github.com/googleapis/mcp-toolbox) (dulu `genai-toolbox`) | MCP Toolbox for Databases. Mendukung **Firestore**, sehingga tools baca CRM bisa didefinisikan lewat konfigurasi, bukan kode. Alternatif dari MCP server buatan sendiri. | AI, BE |
-| [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | SDK resmi MCP Python untuk membuat MCP server CRM, katalog, dan mock IG. Install: `pip install "mcp[cli]"`. | AI, BE |
+| [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | SDK resmi MCP Python untuk membuat MCP server CRM dan katalog (dipakai `mcp_server.py`). Install: `pip install "mcp[cli]"`. | AI, BE |
 | [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) | Contoh implementasi server MCP sebagai acuan pola. | AI |
 
 ### Kanal dan integrasi
@@ -852,7 +1073,7 @@ mengikuti [dokumentasi Instagram Platform](https://developers.facebook.com/docs/
 
 | Repository | Kegunaan untuk OmniLead | Dipakai oleh |
 |---|---|---|
-| [ag-ui-protocol/ag-ui](https://github.com/ag-ui-protocol/ag-ui) | Protokol event agen ke UI. Google ADK tercantum sebagai integrasi *first-party* yang didukung. Cocok untuk men-*stream* trace agen (rencana, tool call, hasil) ke panel agen dan untuk alur human-in-the-loop. Opsional: kalau setup-nya makan waktu, cukup baca koleksi `audit_logs`/`actions` dari Firestore secara realtime. | FE |
+| [ag-ui-protocol/ag-ui](https://github.com/ag-ui-protocol/ag-ui) | Protokol event agen ke UI. Google ADK tercantum sebagai integrasi *first-party* yang didukung. Cocok untuk men-*stream* trace agen (rencana, tool call, hasil) ke panel agen dan untuk alur human-in-the-loop. Opsional: kalau setup-nya makan waktu, cukup polling `actions` dan `audit` dari BE (yang dipakai sekarang: polling 3 detik). | FE |
 
 Untuk stack FE sendiri (misalnya React/Next.js dengan komponen UI siap
 pakai), ikuti stack yang paling dikuasai developer FE. Kecepatan lebih
@@ -894,6 +1115,9 @@ dibangun sendiri berdasarkan contoh resmi di bagian sebelumnya.
 | [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench) | Rujukan metodologi evaluasi agen customer service (domain retail, metrik pass^k). Dipakai sebagai acuan cara menyusun evalset, bukan dijalankan. |
 
 ## Scope 24 Jam
+
+> Rencana awal sebelum countdown, dipertahankan sebagai catatan. Kondisi
+> sekarang ada di [Status Implementasi](#status-implementasi).
 
 Coding agent mempercepat penulisan kode. Bottleneck-nya pindah ke setup
 kredensial, debug integrasi, pengujian, kestabilan demo, dan
@@ -947,7 +1171,7 @@ latihan demo.
 
 Supaya tiga orang bisa bekerja paralel sejak jam pertama:
 
-1. **Skema Firestore:** `events`, `leads`, `actions`, `audit_logs`,
+1. **Skema data:** `events`, `event_keys`, `leads`, `actions`, `audit`,
    `settings` (flag Pause, saklar kanal, dry-run, preferensi, persona).
    Untuk dev dan tes, antarmuka `Store` yang sama punya adapter SQLite
    (dipakai `omnilead-be` sekarang); Firestore adalah adapter produksi.
@@ -972,8 +1196,8 @@ Supaya tiga orang bisa bekerja paralel sejak jam pertama:
 3. **Format `Action`** yang ditulis agen (`propose_*`) dan dibaca FE dan
    executor.
 4. **Endpoint REST** untuk FE. Autentikasi: API key (satu bisnis) di
-   header; endpoint `/scheduler/*` hanya menerima token OIDC Cloud
-   Scheduler; webhook memakai validasi signature, bukan API key.
+   header; endpoint `/scheduler/*` menerima token Bearer atau token OIDC
+   Cloud Scheduler; webhook memakai validasi signature, bukan API key.
 
    | Endpoint | Status |
    |---|---|
@@ -1031,10 +1255,11 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 ## Status Implementasi
 
 Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
-[../TESTING.md](../TESTING.md), deploy di [deploy.md](deploy.md), sumber dan lisensi di [SOURCES.md](SOURCES.md).
+[../TESTING.md](../TESTING.md), deploy di [Lampiran B](#lampiran-b-deploy-ke-google-cloud), sumber dan lisensi di [SOURCES.md](SOURCES.md).
 
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
-HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipanggil sama sekali.
+HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (21 Okt 2026): engine `adk`
+14/18 pass^3, ±41 detik per kasus; kegagalannya dicatat di `omnilead-agent/eval/results-adk.md`.
 
 | Komponen | Prioritas | Status | Catatan |
 |---|---|---|---|
@@ -1044,7 +1269,7 @@ HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipa
 | Ingest + dedup + webhook WA/IG (signature) + push Gmail | Must | Selesai (tiruan) | Belum diuji ke Meta/Google sungguhan |
 | Executor WhatsApp, Gmail (thread), Instagram (DM, private reply) | Must/Should | Selesai (tiruan) | Jendela 24 jam, 7 hari, sekali per komentar dicek sebelum kirim |
 | Identitas: merge pasti otomatis, merge ambigu = usulan + bukti | Must | Selesai | Berbasis aturan (nama, perusahaan, handle), bukan LLM |
-| Triage, orchestrator, Guard | Must | Selesai (engine `rule`) | Engine ADK/Gemini dan triage LLM terhubung, diuji model palsu |
+| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 14/18, gagal di H1, H3, H6, S3, ±41 detik per kasus |
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |
@@ -1053,12 +1278,13 @@ HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipa
 | Seed data + skrip reset | Must | Selesai | 30 lead dummy + Ani |
 | Evalset 18 kasus, pass^3, evaluasi identitas | Should | Selesai (parsial) | Format sendiri; `adk eval` belum dijalankan |
 | Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
-| Dockerfile, panduan deploy Cloud Run + Scheduler | Should | Ditulis | Belum dibangun/dijalankan |
+| Dockerfile, panduan deploy Cloud Run + Scheduler | Should | Sebagian | Image agen dan BE dibangun dan jalan di Docker lokal; build FE gagal di `npm ci` (tim memakai bun). Deploy terhalang izin Artifact Registry |
 | Persona P2 sebagai konfigurasi | Could | Selesai | `OMNILEAD_AGENT_PERSONA=fashion`: katalog, stok per ukuran, reseller, ambang skor; evalset 6 kasus |
 | Ide konten dari pertanyaan yang sering muncul | Could | Selesai (aturan) | Draf saja; tanpa data cukup hasilnya kosong; belum memakai LLM |
 | Pisah profil (undo merge) | Should | Selesai | Snapshot saat merge; riwayat dan identitas dikembalikan |
 | Autentikasi OIDC BE → agen | Should | Selesai (fake) | `OMNILEAD_AGENT_AUTH=oidc`; belum diuji di Cloud Run |
 | Verifikasi izin produk LinkedIn untuk komentar | - | Belum | Ditandai [A] |
+| Landing page dan logo | Could | Selesai | `/` landing, aplikasi di `/dashboard` |
 | Deck, video cadangan, wawancara UMKM | Must | Belum | Non-kode |
 
 ## Strategi Penilaian
@@ -1069,9 +1295,9 @@ Rumus TOR: nilai = Σ (skor 1–5 ÷ 5 × bobot). Target realistis ±88–92.
 |---|---|---|
 | Relevansi (15%) | 5 | Persona P1 spesifik; data BPS 95% dan SleekFlow 55%; 2–3 kutipan nyata UMKM |
 | Kualitas Agentic (25%) | 5 | Panel trace; tiga peran agen dengan justifikasi; MCP; antrean persetujuan + executor terpisah; belajar dari penolakan; Pause. Penentu seri nomor 1. |
-| Kelayakan Teknis (20%) | 4–5 | Gmail dan WA benar-benar mengirim; deploy di Cloud Run; `adk eval` + pass^3; README rapi. Penentu seri nomor 2. |
+| Kelayakan Teknis (20%) | 4–5 | Demo lokal stabil; Gmail/WA diuji ke akun asli bila sempat; pass^3 untuk engine aturan dan Gemini dicatat apa adanya; README rapi. Penentu seri nomor 2. |
 | Potensi Dampak (20%) | 4–5 | Model dampak dengan angka terukur dan asumsi dipisahkan; hitungan rupiah; hipotesis harga |
-| UX (10%) | 5 | Satu layar utama; tombol besar; alasan prioritas dalam bahasa awam; label SIMULASI yang jujur |
+| UX (10%) | 5 | Satu layar utama; tombol besar; alasan prioritas dalam bahasa awam; status integrasi yang jujur (terhubung / dry-run / manual) |
 | Pitching & Demo (10%) | 5 | Buka dengan cerita Bu Rina, lalu demo live; siapkan jawaban pertanyaan sulit; video cadangan; latihan 5x dengan timer |
 
 Simulasi skor:
@@ -1145,8 +1371,8 @@ pemilik kendali atas setiap balasan. Keduanya bisa berdampingan.
 
 Agen hanya mengakses kemampuan yang benar-benar diekspos integrasi dan
 diizinkan akun pengguna. Aksi yang tidak tersedia ditandai sebagai tidak
-didukung, bukan diakali. Bagian yang disimulasikan di demo diberi label
-**SIMULASI**.
+didukung, bukan diakali. Kanal yang belum terhubung ditampilkan apa
+adanya: dry-run atau kirim manual lewat Salin & buka.
 
 ### Bagaimana mencegah agen mengirim balasan yang salah atau melakukan aksi tanpa izin?
 
@@ -1176,9 +1402,12 @@ prioritisasi agen (tidak membalas spam) ikut menekan jumlah pesan.
 
 ### Bagaimana dengan privasi data?
 
-Data pelanggan disimpan di Firestore milik bisnis, token di Secret
-Manager, dan demo hanya memakai data dummy. Tidak ada data rahasia yang
-diunggah ke layanan AI tanpa izin (TOR §15).
+Data pelanggan disimpan di basis data milik bisnis (SQLite untuk demo,
+Firestore untuk produksi), token di Secret Manager atau `.env` lokal yang
+tidak masuk repo, dan demo hanya memakai data dummy. Agen tidak pernah
+menerima token platform. Tidak ada data rahasia yang diunggah ke layanan AI
+tanpa izin (TOR §15). Untuk produksi, kewajiban pengendali data mengikuti
+UU 27/2022 tentang Pelindungan Data Pribadi (lihat bagian Dampak).
 
 ## Design
 
@@ -1211,16 +1440,16 @@ diunggah ke layanan AI tanpa izin (TOR §15).
 -   Halaman integrasi menampilkan koneksi kanal, status autentikasi,
     izin, tools yang tersedia, sinkronisasi terakhir, error koneksi,
     saklar per kanal, dan mode dry-run.
--   Komponen yang disimulasikan diberi label **SIMULASI** yang jelas.
-    Ini mencakup data mock, angka grafik, dan badge yang belum
-    bersumber dari backend.
+-   Status integrasi selalu jujur: **terhubung**, **dry-run**, atau
+    **manual (Salin & buka)**. Angka di grafik dan badge hanya berasal
+    dari backend.
 -   Halaman pendukung di workspace:
     -   **Audit** (Must): daftar jejak aksi dengan pelaksana, persetujuan,
         tool, waktu, hasil, dan error, bisa difilter per kanal dan jenis.
     -   **Leads** (Must): tabel prospek; baris membuka halaman profil.
     -   **Beranda** (Could): ringkasan "yang perlu dibalas hari ini" dan
-        aktivitas agen terakhir. Semua angka harus bersumber dari data
-        nyata atau diberi label SIMULASI.
+        aktivitas agen terakhir. Semua angka bersumber dari data di
+        backend.
     -   **Konten** (Could): tiga ide konten dari pertanyaan yang paling
         sering muncul; hanya draf, tanpa publikasi otomatis.
 -   Alasan penolakan wajib diisi dan dikirim ke backend, karena menjadi
@@ -1250,6 +1479,172 @@ diunggah ke layanan AI tanpa izin (TOR §15).
     ini belum tersedia melalui koneksi yang aktif."
 -   Jika Guard memblokir, tampilkan kalimat: "Pesan ini dicurigai berisi
     instruksi manipulatif dan perlu ditinjau manual."
+
+## Lampiran A: Validasi YC dan peta MCP
+
+Digabung dari `validasi-yc-dan-mcp.md` (21 Okt 2026).
+
+### A.1 Startup YC dengan ide serupa
+
+Belum ada startup YC yang sama persis. Yang paling dekat hanya mengerjakan
+sebagian: satu kanal, segmen lain, atau infrastruktur pesan. Kombinasi
+identitas lintas kanal, antrean persetujuan, dan fokus UMKM Indonesia
+masih kosong [A].
+
+| Startup | Batch | Apa yang dikerjakan | Kanal | Beda dengan OmniLead | Sumber |
+|---|---|---|---|---|---|
+| **Twine** | S23 | "AI revenue engine" untuk bisnis jasa: tangkap lead, AI membalas, kualifikasi, follow-up, booking | Telepon, SMS, form, chat, Google, Yelp | Paling mirip secara konsep, tapi untuk jasa lokal AS; tanpa IG/WA; AI membalas sendiri | [V] [YC](https://www.ycombinator.com/companies/twine) |
+| **Yuma AI** | W23 | Orkestrasi agen support otonom di atas Zendesk/Gorgias | Email, chat, sosial, WA, voice | Untuk brand Shopify >US$10 juta/tahun; fokus support | [V] [YC](https://www.ycombinator.com/companies/yuma-ai) |
+| **Zoko** | W21 | Agen penjualan AI di WhatsApp Business untuk merchant Shopify | WhatsApp | Satu kanal; tanpa identitas lintas kanal | [V] [YC](https://www.ycombinator.com/companies/zoko) |
+| **Hilos** | S21 (diakuisisi) | No-code di atas WhatsApp API: profiling lead, follow-up | WhatsApp | Satu kanal, bukan agentic | [V] [YC Messaging](https://www.ycombinator.com/companies/industry/Messaging) |
+| **Treble** | S19 | Kampanye marketing WhatsApp skala besar | WhatsApp | Outbound marketing, bukan inbox atau CRM | [V] [YC](https://www.ycombinator.com/companies/treble-ai) |
+| **Chatfuel** | W16 | Builder bot Messenger/IG | Messenger, IG | Bot berbasis aturan, otonom | [V] [YC Messaging](https://www.ycombinator.com/companies/industry/Messaging) |
+| **Bird** | S16 | Platform komunikasi omnichannel | Banyak | Infrastruktur enterprise | [V] [YC Messaging](https://www.ycombinator.com/companies/industry/Messaging) |
+| **Boom AI** | F25 | Agen AI percakapan untuk win-back pelanggan | SMS, email, WA, telepon | Fokus retensi, tanpa inbox atau CRM | [V] [YC SMB](https://www.ycombinator.com/companies/industry/smb) |
+
+Implikasi untuk pitch [A]: YC mendanai beberapa variasi "AI yang membalas
+lead", jadi masalahnya dianggap nyata. Celah OmniLead: pesaing di atas
+**otonom**, **satu kanal**, atau **bukan untuk usaha mikro**. Cek ulang
+[direktori YC](https://www.ycombinator.com/companies) dengan kata kunci
+"inbox", "WhatsApp", "Instagram", "CRM" sebelum masuk slide.
+
+### A.2 Kenapa tidak "reverse engineer" MCP
+
+MCP hanya protokol untuk menyajikan tools ke model. Kemampuannya sama
+dengan jalur di belakangnya:
+
+```
+Agen ──MCP──► MCP server ──► (a) API resmi        → patuh ToS
+                             (b) sesi/cookie       → melanggar ToS, risiko ban
+                             (c) browser scraping  → melanggar ToS, risiko ban
+```
+
+| Klaim | Penilaian |
+|---|---|
+| "Ada MCP yang bisa membuka DM IG/LinkedIn/WA tanpa API resmi" | Benar, tapi lewat sesi atau scraping (b/c), jadi melanggar ToS dan berisiko ban |
+| "Dengan membongkar MCP, kita dapat akses yang tidak diberikan platform" | Salah. MCP tidak menambah akses |
+| "Kita bisa fork MCP open-source" | Benar dan sah (umumnya lisensi MIT) |
+| "Kita bisa mengakali MCP hosted pihak lain untuk melewati kuota atau izin" | Tidak dilakukan; itu akses tidak sah |
+
+Versi yang sah ada di sisi kita: **MCP gateway OmniLead** (lihat
+Keputusan desain kunci). Gateway sudah diimplementasi di
+`omnilead-agent/src/omnilead_agent/gateway.py`.
+
+### A.3 Peta MCP per kanal
+
+| Kanal | MCP | Jalur | Patuh ToS? | Status di OmniLead | Sumber |
+|---|---|---|---|---|---|
+| CRM | MCP server baca-saja buatan sendiri | REST BE | ✅ | **Dipakai** (`mcp_server.py`) | repo |
+| CRM (Firestore) | MCP Toolbox for Databases, `--prebuilt firestore` | API resmi Google | ✅ | Roadmap, bila pindah ke Firestore | [S] [Google Cloud](https://docs.cloud.google.com/firestore/native/docs/connect-ide-using-mcp-toolbox) |
+| Gmail | Gmail MCP resmi Google (preview, baca dan draf) | API resmi | ✅ | Tidak dipakai; BE memanggil Gmail API langsung | [S] [Google Workspace](https://developers.google.com/workspace/guides/configure-mcp-servers) |
+| Instagram | aleemhaider/instagram-mcp | Graph API resmi | ✅ | Tidak dipakai; BE memanggil Graph API langsung | [S] [mcpservers.org](https://mcpservers.org/servers/aleemhaider/instagram-mcp) |
+| Instagram | braindead-dev/instagram-dms-mcp, trypeggy/instagram_dm_mcp | Cookie sesi | ❌ | Dihindari | [S] [Glama](https://glama.ai/mcp/servers/@braindead-dev/instagram-dms-mcp/tree/5742a50ad1fbb6dcce511b6459cdfdb2be191fc3) |
+| WhatsApp | lharries/whatsapp-mcp | Emulasi WhatsApp Web | ❌ | Dihindari; ban melekat ke nomor | [S] [TypingMind](https://www.typingmind.com/mcp/whatsapp-mcp) |
+| LinkedIn | stickerdaniel/linkedin-mcp-server | Playwright dengan sesi login | ❌ | Dihindari | [S] [Morph](https://www.morphllm.com/linkedin-mcp-server) |
+| Multi-kanal | Composio | OAuth resmi per aplikasi | ✅ | Tidak dipakai; token dikelola pihak ketiga | [S] [ChatForest](https://chatforest.com/reviews/composio-mcp-server/) |
+
+Belum ada MCP resmi Meta untuk Instagram organik (komentar, DM) [S]
+([Carly](https://www.usecarly.com/blog/instagram-mcp/)). Repo komunitas di
+atas belum dicek kodenya; sebelum fork, cek commit terakhir, lisensi, dan
+ke mana token dikirim.
+
+## Lampiran B: Deploy ke Google Cloud
+
+Digabung dari `deploy.md` dan diperbarui 21 Okt 2026. **TOR tidak
+mewajibkan deploy** (§7: "tautan aplikasi bila tersedia"); jalur utama
+demo adalah **lokal**: agen (:8100) → BE (:8000) → FE (:3000).
+
+### B.1 Kondisi project panitia
+
+| Hal | Nilai |
+|---|---|
+| Project ID | `hackathon-primestep-03` |
+| Service account runtime | `hackathon-runtime@hackathon-primestep-03.iam.gserviceaccount.com` (disiapkan panitia) |
+| Bisa dilakukan akun tim | Cloud Run deploy/update, Cloud Build, upload ke Artifact Registry, Secret Manager, Vertex AI |
+| **Butuh panitia** | Membuat repo Artifact Registry, mengaktifkan Firestore, Cloud Scheduler, dan Gmail API, membuat topic Pub/Sub, budget alert |
+| Region | Cloud Run: `asia-southeast2`. **Vertex AI: `global`** (Gemini 3.x tidak tersedia di `asia-southeast2`) |
+
+### B.2 Gemini untuk demo lokal
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project hackathon-primestep-03
+# omnilead-agent/.env
+OMNILEAD_AGENT_ENGINE=adk
+GOOGLE_GENAI_USE_VERTEXAI=1
+GOOGLE_CLOUD_PROJECT=hackathon-primestep-03
+GOOGLE_CLOUD_LOCATION=global
+```
+
+### B.3 Deploy (setelah repo Artifact Registry dibuat panitia)
+
+```bash
+export PROJECT=hackathon-primestep-03 REGION=asia-southeast2
+SA=hackathon-runtime@$PROJECT.iam.gserviceaccount.com
+
+# Agen
+gcloud run deploy omnilead-agent --source omnilead-agent --region $REGION \
+  --service-account $SA --allow-unauthenticated --min-instances 0 \
+  --set-env-vars OMNILEAD_AGENT_ENGINE=adk,GOOGLE_GENAI_USE_VERTEXAI=1,GOOGLE_CLOUD_PROJECT=$PROJECT,GOOGLE_CLOUD_LOCATION=global \
+  --set-secrets OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest
+
+# BE (SQLite selama Firestore belum aktif; data hilang saat instance restart)
+AGENT_URL=$(gcloud run services describe omnilead-agent --region $REGION --format 'value(status.url)')
+gcloud run deploy omnilead-api --source omnilead-be --region $REGION \
+  --service-account $SA --allow-unauthenticated --min-instances 0 \
+  --set-env-vars OMNILEAD_STORE=sqlite,OMNILEAD_AGENT_URL=$AGENT_URL \
+  --set-secrets OMNILEAD_API_KEY=omnilead-api-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest
+```
+
+`--allow-unauthenticated` diperlukan karena webhook Meta dan push Pub/Sub
+tidak membawa identitas Google. Perlindungan ada di aplikasi: API key untuk
+FE, signature `X-Hub-Signature-256` untuk Meta, token untuk push Gmail, dan
+token Bearer atau OIDC untuk Scheduler. Opsi lebih aman untuk agen:
+`--no-allow-unauthenticated`, beri SA BE peran `roles/run.invoker`, dan
+set `OMNILEAD_AGENT_AUTH=oidc` di BE (belum diuji di Cloud Run).
+
+Setelah Firestore aktif: `OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$PROJECT`.
+
+### B.4 FE
+
+`NEXT_PUBLIC_*` dibakar saat build, jadi URL API harus diberikan sebagai
+build-arg. `gcloud builds submit --tag` tidak meneruskan build-arg.
+
+```bash
+API=$(gcloud run services describe omnilead-api --region $REGION --format 'value(status.url)')
+IMAGE=$REGION-docker.pkg.dev/$PROJECT/cloud-run-source-deploy/omnilead-fe
+docker build omnilead-fe --build-arg NEXT_PUBLIC_API_URL=$API -t $IMAGE
+docker push $IMAGE
+gcloud run deploy omnilead-fe --image $IMAGE --region $REGION --allow-unauthenticated
+```
+
+Build FE saat ini gagal di `npm ci` karena `package-lock.json` tidak
+sinkron (tim memakai bun). Perbaiki dulu: sinkronkan lockfile, atau ganti
+Dockerfile ke image `oven/bun` dengan `bun install --frozen-lockfile`.
+`NEXT_PUBLIC_API_KEY` ikut ke bundle browser; untuk produksi, lewatkan
+lewat proxy server-side.
+
+### B.5 Webhook, Gmail, dan Scheduler (butuh API yang diaktifkan panitia)
+
+- **WhatsApp:** callback `https://<api>/webhooks/whatsapp`, verify token =
+  secret `meta-verify-token`.
+- **Instagram:** callback `https://<api>/webhooks/instagram`, langganan
+  `comments` dan `messages`.
+- **Demo lokal:** webhook butuh URL publik; pakai tunnel, misalnya
+  `cloudflared tunnel --url http://localhost:8000`.
+- **Gmail push:** topic Pub/Sub, beri `gmail-api-push@system.gserviceaccount.com`
+  peran Publisher, subscription push ke
+  `https://<api>/webhooks/gmail?token=<gmail-push-token>`. `watch` berlaku
+  7 hari. Cadangan: polling. Refresh token mode Testing berlaku ±7 hari.
+- **Scheduler:** job `POST /scheduler/followups` (tiap 30 menit),
+  `/scheduler/gmail-watch` (harian), `/scheduler/gmail-poll` (tiap menit),
+  dengan header `Authorization: Bearer <scheduler-token>`.
+
+### B.6 Data demo dan freeze
+
+- Reset seed: `cd omnilead-be && uv run python -m omnilead.seed`.
+- Tag `v1.0-freeze` paling lambat Kamis 22 Okt 13.00, lalu matikan
+  resource yang tidak perlu (TOR §6.4).
 
 ## References
 
@@ -1293,6 +1688,20 @@ diunggah ke layanan AI tanpa izin (TOR §15).
     --- messaging, moderasi komentar, private replies.
 -   [LinkedIn Messages API](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)
     --- batasan akses messaging.
+-   [Brynjolfsson, Li, Raymond: Generative AI at Work (NBER w31161)](https://www.nber.org/papers/w31161)
+    --- dampak asisten AI pada 5.179 agen layanan pelanggan.
+-   [Oldroyd, McElheran, Elkington: The Short Life of Online Sales Leads (HBR 2011)](https://scholarsarchive.byu.edu/facpub/9711)
+    --- kecepatan respons dan kualifikasi lead.
+-   [McKinsey: The economic potential of generative AI (2023)](https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-economic-potential-of-generative-ai-the-next-productivity-frontier)
+    --- proyeksi nilai AI generatif untuk layanan pelanggan.
+-   [e-Conomy SEA 2025 (Google, Temasek, Bain)](https://www.bain.com/about/media-center/press-releases/sea/e-conomy-sea-2025/)
+    --- pertumbuhan ekonomi digital dan e-commerce Asia Tenggara; angka Indonesia via [Fortune IDN](https://www.fortuneidn.com/tech/laporan-e-conomy-sea-perekonomian-digital-indonesia-terbesar-di-asean-00-kptjc-w3gdzv).
+-   [BPS: Statistik E-Commerce 2023](https://www.bps.go.id/id/publication/2025/01/30/d52af11843aee401403ecfa6/statistik-e-commerce-2023.html)
+    --- kanal penjualan usaha e-commerce.
+-   [UU No. 8 Tahun 1999 tentang Perlindungan Konsumen](https://peraturan.go.id/files/uu8-1999.pdf)
+    --- kewajiban informasi yang benar, jelas, dan jujur.
+-   UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi
+    --- kewajiban pengendali data; ringkasan sanksi di [hukumonline](https://www.hukumonline.com/berita/a/2-langkah-menangani-kebocoran-data-pribadi-lt64f591243301b/).
 -   [DataReportal Digital 2026
     Indonesia](https://datareportal.com/reports/digital-2026-indonesia)
     --- data pengguna digital Indonesia.
