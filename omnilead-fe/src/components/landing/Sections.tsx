@@ -1,154 +1,208 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import {
   ArrowRight,
   BellRing,
   Bot,
   Check,
-  ClipboardCheck,
-  Inbox,
-  KeyRound,
-  ListChecks,
+  CheckCheck,
+  ChevronsLeftRight,
   MessageCircleQuestion,
-  Pause,
-  Play,
   ShieldCheck,
-  ToggleRight,
-  UserRoundCheck,
   Users,
-  Workflow,
-  X,
 } from "lucide-react";
+import Image from "next/image";
 import { LogoMark } from "@/components/brand/Logo";
+import { usePrefersReducedMotion } from "@/components/landing/Interactive";
 import { ChannelIcon } from "@/components/primitives";
-import { LandingChannelIcon, landingChannelLabel, type LandingChannel } from "@/components/landing/channels";
 import type { Channel } from "@/lib/types";
-import { channelLabel } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-accent";
 
-/** Elemen yang muncul berurutan; `i` menentukan jeda. */
-function Stagger({ i, children, className }: { i: number; children: ReactNode; className?: string }) {
+const WHY_ROWS = [
+  {
+    ask: "brp harga nasbox 30 org kak?",
+    bot: "Maaf, saya tidak mengerti. Ketik 1 untuk Menu, 2 untuk Promo.",
+    agent: "Halo Kak! Nasi box komplit Rp35.000 per porsi, jadi Rp1.050.000 untuk 30 orang. Mau untuk tanggal berapa?",
+  },
+  {
+    ask: "bisa kirim tgl 30 ke kantor?",
+    bot: "Pilihan tidak valid. Silakan ketik 1 atau 2.",
+    agent: "Bisa, Kak. Tanggal 30 masih kosong, kami antar sebelum jam makan siang.",
+  },
+  {
+    ask: "ada diskon kalo ambil banyak?",
+    bot: "Promo hari ini: tidak tersedia. Ketik MENU untuk kembali.",
+    agent: "Untuk 30 porsi ada potongan 5%, Kak. Totalnya jadi Rp997.500.",
+  },
+  {
+    ask: "oke kak, aku pesan ya",
+    bot: "Terima kasih telah menghubungi kami. Sesi Anda telah berakhir.",
+    agent: "Siap, Kak! Pesanannya kami catat, rincian pembayaran segera kami kirim.",
+  },
+];
+
+const ANI_AVATAR = "https://api.dicebear.com/9.x/notionists/svg?seed=Ani&backgroundColor=ffd5dc";
+
+const bubble = "max-w-[85%] w-fit rounded-lg px-3 py-2 text-sm leading-relaxed";
+
+const TYPE_MS = 700;
+const ROW_MS = 1300;
+const START = 94;
+const END = 3;
+const SWEEP_MS = 1800;
+
+function Dots() {
   return (
-    <div className={cn("rc-enter", className)} style={{ animationDelay: `${120 + i * 160}ms` }}>
-      {children}
-    </div>
+    <span className="inline-flex h-5 items-center gap-1" aria-label="Sedang mengetik">
+      {[0, 150, 300].map((d) => (
+        <span
+          key={d}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-50 motion-reduce:animate-none"
+          style={{ animationDelay: `${d}ms` }}
+        />
+      ))}
+    </span>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Kenapa: saklar chatbot biasa vs agen OmniLead                         */
-/* ------------------------------------------------------------------ */
 
 export function WhyToggle() {
-  const [agent, setAgent] = useState(true);
-  return (
-    <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl border border-rc-border bg-rc-surface shadow-[0_24px_60px_-36px_rgba(11,23,54,0.35)]">
-      <div className="flex flex-col items-center gap-4 border-b border-rc-border bg-rc-bg px-6 py-5 sm:flex-row sm:justify-between">
-        <div role="tablist" aria-label="Bandingkan" className="flex rounded-full border border-rc-border bg-rc-surface p-1">
-          {[
-            { v: false, label: "Chatbot biasa" },
-            { v: true, label: "OmniLead" },
-          ].map((o) => (
-            <button
-              key={o.label}
-              type="button"
-              role="tab"
-              aria-selected={agent === o.v}
-              onClick={() => setAgent(o.v)}
-              className={cn(
-                "min-h-9 cursor-pointer rounded-full px-4 text-sm font-medium transition-colors",
-                focusRing,
-                agent === o.v
-                  ? o.v
-                    ? "bg-rc-accent text-rc-accent-fg"
-                    : "bg-rc-fg text-rc-primary-fg"
-                  : "text-rc-fg-muted hover:text-rc-fg",
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-center text-sm text-rc-fg-muted sm:text-right">
-          {agent
-            ? "Paham maksud pelanggan, cek harga di katalog, siapkan balasan dan catatan, lalu tunggu persetujuan Anda."
-            : "Hanya bisa menjawab lewat menu. Bingung kalau pertanyaannya di luar skrip."}
-        </p>
-      </div>
+  const ref = useRef<HTMLDivElement>(null);
+  const reduced = usePrefersReducedMotion();
+  const [started, setStarted] = useState(false);
+  const [rawStep, setStep] = useState(0);
+  const [rawPos, setPos] = useState(START);
+  const [sweeping, setSweeping] = useState(false);
+  const total = WHY_ROWS.length * 2;
 
-      <div key={String(agent)} className="flex min-h-[19rem] flex-col gap-3 p-6 text-sm sm:p-8">
-        <Stagger i={0} className="max-w-[80%] self-end">
-          <span className="block rounded-2xl rounded-tr-sm bg-rc-surface-hover px-4 py-2.5 text-rc-fg">
-            ada paket buat 60 orang kantor kak? tgl 30
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reduced) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setStarted(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reduced]);
+
+  useEffect(() => {
+    if (!started) return;
+    const timers: number[] = [];
+    WHY_ROWS.forEach((_, i) => {
+      timers.push(window.setTimeout(() => setStep(i * 2 + 1), i * ROW_MS));
+      timers.push(window.setTimeout(() => setStep(i * 2 + 2), i * ROW_MS + TYPE_MS));
+    });
+    const end = (WHY_ROWS.length - 1) * ROW_MS + TYPE_MS + 400;
+    timers.push(window.setTimeout(() => setSweeping(true), end));
+    timers.push(window.setTimeout(() => setPos(END), end + 50));
+    timers.push(window.setTimeout(() => setSweeping(false), end + 100 + SWEEP_MS));
+    return () => timers.forEach(clearTimeout);
+  }, [started]);
+
+  const step = reduced ? total : rawStep;
+  const pos = reduced && rawPos === START ? END : rawPos;
+  const clip = { clipPath: `inset(0 0 0 ${pos}%)` };
+  const clipBot = { clipPath: `inset(0 ${100 - pos}% 0 0)` };
+  const ease = sweeping ? "duration-[1800ms] ease-in-out" : "duration-0";
+
+  return (
+    <div className="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[#eef1f6] select-none">
+      <div ref={ref} className="relative">
+        <div className="grid">
+          <div className="col-start-1 row-start-1 flex justify-start bg-[#eef1f6] px-4 pt-4 sm:px-6">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-black/[0.05] px-2.5 py-1 text-xs font-medium text-rc-fg-muted">
+              <Bot className="h-3.5 w-3.5" aria-hidden /> Chatbot biasa
+            </span>
+          </div>
+          <div
+            className={cn("col-start-1 row-start-1 flex justify-end bg-[#eef1f6] px-4 pt-4 transition-[clip-path] sm:px-6", ease)}
+            style={clip}
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-rc-accent/10 px-2.5 py-1 text-xs font-medium text-rc-accent">
+              <LogoMark size={14} accent /> OmniLead
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-3 pb-5">
+          {WHY_ROWS.map((r, i) => {
+            const visible = step >= i * 2 + 1;
+            const typing = step === i * 2 + 1;
+            return (
+              <div key={r.ask} className={cn("transition-opacity duration-500", visible ? "opacity-100" : "opacity-0")}>
+                <div className="grid">
+                  <div
+                    className={cn(
+                      "col-start-1 row-start-1 flex justify-end bg-[#eef1f6] px-4 opacity-55 transition-[clip-path] sm:px-6",
+                      ease,
+                    )}
+                    style={clipBot}
+                  >
+                    <p className={cn(bubble, "rounded-tr-none bg-[#dde1e8] text-sm text-rc-fg-muted")}>
+                      {typing ? <Dots /> : <span className={visible ? "rc-enter inline" : "invisible"}>{r.bot}</span>}
+                    </p>
+                  </div>
+                  <div
+                    className={cn("col-start-1 row-start-1 flex justify-end bg-[#eef1f6] px-4 transition-[clip-path] sm:px-6", ease)}
+                    style={clip}
+                  >
+                    <p className={cn(bubble, "rounded-tr-none bg-[#d8e4ff] text-rc-fg")}>
+                      {typing ? (
+                        <Dots />
+                      ) : (
+                        <span className={visible ? "rc-enter inline" : "invisible"}>
+                          {r.agent}
+                          <span className="float-right mt-1.5 ml-3 inline-flex items-center gap-1 text-[11px] text-rc-fg-subtle">
+                            10.0{i}
+                            <CheckCheck className="h-3.5 w-3.5 text-rc-accent" aria-hidden />
+                          </span>
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          aria-hidden
+          className={cn("pointer-events-none absolute inset-0 transition-transform", ease)}
+          style={{ transform: `translateX(${pos}%)` }}
+        >
+          <span className="absolute inset-y-0 left-0 w-px -translate-x-1/2 bg-rc-accent/60" />
+          <span className="absolute top-[1.65rem] left-0 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-rc-accent text-rc-accent-fg">
+            <ChevronsLeftRight className="h-4 w-4" />
           </span>
-        </Stagger>
-        {agent ? (
-          <>
-            <Stagger i={1} className="flex max-w-[85%] items-end gap-2 self-start">
-              <LogoMark size={26} accent />
-              <span className="block rounded-2xl rounded-bl-sm bg-rc-navy px-4 py-2.5 text-white">
-                Ada, Kak. Paket B nasi box komplit Rp35.000 per porsi, untuk 60 orang jadi Rp2.100.000. Tanggal 30 masih bisa.
-              </span>
-            </Stagger>
-            <Stagger i={2} className="mt-3 grid gap-2 sm:grid-cols-3">
-              {[
-                ["Balasan siap", "menunggu persetujuan Anda"],
-                ["Pelanggan dicatat", "skor 86 · Hot"],
-                ["Pengingat dibuat", "besok pukul 10.00"],
-              ].map(([t, d]) => (
-                <span key={t} className="flex items-center gap-2 rounded-xl border border-rc-accent/25 bg-rc-accent-soft px-3 py-2.5">
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rc-accent text-rc-accent-fg">
-                    <Check className="h-3 w-3" aria-hidden />
-                  </span>
-                  <span>
-                    <span className="block font-medium text-rc-fg">{t}</span>
-                    <span className="block text-rc-fg-muted">{d}</span>
-                  </span>
-                </span>
-              ))}
-            </Stagger>
-          </>
-        ) : (
-          <>
-            <Stagger i={1} className="flex max-w-[85%] items-end gap-2 self-start">
-              <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-rc-surface-hover text-rc-fg-muted">
-                <Bot className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="block rounded-2xl rounded-bl-sm border border-rc-border px-4 py-2.5 text-rc-fg-muted">
-                Maaf, saya tidak mengerti. Silakan pilih: 1. Menu 2. Promo
-              </span>
-            </Stagger>
-            <Stagger i={2} className="max-w-[80%] self-end">
-              <span className="block rounded-2xl rounded-tr-sm bg-rc-surface-hover px-4 py-2.5 text-rc-fg">buat 60 orang kak</span>
-            </Stagger>
-            <Stagger i={3} className="flex max-w-[85%] items-end gap-2 self-start">
-              <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-rc-surface-hover text-rc-fg-muted">
-                <Bot className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="block rounded-2xl rounded-bl-sm border border-rc-border px-4 py-2.5 text-rc-fg-muted">
-                Maaf, saya tidak mengerti. Silakan pilih: 1. Menu 2. Promo
-              </span>
-            </Stagger>
-            <Stagger i={4} className="mt-3 self-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-rc-danger/10 px-3 py-1.5 font-medium text-rc-danger">
-                <X className="h-4 w-4" aria-hidden /> Pelanggan pindah ke toko lain
-              </span>
-            </Stagger>
-          </>
-        )}
+        </div>
+
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={pos}
+          onChange={(e) => {
+            setSweeping(false);
+            setPos(Number(e.target.value));
+          }}
+          aria-label="Geser untuk membandingkan chatbot biasa dan OmniLead"
+          className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
+        />
       </div>
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Kemampuan: daftar di kiri, panel ilustrasi di kanan                   */
-/* ------------------------------------------------------------------ */
 
 type Skill = { key: string; icon: Icon; title: string; body: string; tint: string; ink: string };
 
@@ -187,97 +241,217 @@ const SKILLS: Skill[] = [
   },
 ];
 
+const skillCard = "rounded-lg bg-white px-4 py-3 text-sm text-rc-fg";
+
+const TONES = {
+  blue: { bg: "bg-rc-accent/15", ink: "text-rc-accent" },
+  amber: { bg: "bg-amber-400/30", ink: "text-amber-700" },
+};
+
+function Note({ children, label, i, tone }: { children: ReactNode; label: string; i: number; tone: keyof typeof TONES }) {
+  const d = 450 + i * 420;
+  const t = TONES[tone];
+  return (
+    <span className="relative mx-0.5 inline-block px-1 leading-6">
+      <span
+        aria-hidden
+        className={cn("rc-progress absolute inset-0 origin-left rounded", t.bg)}
+        style={{ animationDuration: "350ms", animationDelay: `${d}ms` }}
+      />
+      <span className="relative">{children}</span>
+      <span
+        className={cn("rc-enter absolute top-full left-1 mt-1 text-[11px] leading-4 font-medium whitespace-nowrap", t.ink)}
+        style={{ animationDelay: `${d + 180}ms` }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
+function Later({ ms, children, className }: { ms: number; children: ReactNode; className?: string }) {
+  return (
+    <div className={cn("rc-enter", className)} style={{ animationDelay: `${ms}ms` }}>
+      {children}
+    </div>
+  );
+}
+
 function SkillVisual({ k }: { k: string }) {
-  const card = "rounded-xl bg-white px-3.5 py-2.5 text-sm text-rc-fg shadow-[0_6px_18px_-10px_rgba(11,23,54,0.35)]";
   if (k === "konteks")
     return (
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <Stagger i={0}>
-          <span className={cn(card, "block rounded-tl-sm")}>brp harga nasbox 30 org tgl 2 nov kak?</span>
-        </Stagger>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["Maksud", "tanya harga"],
-            ["Jumlah", "30 porsi"],
-            ["Tanggal", "2 Nov"],
-            ["Prioritas", "sedang"],
-          ].map(([l, v], i) => (
-            <Stagger key={l} i={i + 1}>
-              <span className="inline-flex flex-col rounded-xl bg-white px-3 py-2 shadow-[0_6px_18px_-10px_rgba(11,23,54,0.35)]">
-                <span className="text-xs text-rc-fg-muted">{l}</span>
-                <span className="text-sm font-medium text-rc-accent">{v}</span>
-              </span>
-            </Stagger>
-          ))}
-        </div>
+      <div className="flex w-full max-w-md flex-col gap-3">
+        <Later ms={0} className="flex items-center gap-2 text-xs text-rc-fg-muted">
+          <ChannelIcon channel="whatsapp" /> Pesan masuk dari Ani
+        </Later>
+        <Later ms={120}>
+          <p className={cn(skillCard, "rounded-tl-none pt-2 pb-6 leading-[3.5rem]")}>
+            <Note i={0} tone="blue" label="tanya harga">
+              brp harga
+            </Note>{" "}
+            <Note i={1} tone="blue" label="nasi box">
+              nasbox
+            </Note>{" "}
+            <Note i={2} tone="blue" label="30 porsi">
+              30 org
+            </Note>{" "}
+            <Note i={3} tone="blue" label="2 November">
+              tgl 2 nov
+            </Note>{" "}
+            kak?
+          </p>
+        </Later>
+        <Later ms={2350} className="text-sm text-rc-fg-muted">
+          Dipahami sebagai <span className="font-medium text-rc-fg">permintaan harga nasi box untuk 30 orang, 2 November.</span>
+        </Later>
       </div>
     );
   if (k === "cek")
     return (
-      <div className="flex w-full max-w-sm flex-col gap-2">
-        {["Harga sesuai katalog", "Diskon tidak lebih dari 5%", "Tidak memuat data pelanggan lain", "Masih dalam batas waktu balas"].map((c, i) => (
-          <Stagger key={c} i={i}>
-            <p className={cn(card, "flex items-center justify-between gap-3")}>
-              {c}
-              <span className="rc-pop inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white" style={{ animationDelay: `${300 + i * 160}ms` }}>
-                <Check className="h-3 w-3" aria-hidden />
-              </span>
-            </p>
-          </Stagger>
-        ))}
+      <div className="flex w-full max-w-md flex-col gap-3">
+        <Later ms={0} className="flex items-center gap-2 text-xs text-rc-fg-muted">
+          <LogoMark size={18} accent /> Draf balasan untuk Ani
+        </Later>
+        <Later ms={120}>
+          <p className={cn(skillCard, "rounded-tr-none pt-2 pb-6 leading-[3.5rem]")}>
+            Nasi box komplit{" "}
+            <Note i={0} tone="amber" label="sesuai katalog">
+              Rp35.000
+            </Note>{" "}
+            per porsi, untuk 30 orang{" "}
+            <Note i={1} tone="amber" label="hitungan benar">
+              Rp1.050.000
+            </Note>
+            . Ada{" "}
+            <Note i={2} tone="amber" label="di bawah batas 5%">
+              diskon 5%
+            </Note>{" "}
+            untuk{" "}
+            <Note i={3} tone="amber" label="hanya data Ani">
+              Kak Ani
+            </Note>
+            .
+          </p>
+        </Later>
+        <Later ms={2350} className="flex items-center gap-2 text-sm font-medium text-amber-700">
+          <Check className="h-4 w-4" aria-hidden /> Lolos semua pengecekan, siap Anda setujui
+        </Later>
       </div>
     );
   if (k === "profil")
     return (
-      <div className="flex items-center gap-3 sm:gap-5">
-        <div className="flex flex-col gap-2.5">
-          {(["instagram", "whatsapp", "email"] as Channel[]).map((c, i) => (
-            <Stagger key={c} i={i}>
-              <span className="flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-[0_6px_18px_-10px_rgba(11,23,54,0.35)]">
+      <div className="flex w-full max-w-md flex-col items-center gap-4 sm:flex-row sm:items-center">
+        <div className="flex w-full flex-col gap-2 sm:w-auto">
+          {(
+            [
+              ["instagram", "@ani.majujaya"],
+              ["whatsapp", "+62 812 3456 7890"],
+              ["email", "ani@majujaya.co.id"],
+            ] as [Channel, string][]
+          ).map(([c, id], i) => (
+            <Later key={c} ms={i * 260}>
+              <span className="flex items-center gap-2.5 rounded-lg bg-white/70 px-3 py-2 text-sm text-rc-fg-muted">
                 <ChannelIcon channel={c} />
-                <span className="hidden text-sm sm:inline">{channelLabel[c]}</span>
+                {id}
               </span>
-            </Stagger>
+            </Later>
           ))}
         </div>
-        <Stagger i={3}>
-          <ArrowRight className="h-5 w-5 text-rc-navy/50" aria-hidden />
-        </Stagger>
-        <Stagger i={4}>
-          <div className="rounded-2xl bg-white px-4 py-3 shadow-[0_10px_28px_-12px_rgba(11,23,54,0.45)]">
-            <p className="font-medium">Ani · PT Maju Jaya</p>
-            <p className="text-sm text-rc-fg-muted">3 kanal · 1 riwayat</p>
-            <p className="mt-2 inline-flex rounded-full bg-rc-highlight px-2 py-0.5 text-xs font-medium text-rc-navy">Hot · 86</p>
+        <Later ms={900} className="hidden sm:block">
+          <ArrowRight className="h-5 w-5 text-rc-navy/40" aria-hidden />
+        </Later>
+        <Later ms={1150} className="w-full sm:w-auto sm:flex-1">
+          <div className={cn(skillCard, "flex items-center gap-3")}>
+            <Image src={ANI_AVATAR} alt="" width={48} height={48} unoptimized className="h-12 w-12 shrink-0 rounded-full" />
+            <div className="min-w-0">
+              <p className="font-semibold">Ani Rahmawati</p>
+              <p className="mt-2 flex flex-wrap gap-1.5">
+                {["PT Maju Jaya", "3 kanal"].map((b, i) => (
+                  <span
+                    key={b}
+                    className="rc-pop inline-flex rounded-md bg-rc-navy/[0.07] px-2 py-0.5 text-xs font-medium text-rc-navy"
+                    style={{ animationDelay: `${1400 + i * 150}ms` }}
+                  >
+                    {b}
+                  </span>
+                ))}
+                <span
+                  className="rc-pop inline-flex rounded-md bg-rc-highlight px-2 py-0.5 text-xs font-medium text-rc-navy"
+                  style={{ animationDelay: "1700ms" }}
+                >
+                  Hot 86
+                </span>
+              </p>
+            </div>
           </div>
-        </Stagger>
+        </Later>
       </div>
     );
   return (
-    <ol className="relative flex w-full max-w-sm flex-col gap-2 pl-5">
-      <span aria-hidden className="absolute top-2 bottom-2 left-[7px] w-px bg-emerald-700/25" />
-      {[
-        ["Hari ini", "Penawaran disetujui dan terkirim"],
-        ["Besok pukul 10.00", "Ingatkan kalau belum dibalas"],
-        ["Kalau pelanggan membalas", "Pengingat dibatalkan otomatis"],
-      ].map(([t, d], i) => (
-        <Stagger key={t} i={i} className="relative">
-          <span aria-hidden className="absolute top-3.5 -left-5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-600" />
-          <p className={card}>
-            <span className="font-medium">{t}</span>
-            <span className="block text-rc-fg-muted">{d}</span>
-          </p>
-        </Stagger>
-      ))}
-    </ol>
+    <div className="flex w-full max-w-md flex-col gap-2">
+      <Later ms={0}>
+        <div className={cn(skillCard, "flex items-center gap-3")}>
+          <LogoMark size={32} accent />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">Penawaran terkirim ke Ani</span>
+            <span className="block text-xs text-rc-fg-muted">Hari ini, 14.20</span>
+          </span>
+        </div>
+      </Later>
+      <Later ms={400}>
+        <div className={cn(skillCard, "rc-dim flex items-center gap-3")} style={{ animationDelay: "2000ms" }}>
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+            <BellRing className="h-4 w-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="relative block w-fit font-medium">
+              Hubungi Ani lagi
+              <span
+                aria-hidden
+                className="rc-progress absolute top-1/2 left-0 h-px w-full origin-left bg-rc-fg"
+                style={{ animationDuration: "400ms", animationDelay: "2000ms" }}
+              />
+            </span>
+            <span className="block text-xs text-rc-fg-muted">Besok, 10.00</span>
+          </span>
+          <span className="rc-enter text-xs font-medium text-emerald-700" style={{ animationDelay: "2300ms" }}>
+            Dibatalkan otomatis
+          </span>
+        </div>
+      </Later>
+      <Later ms={1300}>
+        <div className={cn(skillCard, "flex items-center gap-3")}>
+          <Image src={ANI_AVATAR} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded-full" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">Ani membalas: &ldquo;oke kak, jadi pesan ya&rdquo;</span>
+            <span className="block text-xs text-rc-fg-muted">Hari ini, 16.05</span>
+          </span>
+        </div>
+      </Later>
+    </div>
   );
 }
 
+const SKILL_MS = 6000;
+
 export function SkillsExplorer() {
   const [active, setActive] = useState(SKILLS[0].key);
+  const [touched, setTouched] = useState(false);
+  const [paused, setPaused] = useState(false);
   const sk = SKILLS.find((s) => s.key === active) ?? SKILLS[0];
+
+  function next() {
+    const i = SKILLS.findIndex((s) => s.key === active);
+    setActive(SKILLS[(i + 1) % SKILLS.length].key);
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-      <div role="tablist" aria-label="Kemampuan AI" aria-orientation="vertical" className="flex flex-col gap-2">
+    <div
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
+    >
+      <div role="tablist" aria-label="Kemampuan AI" aria-orientation="vertical" className="flex flex-col">
         {SKILLS.map((s) => {
           const on = s.key === active;
           return (
@@ -286,30 +460,46 @@ export function SkillsExplorer() {
               type="button"
               role="tab"
               aria-selected={on}
-              onClick={() => setActive(s.key)}
-              onMouseEnter={() => setActive(s.key)}
+              onClick={() => {
+                setTouched(true);
+                setActive(s.key);
+              }}
               className={cn(
-                "group cursor-pointer rounded-2xl border p-5 text-left transition-[background-color,border-color,box-shadow] duration-300",
+                "relative cursor-pointer overflow-hidden border-t border-rc-border py-5 pr-4 pl-5 text-left transition-colors duration-300 last:border-b",
                 focusRing,
-                on
-                  ? "border-rc-border bg-rc-surface shadow-[0_14px_36px_-20px_rgba(11,23,54,0.4)]"
-                  : "border-transparent hover:bg-rc-surface/60",
+                on ? "bg-rc-bg" : "hover:bg-rc-bg/60",
               )}
             >
+              <span aria-hidden className={cn("absolute inset-y-0 left-0 w-0.5 transition-colors duration-300", on ? "bg-rc-accent" : "bg-transparent")} />
               <span className="flex items-center gap-3">
-                <span className={cn("inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", s.tint, s.ink)}>
-                  <s.icon className="h-5 w-5" aria-hidden />
+                <span
+                  className={cn(
+                    "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-300",
+                    on ? cn(s.tint, s.ink) : "bg-rc-bg text-rc-fg-muted",
+                  )}
+                >
+                  <s.icon className="h-[18px] w-[18px]" aria-hidden />
                 </span>
-                <span className={cn("text-lg font-semibold tracking-tight", on ? s.ink : "text-rc-fg")}>{s.title}</span>
+                <span className={cn("text-base font-semibold tracking-tight transition-colors duration-300", on ? "text-rc-fg" : "text-rc-fg-muted")}>
+                  {s.title}
+                </span>
               </span>
               <span
                 className={cn(
-                  "grid transition-[grid-template-rows,opacity] duration-300",
+                  "grid transition-[grid-template-rows,opacity,margin] duration-500 ease-out",
                   on ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
                 )}
               >
-                <span className="overflow-hidden pl-[3.25rem] text-rc-fg-muted">{s.body}</span>
+                <span className="overflow-hidden pl-12 text-sm text-rc-fg-muted">{s.body}</span>
               </span>
+              {on && !touched && (
+                <span
+                  aria-hidden
+                  onAnimationEnd={next}
+                  className="rc-progress absolute bottom-0 left-0 h-0.5 w-full origin-left bg-rc-accent/40"
+                  style={{ animationDuration: `${SKILL_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
+                />
+              )}
             </button>
           );
         })}
@@ -317,385 +507,11 @@ export function SkillsExplorer() {
       <div
         role="tabpanel"
         aria-label={sk.title}
-        className={cn(
-          "relative flex min-h-[22rem] items-center justify-center overflow-hidden rounded-3xl p-8 transition-colors duration-500",
-          sk.tint,
-        )}
+        className={cn("flex min-h-[22rem] items-center justify-center rounded-xl p-6 transition-colors duration-500 sm:p-10", sk.tint)}
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{ backgroundImage: "radial-gradient(rgba(11,23,54,0.18) 1px, transparent 1px)", backgroundSize: "20px 20px" }}
-        />
-        <div key={sk.key} className="relative flex w-full justify-center">
+        <div key={sk.key} className="rc-panel flex w-full justify-center">
           <SkillVisual k={sk.key} />
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Fitur: tab yang mengganti mockup                                     */
-/* ------------------------------------------------------------------ */
-
-type Feature = { key: string; icon: Icon; title: string; body: string };
-
-const FEATURES: Feature[] = [
-  { key: "workspace", icon: Inbox, title: "Kotak masuk", body: "Pesan dari semua kanal, diurutkan dari yang paling mendesak." },
-  { key: "antrean", icon: ClipboardCheck, title: "Persetujuan", body: "Setujui, ubah, atau tolak tiap balasan. Alasan penolakan dipakai untuk balasan berikutnya." },
-  { key: "jejak", icon: Workflow, title: "Langkah AI", body: "Lihat apa saja yang dicek AI sebelum menyarankan balasan." },
-  { key: "profil", icon: UserRoundCheck, title: "Profil pelanggan", body: "Riwayat chat dari semua kanal, status, dan skor beserta alasannya." },
-];
-
-function MockFrame({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-rc-border bg-rc-surface shadow-[0_24px_60px_-30px_rgba(11,23,54,0.35)]">
-      <div className="flex items-center gap-2 border-b border-rc-border bg-rc-bg px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-        <span className="ml-3 text-sm text-rc-fg-muted">{title}</span>
-      </div>
-      <div className="min-h-[21rem] p-4 sm:p-5">{children}</div>
-    </div>
-  );
-}
-
-function MockWorkspace() {
-  const rows: { channel: LandingChannel; who: string; msg: string; tag: string; tone: string }[] = [
-    { channel: "instagram", who: "Ani · PT Maju Jaya", msg: "Kak, bisa buat 60 orang tgl 30? harga?", tag: "Hot", tone: "bg-rc-highlight text-rc-navy" },
-    { channel: "whatsapp", who: "Budi", msg: "salah kirim menu, minta refund ya", tag: "Komplain", tone: "bg-rc-danger text-white" },
-    { channel: "email", who: "PT Nusa Corp", msg: "Penawaran katering 100 pax", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
-    { channel: "facebook", who: "Sari · Facebook", msg: "hampers premium 10 box brp kak?", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
-  ];
-  return (
-    <div className="flex flex-col gap-2">
-      {rows.map((r, i) => (
-        <Stagger key={r.who} i={i}>
-          <div className="flex items-center gap-3 rounded-xl border border-rc-border px-3 py-3 transition-colors hover:bg-rc-surface-hover">
-            <LandingChannelIcon channel={r.channel} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{r.who}</p>
-              <p className="truncate text-sm text-rc-fg-muted">{r.msg}</p>
-            </div>
-            <span className={cn("rounded-full px-2.5 py-0.5 text-sm font-medium", r.tone)}>{r.tag}</span>
-          </div>
-        </Stagger>
-      ))}
-    </div>
-  );
-}
-
-function MockQueue() {
-  const [state, setState] = useState<Record<number, "ok" | "no">>({});
-  const items = [
-    { kind: "DM Instagram", text: "Paket B Rp35.000 × 60 porsi = Rp2.100.000. Tanggal 30 masih bisa, Kak." },
-    { kind: "Balasan WhatsApp", text: "Mohon maaf atas kesalahan menunya, Kak. Boleh kami minta nomor pesanannya?" },
-    { kind: "Catatan pelanggan", text: "Ani · status: tertarik → negosiasi" },
-  ];
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((it, i) => (
-        <Stagger key={it.kind} i={i}>
-          <div
-            className={cn(
-              "rounded-xl border p-3.5 transition-[border-color,background-color,opacity]",
-              state[i] === "ok" ? "border-rc-accent bg-rc-accent-soft/50" : "border-rc-border",
-              state[i] === "no" && "opacity-50",
-            )}
-          >
-            <p className="flex items-center justify-between gap-2 text-sm font-medium">
-              {it.kind}
-              <span className="inline-flex items-center gap-1 text-sm font-normal text-rc-fg-muted">
-                <ShieldCheck className="h-3.5 w-3.5 text-rc-accent" aria-hidden /> Lolos pengecekan
-              </span>
-            </p>
-            <p className="mt-1 text-sm text-rc-fg-muted">{it.text}</p>
-            <div className="mt-2.5 flex min-h-8 items-center gap-1.5">
-              {state[i] ? (
-                <span className={cn("rc-pop text-sm font-medium", state[i] === "ok" ? "text-rc-accent" : "text-rc-fg-muted")}>
-                  {state[i] === "ok" ? "Disetujui · pesan dikirim" : "Ditolak · alasan dicatat"}
-                </span>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setState((s) => ({ ...s, [i]: "ok" }))}
-                    className={cn("inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-full bg-rc-fg px-3.5 text-sm font-medium text-rc-primary-fg hover:bg-rc-fg/85", focusRing)}
-                  >
-                    <Check className="h-3.5 w-3.5" aria-hidden /> Setujui
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setState((s) => ({ ...s, [i]: "no" }))}
-                    className={cn("inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-full px-3 text-sm text-rc-fg-muted hover:bg-rc-surface-hover hover:text-rc-fg", focusRing)}
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden /> Tolak
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </Stagger>
-      ))}
-    </div>
-  );
-}
-
-function MockTrace() {
-  const steps = [
-    ["Membaca riwayat pelanggan", "Kemarin Ani bertanya soal katering kantor lewat email"],
-    ["Mencari paket di katalog", "Paket B Rp35.000 per porsi, minimal 30 porsi"],
-    ["Mengecek batas waktu balas", "Instagram: masih bisa dibalas"],
-    ["Menilai calon pembeli", "Skor 86 (Hot): pesanan besar, acara sebentar lagi"],
-    ["Menyiapkan balasan", "Balasan komentar dan DM siap diperiksa"],
-  ];
-  return (
-    <div>
-      <p className="text-sm text-rc-fg-muted">Tugas</p>
-      <p className="font-medium">Membalas pertanyaan harga dari Ani di Instagram</p>
-      <ol className="mt-4 flex flex-col gap-2">
-        {steps.map(([tool, res], i) => (
-          <Stagger key={tool} i={i}>
-            <li className="flex items-start gap-3 rounded-xl border border-rc-border px-3 py-2.5">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rc-navy text-xs font-medium text-white">
-                {i + 1}
-              </span>
-              <span className="min-w-0 text-sm">
-                <span className="font-medium text-rc-fg">{tool}</span>
-                <span className="block text-rc-fg-muted">{res}</span>
-              </span>
-            </li>
-          </Stagger>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-function MockProfile() {
-  const events: { channel: Channel; text: string; when: string }[] = [
-    { channel: "email", text: "info katering kantor", when: "Kemarin" },
-    { channel: "instagram", text: "Kak, bisa buat 60 orang tgl 30? harga?", when: "Hari ini 09.12" },
-    { channel: "whatsapp", text: "Oke kak, saya konfirmasi ke atasan dulu", when: "Hari ini 10.40" },
-  ];
-  return (
-    <div className="grid gap-4 sm:grid-cols-[13rem_minmax(0,1fr)]">
-      <Stagger i={0}>
-        <div className="rounded-xl bg-rc-bg p-4">
-          <p className="font-semibold">Ani</p>
-          <p className="text-sm text-rc-fg-muted">PT Maju Jaya</p>
-          <p className="mt-3 text-4xl font-semibold tracking-tight">86</p>
-          <p className="inline-flex rounded-full bg-rc-highlight px-2 py-0.5 text-xs font-medium text-rc-navy">Hot</p>
-          <p className="mt-3 text-sm text-rc-fg-muted">Pesanan sekitar Rp2,1 juta, acara 9 hari lagi, pelanggan perusahaan.</p>
-        </div>
-      </Stagger>
-      <ol className="flex flex-col gap-2">
-        {events.map((e, i) => (
-          <Stagger key={e.when} i={i + 1}>
-            <li className="flex items-start gap-3 rounded-xl border border-rc-border px-3 py-2.5">
-              <ChannelIcon channel={e.channel} />
-              <span className="min-w-0 text-sm">
-                <span className="block text-rc-fg">{e.text}</span>
-                <span className="block text-rc-fg-muted">{e.when}</span>
-              </span>
-            </li>
-          </Stagger>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-export function FeatureTabs() {
-  const [active, setActive] = useState(FEATURES[0].key);
-  const f = FEATURES.find((x) => x.key === active) ?? FEATURES[0];
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <div role="tablist" aria-label="Fitur" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-        {FEATURES.map((x) => {
-          const on = x.key === active;
-          return (
-            <button
-              key={x.key}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => setActive(x.key)}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-left transition-[background-color,border-color,box-shadow] duration-300",
-                focusRing,
-                on
-                  ? "border-rc-accent bg-rc-surface shadow-[0_14px_36px_-20px_rgba(47,91,234,0.55)]"
-                  : "border-rc-border bg-rc-surface/70 hover:border-rc-border-strong hover:bg-rc-surface",
-              )}
-            >
-              <span
-                className={cn(
-                  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  on ? "bg-rc-accent text-rc-accent-fg" : "bg-rc-accent-soft text-rc-accent",
-                )}
-              >
-                <x.icon className="h-5 w-5" aria-hidden />
-              </span>
-              <span>
-                <span className="block font-semibold">{x.title}</span>
-                <span className="mt-0.5 block text-sm text-rc-fg-muted">{x.body}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div role="tabpanel" aria-label={f.title} key={f.key}>
-        <MockFrame title={f.title}>
-          {f.key === "workspace" && <MockWorkspace />}
-          {f.key === "antrean" && <MockQueue />}
-          {f.key === "jejak" && <MockTrace />}
-          {f.key === "profil" && <MockProfile />}
-        </MockFrame>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Kendali: kartu yang bisa dicoba, di atas pita navy                    */
-/* ------------------------------------------------------------------ */
-
-const darkCard =
-  "flex flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition-colors duration-300 hover:border-white/20 hover:bg-white/[0.07] sm:p-8";
-
-function DarkHead({ icon: I, title, body }: { icon: Icon; title: string; body: string }) {
-  return (
-    <>
-      <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-rc-highlight text-rc-navy">
-        <I className="h-5 w-5" aria-hidden />
-      </span>
-      <h3 className="mt-5 text-xl font-semibold tracking-tight text-white">{title}</h3>
-      <p className="mt-1.5 text-[#aab4cc]">{body}</p>
-    </>
-  );
-}
-
-function Switch({ on, onChange, label }: { on: boolean; onChange: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-highlight",
-        on ? "bg-[#4f7bff]" : "bg-white/20",
-      )}
-    >
-      <span className={cn("inline-block h-5 w-5 rounded-full bg-white shadow transition-transform", on ? "translate-x-[22px]" : "translate-x-0.5")} />
-    </button>
-  );
-}
-
-export function ControlPanel() {
-  const [paused, setPaused] = useState(false);
-  const [channels, setChannels] = useState<Record<string, boolean>>({ whatsapp: true, instagram: true, email: false });
-  const now = paused ? "Semua pengiriman dihentikan" : "AI aktif · 3 balasan menunggu";
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className={darkCard}>
-        <DarkHead icon={KeyRound} title="AI tidak bisa mengirim sendiri" body="AI hanya menyiapkan. Pesan baru dikirim setelah Anda setuju." />
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
-          {["AI menyiapkan", "Anda setuju", "Pesan dikirim", "Pelanggan"].map((s, i, arr) => (
-            <span key={s} className="inline-flex items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-3 py-1",
-                  s === "Anda setuju" ? "bg-rc-highlight font-medium text-rc-navy" : "bg-white/10 text-white",
-                )}
-              >
-                {s}
-              </span>
-              {i < arr.length - 1 && <ArrowRight className="h-3.5 w-3.5 text-white/40" aria-hidden />}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className={darkCard}>
-        <DarkHead icon={Pause} title="Tombol jeda" body="Satu klik menghentikan semua pengiriman, termasuk yang sudah disetujui." />
-        <div
-          className={cn(
-            "mt-6 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition-colors",
-            paused ? "bg-rc-danger/25" : "bg-white/[0.06]",
-          )}
-          aria-live="polite"
-        >
-          <span className="flex items-center gap-2 text-sm text-white">
-            <span className={cn("h-2 w-2 rounded-full", paused ? "bg-[#ff8a8a]" : "bg-[#4ade80]")} />
-            {now}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            className={cn(
-              "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-highlight",
-              paused ? "bg-white text-rc-navy" : "bg-rc-danger text-white hover:bg-rc-danger/90",
-            )}
-          >
-            {paused ? <Play className="h-4 w-4" aria-hidden /> : <Pause className="h-4 w-4" aria-hidden />}
-            {paused ? "Lanjutkan" : "Jeda AI"}
-          </button>
-        </div>
-      </div>
-
-      <div className={darkCard}>
-        <DarkHead icon={ToggleRight} title="Saklar per kanal" body="Kanal yang dimatikan masuk mode uji: balasan tetap disiapkan, tapi tidak benar-benar dikirim." />
-        <ul className="mt-6 flex flex-col gap-2">
-          {(["whatsapp", "instagram", "facebook", "email"] as LandingChannel[]).map((c) => (
-            <li key={c} className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.06] px-4 py-2.5">
-              <span className="flex items-center gap-3 text-sm text-white">
-                <LandingChannelIcon channel={c} />
-                {landingChannelLabel[c]}
-                <span className="text-[#7d89a6]">{channels[c] ? "aktif" : "mode uji"}</span>
-              </span>
-              <Switch
-                on={channels[c]}
-                label={`Pengiriman lewat ${landingChannelLabel[c]}`}
-                onChange={() => setChannels((s) => ({ ...s, [c]: !s[c] }))}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={darkCard}>
-        <DarkHead icon={ListChecks} title="Riwayat tindakan" body="Siapa menyetujui apa, kapan, dan lewat kanal mana. Semua tercatat." />
-        <ul className="mt-6 flex flex-col divide-y divide-white/10 rounded-2xl bg-white/[0.06] text-sm">
-          {[
-            ...(paused ? [["kini", "Bu Rina menjeda AI", "jeda"]] : []),
-            ["10.42", "Bu Rina menyetujui DM ke Ani", "terkirim"],
-            ["10.40", "Permintaan diskon 70% ditahan", "ditahan"],
-            ["10.31", "Profil Ani digabung (Instagram + email)", "dicatat"],
-          ]
-            .slice(0, 3)
-            .map(([t, d, s]) => (
-              <li key={t + d} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="min-w-0 text-white">
-                  <span className="mr-2 font-mono text-[#7d89a6]">{t}</span>
-                  {d}
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                    s === "ditahan" || s === "jeda" ? "bg-rc-highlight text-rc-navy" : "bg-white/10 text-white",
-                  )}
-                >
-                  {s}
-                </span>
-              </li>
-            ))}
-        </ul>
       </div>
     </div>
   );
