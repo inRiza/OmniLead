@@ -49,6 +49,12 @@ def create_app() -> FastAPI:
     app.include_router(webhook_router)
     app.include_router(scheduler_router)
 
+    @app.on_event("startup")
+    def demo_account() -> None:
+        from omnilead.demo import ensure_demo_account
+
+        ensure_demo_account(settings)
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}

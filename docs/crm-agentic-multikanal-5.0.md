@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 4.0
+version: 5.0
 ---
 
 Label sumber data di dokumen ini:
@@ -17,6 +17,10 @@ Label sumber data di dokumen ini:
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
 - **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 5.0 (21 Okt 2026).** Deploy publik menjadi wajib: form submission meminta screenshot
+waktu deploy (halaman Revisions Cloud Run) dan juri perlu link demo. Lihat
+[Deploy Publik untuk Juri](#deploy-publik-untuk-juri); Lampiran B diperbarui.
 
 **Versi 4.0 (21 Okt 2026).** Kanal MVP ditetapkan: WhatsApp, email, Instagram, dan
 Facebook. LinkedIn, TikTok, dan kanal lain dipindah ke pengembangan lanjutan (lihat
@@ -1022,7 +1026,7 @@ di antara Meta (gratis) dan Qontak/SleekFlow (Rp750rb+).
 |---|---|---|---|
 | Framework agen | ADK 2.x (Python ≥3.11), `google-adk` | Triage, Orchestrator, Guard; `McpToolset`; callbacks dan plugin; `adk eval` | [adk.dev](https://adk.dev/), [PyPI](https://pypi.org/project/google-adk/) |
 | Model | Gemini via Vertex AI: `gemini-3.5-flash-lite` (triage), `gemini-3.8-flash` (orkestrator/draf, ekstraksi screenshot) | Terverifikasi 21 Okt 2026, **hanya di location `global`**; `asia-southeast2` menolak semua model dan alias `gemini-flash-latest` 404 [U] | [Gemini models](https://ai.google.dev/gemini-api/docs/models), [Vertex](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models) |
-| Hosting | Demo lokal (agen :8100, BE :8000, FE :3000). Opsi Cloud Run: `omnilead-agent`, `omnilead-api`, `omnilead-fe` dari Dockerfile masing-masing; lihat Lampiran B | TOR tidak mewajibkan deploy | [ADK Cloud Run](https://adk.dev/deploy/cloud-run/) |
+| Hosting | Cloud Run: `omnilead-fe` (link juri), `omnilead-api`, `omnilead-agent` dari Dockerfile masing-masing; demo lokal sebagai cadangan; lihat Deploy Publik untuk Juri dan Lampiran B | Wajib untuk submission (screenshot waktu deploy) | [ADK Cloud Run](https://adk.dev/deploy/cloud-run/) |
 | Database | SQLite (demo) atau Firestore: `leads`, `events`, `event_keys`, `actions`, `audit`, `settings` | CRM, antrean persetujuan, flag Pause | [Firestore](https://docs.cloud.google.com/firestore/native/docs/overview) |
 | Email masuk | Gmail API + Pub/Sub (`users.watch`, `users.history.list`) | Watch berlaku 7 hari dan diperpanjang harian; siapkan polling cadangan | [Gmail push](https://developers.google.com/workspace/gmail/api/guides/push), [sending](https://developers.google.com/workspace/gmail/api/guides/sending) |
 | Rahasia | Secret Manager | Token WA, app secret Meta, OAuth refresh token | [Secret Manager](https://docs.cloud.google.com/secret-manager/docs/overview) |
@@ -1342,6 +1346,71 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 | 12–13 | **Freeze:** tag `v1.0-freeze`, matikan resource yang tidak perlu | | |
 | 13–15 | Unggah luaran; deck seleksi (pitch 2 menit + demo) | | |
 
+## Deploy Publik untuk Juri
+
+Form submission mewajibkan **screenshot waktu deployment** (misalnya halaman *Revisions* Cloud
+Run), dan TOR §11 meminta tautan demo sudah terbuka sebelum giliran tampil. Karena itu OmniLead
+di-deploy ke **Cloud Run** dan bisa dipakai juri lewat link publik. Firebase Hosting tidak dipakai:
+akun tim tidak punya izin `firebasehosting.*`, dan FE butuh server Next.js (proxy `/api/backend`).
+
+### Arsitektur deploy
+
+| Service Cloud Run | Isi | Akses | Instance |
+|---|---|---|---|
+| `omnilead-fe` | Landing page + aplikasi (Next.js, proxy `/api/backend`) | Publik; **link untuk juri** | min 1 |
+| `omnilead-api` | BE: login, CRM, antrean persetujuan, executor, webhook | Publik (webhook Meta tidak membawa identitas Google); dilindungi sesi login, signature, dan token | **min 1, max 1** |
+| `omnilead-agent` | Agen: triage, orchestrator, Guard | Publik dengan header `X-API-Key` (opsi OIDC belum diuji) | min 0 |
+
+Region Cloud Run `asia-southeast2`. Gemini lewat Vertex AI di location `global`.
+
+### Keputusan untuk demo juri
+
+- **Penyimpanan: SQLite di dalam instance BE, satu instance tetap hidup** (`min=max=1`). Adapter
+  Firestore untuk akun dan sesi belum pernah diuji ke Firestore sungguhan, jadi tidak dipakai untuk
+  demo yang dinilai. Konsekuensinya: data hilang saat revisi baru di-deploy atau instance diganti.
+- **Akun demo otomatis.** Bila `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD` diisi, BE membuat
+  akun itu saat menyala (bila belum ada) dan mengisi bisnisnya dengan data demo (`seed.py`: 30 lead
+  dummy + Ani). Juri langsung masuk tanpa mendaftar. Kata sandi demo hanya ditulis di form submission,
+  **tidak di repo**.
+- **Engine agen: `rule` sebagai default** (±0,4 detik per pesan) supaya demo responsif. Engine `adk`
+  (Gemini) bisa diaktifkan dengan satu env (`OMNILEAD_AGENT_ENGINE=adk`) bila service account punya
+  peran Vertex AI; latensinya ±41 detik per pesan (lihat TESTING.md).
+- **Kanal:** akun WhatsApp, Instagram, Facebook, dan Gmail belum dihubungkan ke akun asli. Juri mencoba
+  alur lewat **Tempel pesan**; balasan dikirim lewat **Salin & buka**. Mode latihan (dry-run) bisa
+  dinyalakan di halaman Integrasi.
+
+### Yang bisa dicoba juri
+
+1. Buka link `omnilead-fe` → landing page dan demo interaktif.
+2. **Masuk** dengan akun demo → Beranda, Workspace berisi lead dan aktivitas contoh.
+3. **Tempel pesan** (misalnya komentar Facebook "rujaknya bisa kirim ke Cimahi?") → agen menyusun
+   usulan, trace, dan hasil Guard → **Setujui / Edit / Tolak**.
+4. **Jeda agen**, saklar per kanal, audit log, profil lead dan usulan merge.
+
+### Screenshot waktu deploy (untuk form)
+
+Cloud Run console → service `omnilead-fe` (atau `omnilead-api`) → tab **Revisions**. Kolom
+*Deployed* menampilkan waktu deploy revisi aktif. Alternatif CLI sebagai cadangan:
+`gcloud run revisions list --service omnilead-fe --region asia-southeast2`.
+
+### Checklist sebelum submit
+
+- [ ] Ketiga service berstatus Ready; `/health` agen dan BE `{"status":"ok"}`.
+- [ ] Link FE terbuka dari jaringan lain (HP tanpa login Google); login akun demo berhasil.
+- [ ] Tempel pesan → usulan muncul → Setujui berjalan tanpa error.
+- [ ] Screenshot halaman Revisions diambil setelah deploy terakhir (sebelum freeze 13.00).
+- [ ] Link dan akun demo ditulis di form, README, dan deck; kata sandi tidak masuk repo.
+- [ ] Budget alert dipasang (atau diminta ke panitia); resource yang tidak perlu dimatikan setelah final.
+
+### Risiko
+
+| Risiko | Mitigasi |
+|---|---|
+| Data demo hilang saat revisi baru atau instance diganti | Akun dan data demo dibuat ulang otomatis saat BE menyala |
+| Juri mengubah atau menghapus data demo | Reset dengan deploy revisi baru, atau `seed.py` |
+| Cold start | `min-instances=1` untuk FE dan BE |
+| Gemini lambat | Engine `rule` sebagai default demo |
+
 ## Status Implementasi
 
 **Kanal (PRD 4.0):** MVP = WhatsApp, email, Instagram, dan Facebook. Keempatnya ada di
@@ -1398,7 +1467,7 @@ Rumus TOR: nilai = Σ (skor 1–5 ÷ 5 × bobot). Target realistis ±88–92.
 |---|---|---|
 | Relevansi (15%) | 5 | Persona P1 spesifik; data BPS 2024 94,76% dan SleekFlow 46%; 2–3 kutipan nyata UMKM |
 | Kualitas Agentic (25%) | 5 | Panel trace; tiga peran agen dengan justifikasi; MCP; antrean persetujuan + executor terpisah; belajar dari penolakan; Pause. Penentu seri nomor 1. |
-| Kelayakan Teknis (20%) | 4–5 | Demo lokal stabil; Gmail/WA diuji ke akun asli bila sempat; pass^3 untuk engine aturan dan Gemini dicatat apa adanya; README rapi. Penentu seri nomor 2. |
+| Kelayakan Teknis (20%) | 4–5 | Demo publik di Cloud Run dengan akun demo, demo lokal sebagai cadangan; Gmail/WA diuji ke akun asli bila sempat; pass^3 untuk engine aturan dan Gemini dicatat apa adanya; README rapi. Penentu seri nomor 2. |
 | Potensi Dampak (20%) | 4–5 | Model dampak dengan angka terukur dan asumsi dipisahkan; hitungan rupiah; hipotesis harga |
 | UX (10%) | 5 | Satu layar utama; tombol besar; alasan prioritas dalam bahasa awam; status integrasi yang jujur (terhubung / dry-run / manual) |
 | Pitching & Demo (10%) | 5 | Buka dengan cerita Bu Rina, lalu demo live; siapkan jawaban pertanyaan sulit; video cadangan; latihan 5x dengan timer |
@@ -1412,6 +1481,8 @@ Simulasi skor:
 
 - [ ] Prototype versi beku: repo, tag, tautan aplikasi, petunjuk akses
       juri
+- [ ] Screenshot waktu deploy Cloud Run (halaman Revisions) dan link demo publik
+      beserta akun demo (diminta form submission)
 - [ ] README: masalah dan pengguna, arsitektur agen, instalasi,
       dependensi, `.env.example`, keterbatasan, kontribusi anggota
 - [ ] Catatan sumber dan AI: model, tools, API, library, lisensi, serta
@@ -1654,9 +1725,9 @@ ke mana token dikirim.
 
 ## Lampiran B: Deploy ke Google Cloud
 
-Digabung dari `deploy.md` dan diperbarui 21 Okt 2026. **TOR tidak
-mewajibkan deploy** (§7: "tautan aplikasi bila tersedia"); jalur utama
-demo adalah **lokal**: agen (:8100) → BE (:8000) → FE (:3000).
+Digabung dari `deploy.md` dan diperbarui 21 Okt 2026 (PRD 5.0). Deploy ke Cloud Run **wajib** untuk
+submission; keputusan dan checklist ada di [Deploy Publik untuk Juri](#deploy-publik-untuk-juri). Demo lokal
+(agen :8100 → BE :8000 → FE :3000) tetap disiapkan sebagai cadangan.
 
 ### B.1 Kondisi project panitia
 
@@ -1664,8 +1735,8 @@ demo adalah **lokal**: agen (:8100) → BE (:8000) → FE (:3000).
 |---|---|
 | Project ID | `hackathon-primestep-03` |
 | Service account runtime | `hackathon-runtime@hackathon-primestep-03.iam.gserviceaccount.com` (disiapkan panitia) |
-| Bisa dilakukan akun tim | Cloud Run deploy/update, Cloud Build, upload ke Artifact Registry, Secret Manager, Vertex AI |
-| **Butuh panitia** | Membuat repo Artifact Registry, mengaktifkan Firestore, Cloud Scheduler, dan Gmail API, membuat topic Pub/Sub, budget alert |
+| Bisa dilakukan akun tim | Cloud Run deploy/update, Cloud Build, membuat repo dan upload ke Artifact Registry, Secret Manager, Vertex AI, membuat Firestore, mengaktifkan API (izin ditambah panitia, dicek malam 21 Okt 2026) |
+| Belum bisa | Firebase Hosting (`firebasehosting.*`); budget alert perlu dicek ke panitia |
 | Region | Cloud Run: `asia-southeast2`. **Vertex AI: `global`** (Gemini 3.x tidak tersedia di `asia-southeast2`) |
 
 ### B.2 Gemini untuk demo lokal
@@ -1680,7 +1751,7 @@ GOOGLE_CLOUD_PROJECT=hackathon-primestep-03
 GOOGLE_CLOUD_LOCATION=global
 ```
 
-### B.3 Deploy (setelah repo Artifact Registry dibuat panitia)
+### B.3 Deploy
 
 Login dan OAuth per bisnis: ikuti [account-connections.md](account-connections.md) untuk
 membuat aplikasi provider, callback FE, dan key enkripsi. Kredensial akun pengguna diperoleh
@@ -1694,9 +1765,13 @@ done
 printf '%s' "<nilai>" | gcloud secrets versions add omnilead-agent-key --data-file=-
 ```
 
+Untuk demo juri cukup agen, BE, dan FE dengan akun demo; secret OAuth di atas baru diperlukan saat
+menghubungkan akun kanal sungguhan.
+
 ```bash
 export PROJECT=hackathon-primestep-03 REGION=asia-southeast2
 SA=hackathon-runtime@$PROJECT.iam.gserviceaccount.com
+gcloud artifacts repositories create cloud-run-source-deploy --repository-format=docker --location=$REGION
 
 # Agen
 gcloud run deploy omnilead-agent --source omnilead-agent --region $REGION \
@@ -1707,7 +1782,7 @@ gcloud run deploy omnilead-agent --source omnilead-agent --region $REGION \
 # BE (SQLite selama Firestore belum aktif; data hilang saat instance restart)
 AGENT_URL=$(gcloud run services describe omnilead-agent --region $REGION --format 'value(status.url)')
 gcloud run deploy omnilead-api --source omnilead-be --region $REGION \
-  --service-account $SA --allow-unauthenticated --min-instances 0 \
+  --service-account $SA --allow-unauthenticated --min-instances 1 --max-instances 1 \
   --set-env-vars OMNILEAD_STORE=sqlite,OMNILEAD_AGENT_URL=$AGENT_URL,OMNILEAD_AUTH_ENABLED=true,\
 OMNILEAD_FRONTEND_URL=https://<url-fe>,OMNILEAD_CORS_ORIGINS='["https://<url-fe>"]' \
   --set-secrets OMNILEAD_TOKEN_ENCRYPTION_KEY=oauth-encryption-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest,\
@@ -1727,7 +1802,11 @@ token Bearer atau OIDC untuk Scheduler. Opsi lebih aman untuk agen:
 `--no-allow-unauthenticated`, beri SA BE peran `roles/run.invoker`, dan
 set `OMNILEAD_AGENT_AUTH=oidc` di BE (belum diuji di Cloud Run).
 
-Setelah Firestore aktif: `OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$PROJECT`.
+Untuk akun demo juri tambahkan `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD` (sebaiknya lewat Secret
+Manager atau `--set-env-vars` dari terminal, jangan ditulis di repo). `--max-instances 1` wajib selama memakai
+SQLite supaya semua permintaan melihat data yang sama.
+
+Setelah adapter Firestore diuji: `OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$PROJECT`.
 
 ### B.4 FE
 
@@ -1743,9 +1822,9 @@ gcloud run deploy omnilead-fe --image $IMAGE --region $REGION --allow-unauthenti
   --set-env-vars OMNILEAD_BACKEND_URL=$API
 ```
 
-Build FE sempat gagal di `npm ci` karena `package-lock.json` tidak sinkron (tim memakai
-bun). Cek ulang; bila masih gagal, sinkronkan lockfile atau ganti Dockerfile ke image
-`oven/bun` dengan `bun install --frozen-lockfile`.
+Dockerfile FE memasang dependensi dengan bun (`bun install --frozen-lockfile`) sesuai `bun.lock`;
+build lokal berhasil dan container melayani `/` serta `/login` (21 Okt 2026). Tambahkan
+`--min-instances 1` supaya juri tidak menunggu cold start.
 
 ### B.5 Webhook, Gmail, dan Scheduler (butuh API yang diaktifkan panitia)
 
