@@ -12,6 +12,7 @@ def make_app(tmp_path, monkeypatch, **env):
     monkeypatch.setenv("OMNILEAD_ACCOUNTS_DB_PATH", str(tmp_path / "accounts.db"))
     monkeypatch.setenv("OMNILEAD_DB_PATH", str(tmp_path / "crm.db"))
     monkeypatch.setenv("OMNILEAD_SECRETS_DIR", str(tmp_path / "secrets"))
+    monkeypatch.setenv("OMNILEAD_DEMO_SAMPLES", "false")
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     get_settings.cache_clear()
@@ -47,3 +48,19 @@ def test_no_demo_account_without_env(tmp_path, monkeypatch, legacy_auth_mode):
     get_settings.cache_clear()
     deps.get_accounts.cache_clear()
     deps.store_for_workspace.cache_clear()
+
+
+def test_demo_messages_cover_all_channels_and_survive_agent_errors():
+    from omnilead.demo import DEMO_MESSAGES, analyze_demo_messages
+
+    seen = []
+
+    class Ingest:
+        def ingest(self, ev):
+            seen.append(ev)
+            if ev.channel.value == "instagram":
+                raise RuntimeError("agen mati")
+
+    analyze_demo_messages(Ingest())
+    assert {ev.channel.value for ev in seen} == {"whatsapp", "instagram", "facebook", "email"}
+    assert len(seen) == len(DEMO_MESSAGES) and all(ev.ts is not None for ev in seen)
