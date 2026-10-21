@@ -16,7 +16,7 @@ Kendali
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -40,6 +40,7 @@ from omnilead.api.schemas import (
     RejectRequest,
 )
 from omnilead.approvals.executor import ChannelDisabled, Executor, Paused, RateLimited
+from omnilead.approvals.merge import can_undo, undo_merge
 from omnilead.approvals.queue import ApprovalQueue, InvalidTransition
 from omnilead.connectors import handoff
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, NotConnected
@@ -189,6 +190,25 @@ def paste_image(
     return event
 
 
+@router.get("/content-ideas")
+def content_ideas(
+    days: int = Query(14, ge=1, le=60),
+    store: Store = Depends(get_store),
+    agent: AgentClient = Depends(get_agent_client),
+) -> dict:
+    """Ide konten (draf saja) dari pertanyaan pelanggan beberapa hari terakhir."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    messages = [
+        {"text": e.text, "channel": e.channel.value}
+        for e in store.list_events(limit=300)
+        if e.ts is None or (e.ts if e.ts.tzinfo else e.ts.replace(tzinfo=timezone.utc)) >= cutoff
+    ]
+    try:
+        return agent.content_ideas({"messages": messages})
+    except AgentUnavailable as exc:
+        raise HTTPException(status_code=502, detail=f"Service agen tidak tersedia: {exc}")
+
+
 @router.get("/summary/today")
 def summary_today(store: Store = Depends(get_store)) -> list[dict]:
     """Hal yang perlu ditangani hari ini, urut prioritas."""
@@ -240,11 +260,21 @@ def get_lead(lead_id: str, store: Store = Depends(get_store)) -> dict:
     timeline.sort(key=lambda t: t["ts"] or _MIN_TS, reverse=True)
     audit = [x for x in store.list_audit(limit=500) if x.lead_id == lead_id]
     evidence = [x for x in audit if x.event == "identity_merged"]
+    merges = [
+        {
+            "action_id": a.id,
+            "source_name": a.payload["undo"]["source"].get("name"),
+            "evidence": a.payload.get("evidence", []),
+        }
+        for a in store.list_actions()
+        if can_undo(a) and a.payload.get("target_lead_id") == lead_id
+    ]
     return {
         "lead": lead,
         "timeline": timeline,
         "actions": actions,
         "merge_evidence": evidence,
+        "undoable_merges": merges,
     }
 
 
@@ -320,6 +350,17 @@ def mark_sent(
 ) -> Action:
     try:
         return queue.mark_sent_manually(action_id)
+    except KeyError:
+        raise NOT_FOUND
+    except InvalidTransition as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.post("/actions/{action_id}/undo-merge", response_model=Action)
+def undo_merge_route(action_id: str, store: Store = Depends(get_store)) -> Action:
+    """Pisah profil: batalkan merge identitas yang sudah dieksekusi."""
+    try:
+        return undo_merge(store, action_id)
     except KeyError:
         raise NOT_FOUND
     except InvalidTransition as exc:

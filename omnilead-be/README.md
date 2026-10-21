@@ -72,7 +72,7 @@ src/omnilead/
 ├── scheduler.py                   # follow-up jatuh tempo, ringkasan harian
 ├── seed.py
 ├── connectors/                    # base, instagram, linkedin, whatsapp, gmail, handoff, registry
-├── approvals/                     # queue (status machine), executor
+├── approvals/                     # queue (status machine), executor, merge (pisah profil)
 └── api/                           # routes, webhooks, scheduler_routes, deps, schemas
 ```
 
@@ -86,7 +86,7 @@ src/omnilead/
 ## Tes
 
 ```bash
-uv run pytest                          # 64 tes
+uv run pytest                          # 72 tes
 uv run python eval/identity_eval.py    # presisi/recall identitas pada 50 lead dummy
 ```
 

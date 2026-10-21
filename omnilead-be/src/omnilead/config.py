@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     agent_url: str = "http://localhost:8100"
     agent_api_key: str = ""
     agent_timeout_s: float = 60.0
+    # key = X-API-Key saja; oidc = tambah token identitas Google (agen tidak publik di Cloud Run)
+    agent_auth: str = "key"
 
     # Cloud Scheduler: token bersama (Authorization: Bearer) atau OIDC bila audience diisi.
     scheduler_token: str = ""

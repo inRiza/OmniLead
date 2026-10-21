@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from omnilead.connectors.base import ActionNotSupported, ConnectorError
 from omnilead.connectors.registry import Registry
+from omnilead.approvals.merge import build_snapshot
 from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus
 from omnilead.store import Store
 from omnilead.windows import check_window
@@ -168,6 +169,7 @@ class Executor:
         if src is None or dst is None or src.id == dst.id:
             return self._fail(action, "merge: profil sumber/tujuan tidak valid atau sudah digabung")
 
+        action.payload = {**action.payload, "undo": build_snapshot(self._store, src, dst, action.id)}
         for field in ("phones", "emails", "handles"):
             merged = getattr(dst, field)
             merged += [v for v in getattr(src, field) if v not in merged]

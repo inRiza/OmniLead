@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from fastapi import Header, HTTPException
 
-from omnilead.agent_client import AgentClient
+from omnilead.agent_client import AgentClient, google_id_token_provider
 from omnilead.approvals.executor import Executor
 from omnilead.approvals.queue import ApprovalQueue
 from omnilead.config import get_settings
@@ -42,7 +42,8 @@ def get_executor() -> Executor:
 @lru_cache
 def get_agent_client() -> AgentClient:
     s = get_settings()
-    return AgentClient(s.agent_url, s.agent_api_key, s.agent_timeout_s)
+    provider = google_id_token_provider(s.agent_url) if s.agent_auth == "oidc" else None
+    return AgentClient(s.agent_url, s.agent_api_key, s.agent_timeout_s, token_provider=provider)
 
 
 @lru_cache
