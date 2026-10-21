@@ -5,7 +5,7 @@ Masuk : pengguna menempel teks pesan/komentar; dinormalisasi jadi Comment
 Keluar: executor TIDAK mengirim. Ia membuat deep link "Salin & buka", dan
         pengguna mengirim sendiri lalu menandai "Sudah dikirim".
 
-Dipakai untuk LinkedIn (baca komentar/DM) dan kanal lain yang API-nya tertutup.
+Dipakai untuk aksi yang tidak diekspos API kanal aktif.
 """
 
 from datetime import datetime, timezone
@@ -15,7 +15,6 @@ from omnilead.models import Channel, Comment
 
 # Pola deep link per kanal. {text} diisi draf yang sudah di-URL-encode.
 DEEPLINK = {
-    Channel.LINKEDIN: "https://www.linkedin.com/feed/",
     Channel.INSTAGRAM: "https://www.instagram.com/",
 }
 

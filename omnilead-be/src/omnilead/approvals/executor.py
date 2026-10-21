@@ -4,9 +4,8 @@
   status PENDING sebelum eksekusi).
 - Memakai connector lewat kontrak yang sama, tidak tahu detail tiap platform.
 - Idempoten: aksi yang sudah EXECUTED/SENT tidak dikirim ulang.
-- Untuk kanal yang aksinya tidak didukung API (mis. komentar LinkedIn via
-  baca), aksi tidak dieksekusi tapi diubah ke AWAITING_MANUAL_SEND + paket
-  handoff, bukan dipaksa kirim.
+- Untuk aksi yang tidak didukung API kanal, aksi tidak dieksekusi tapi
+  diubah ke AWAITING_MANUAL_SEND + paket handoff, bukan dipaksa kirim.
 """
 
 from datetime import datetime, timezone

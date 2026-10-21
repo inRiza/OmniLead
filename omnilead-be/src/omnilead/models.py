@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 
 class Channel(StrEnum):
     INSTAGRAM = "instagram"
-    LINKEDIN = "linkedin"
 
 
 # Jalur akses yang diakui. Hanya resmi atau handoff manual.

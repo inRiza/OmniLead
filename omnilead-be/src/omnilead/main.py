@@ -10,7 +10,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="OmniLead Backend",
         version="0.1.0",
-        summary="Connector Instagram & LinkedIn (API resmi) + handoff, "
+        summary="Connector Instagram (API resmi) + handoff, "
         "antrean persetujuan, executor.",
     )
     app.add_middleware(

@@ -16,17 +16,7 @@ class Settings(BaseSettings):
     # Instagram Graph API (resmi)
     instagram_user_id: str = ""
     instagram_access_token: str = ""
-    instagram_graph_version: str = "v21.0"
-
-    # LinkedIn Share on LinkedIn (resmi)
-    linkedin_client_id: str = ""
-    linkedin_client_secret: str = ""
-    linkedin_redirect_uri: str = "http://localhost:8000/auth/linkedin/callback"
-    linkedin_api_version: str = "202609"
-
-    @property
-    def linkedin_token_path(self) -> Path:
-        return self.secrets_dir / "linkedin_token.json"
+    instagram_graph_version: str = "v26.0"
 
 
 @lru_cache

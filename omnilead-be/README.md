@@ -1,8 +1,11 @@
 # OmniLead Backend
 
-Backend untuk OmniLead: menghubungkan **Instagram** dan **LinkedIn** lewat
-**API resmi**, dengan **handoff manual** untuk aksi yang tidak punya API.
-Semua aksi keluar melewati **antrean persetujuan manusia** sebelum dikirim.
+Backend untuk OmniLead: menghubungkan kanal lewat **API resmi**, dengan
+**handoff manual** untuk aksi yang tidak punya API. Semua aksi keluar melewati
+**antrean persetujuan manusia** sebelum dikirim.
+
+Kanal target: **Instagram**, **WhatsApp**, **Gmail**. Saat ini yang sudah
+dibangun baru **Instagram**. WhatsApp dan Gmail belum dikerjakan.
 
 ## Prinsip
 
@@ -16,19 +19,16 @@ Semua aksi keluar melewati **antrean persetujuan manusia** sebelum dikirim.
 
 ## Kanal & kemampuan
 
-| Aksi | Instagram | LinkedIn |
-|---|---|---|
-| Daftar post | ✅ Graph API | ❌ (tidak ada API) |
-| Baca komentar | ✅ Graph API | ↪️ handoff (tempel teks) |
-| Tulis komentar | ✅ Graph API | ✅ Share on LinkedIn |
-| Balas komentar | ✅ Graph API | ✅ socialActions |
+| Aksi | Instagram | WhatsApp | Gmail |
+|---|---|---|---|
+| Daftar post | ✅ API | n/a | n/a |
+| Baca komentar | ✅ API | n/a | n/a |
+| Tulis / balas komentar | ✅ API | n/a | n/a |
+| Pesan | belum | belum | belum |
 
-- **Instagram:** akun Professional milik tim, Standard Access, tanpa App Review.
-  Izin `instagram_business_manage_comments`.
-- **LinkedIn tulis:** produk **Share on LinkedIn** (self-serve, scope
-  `w_member_social`). Tidak perlu partner approval.
-- **LinkedIn baca:** tidak ada API publik untuk komentar/DM pribadi
-  (`r_member_social` tertutup), jadi dipakai handoff manual.
+**Instagram** memakai *Instagram API with Instagram Login*: host
+`graph.instagram.com`, akun Professional milik tim, Standard Access (tanpa App
+Review). Izin: `instagram_business_basic`, `instagram_business_manage_comments`.
 
 ## Struktur
 
@@ -43,8 +43,7 @@ omnilead-be/
     ├── main.py                # FastAPI app
     ├── connectors/
     │   ├── base.py            # kontrak ChannelConnector
-    │   ├── instagram.py       # Graph API resmi
-    │   ├── linkedin.py        # Share on LinkedIn + tandai baca=handoff
+    │   ├── instagram.py       # Instagram API (graph.instagram.com)
     │   ├── handoff.py         # tempel pesan masuk + paket Salin & buka
     │   └── registry.py        # ambil connector per kanal
     ├── approvals/
@@ -61,8 +60,8 @@ omnilead-be/
 ```bash
 cd omnilead-be
 uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"      # atau: uv sync
-cp .env.example .env            # isi token
+uv pip install -e ".[dev]"
+cp .env.example .env            # isi token Instagram
 uvicorn omnilead.main:app --reload
 ```
 
@@ -76,39 +75,38 @@ uv run pytest
 
 Tes memakai connector palsu (tanpa jaringan), memverifikasi: propose → approve
 → execute, blokir aksi tanpa persetujuan, idempotensi (tidak kirim ganda),
-edit/tolak, jatuh ke handoff untuk kanal tanpa API, dan audit log.
+edit/tolak, jatuh ke handoff untuk aksi tanpa API, dan audit log.
 
 ## Alur endpoint
 
 ```
-tempel/komentar masuk → GET /channels/{ch}/comments  atau  POST /handoff/paste
+komentar masuk        → GET /channels/{ch}/comments  atau  POST /handoff/paste
 agen menyusun draf    → POST /actions/propose         (status: pending)
 pemilik memutuskan    → POST /actions/{id}/approve | reject
                         approve → Executor:
-                          - kanal ber-API  → kirim, status executed
-                          - kanal handoff  → status awaiting_manual_send
+                          - aksi ber-API   → kirim, status executed
+                          - aksi tanpa API → status awaiting_manual_send
                                              GET /actions/{id}/handoff (Salin & buka)
                                              POST /actions/{id}/sent (sudah dikirim)
 semua langkah         → GET /audit
 ```
 
-## Yang perlu diverifikasi saat setup (spike jam pertama)
+## Setup token Instagram
 
-- **Instagram:** buat token Standard Access untuk akun Professional tim, isi
-  `OMNILEAD_INSTAGRAM_USER_ID` dan `..._ACCESS_TOKEN`, lalu tes
-  `GET /channels/instagram/posts`.
-- **LinkedIn:** di Developer Portal tambahkan produk "Share on LinkedIn" +
-  "Sign In with LinkedIn using OpenID Connect". Jalankan OAuth untuk mendapat
-  `access_token` + person URN, simpan ke `.secrets/linkedin_token.json`:
-  `{"access_token": "...", "person_urn": "urn:li:person:XXXX"}`.
-  Lalu tes satu `post_comment` ke post milik akun kalian. **Verifikasi bodi
-  request `/rest/socialActions` di versi API yang dipakai**, karena skema bisa
-  berbeda antar `LinkedIn-Version`.
+1. Akun Instagram diubah ke **Professional** (Business/Creator).
+2. Di developers.facebook.com buat app tipe **Business**, tambahkan produk
+   **Instagram**, buka **API setup with Instagram business login**.
+3. **Add account**, terima undangan tester di
+   `instagram.com/accounts/manage_access/` (tab Tester Invites), lalu
+   **Generate token** (berlaku 60 hari).
+4. Ambil user ID:
+   `GET https://graph.instagram.com/v26.0/me?fields=user_id,username&access_token=...`
+5. Isi `OMNILEAD_INSTAGRAM_USER_ID` dan `OMNILEAD_INSTAGRAM_ACCESS_TOKEN` di
+   `.env`, lalu tes `GET /channels/instagram/posts`.
 
 ## Catatan sumber (untuk luaran ITB)
 
-- Instagram Graph API — https://developers.facebook.com/docs/instagram-platform
-- Share on LinkedIn — https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin
-- LinkedIn Comments API — https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/comments-api
+- Instagram Platform — https://developers.facebook.com/docs/instagram-platform
+- Get started (Instagram Login) — https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started
 - FastAPI, httpx, pydantic — lihat `pyproject.toml`. Lisensi masing-masing
   permissive (MIT/BSD/Apache).
