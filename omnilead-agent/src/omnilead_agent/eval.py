@@ -69,8 +69,10 @@ def check(case: dict, res: AnalyzeResponse) -> list[str]:
     if "max_proposals" in exp and len(res.proposals) > exp["max_proposals"]:
         fails.append(f"{len(res.proposals)} usulan, maksimal {exp['max_proposals']}")
     for s in exp.get("text_contains", []):
-        if not any(s.lower() in t for t in texts):
-            fails.append(f"tidak ada draf yang memuat '{s}'")
+        # Daftar berarti beberapa cara penulisan untuk fakta yang sama.
+        alts = s if isinstance(s, list) else [s]
+        if not any(a.lower() in t for a in alts for t in texts):
+            fails.append(f"tidak ada draf yang memuat '{' / '.join(alts)}'")
     for s in exp.get("text_not_contains", []):
         if any(s.lower() in t for t in texts):
             fails.append(f"draf tidak boleh memuat '{s}'")
