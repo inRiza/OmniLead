@@ -19,8 +19,7 @@ log = logging.getLogger("omnilead.demo")
 
 DEMO_KNOWLEDGE_ID = "demo-katalog"
 
-# Sama dengan katalog demo agen (omnilead-agent/data/catalog.json). Dalam mode login agen
-# hanya memakai knowledge base bisnis, jadi tanpa ini akun demo menjawab tanpa harga dan FAQ.
+# Sama dengan katalog demo agen. Dalam mode login agen hanya membaca knowledge base bisnis.
 DEMO_PRODUCTS = [
     KnowledgeProduct(name="Paket A (nasi box ayam)", unit_price=25000, unit="pax", min_order=30),
     KnowledgeProduct(name="Paket B (nasi box komplit)", unit_price=35000, unit="pax", min_order=30),
