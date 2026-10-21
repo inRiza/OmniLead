@@ -94,6 +94,10 @@ class AgentClient:
         except Exception as exc:  # kredensial Google tidak tersedia
             raise AgentUnavailable(f"Gagal mengambil token identitas: {type(exc).__name__}: {exc}") from exc
 
+    @property
+    def timeout_seconds(self) -> float:
+        return self._timeout
+
     def analyze(self, payload: dict) -> AgentResult:
         try:
             resp = self._http.post("/v1/analyze", json=payload, headers=self._auth())

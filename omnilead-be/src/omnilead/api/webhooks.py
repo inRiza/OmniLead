@@ -18,14 +18,14 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 
-from omnilead.api.deps import get_ingest, get_registry, get_accounts, ingest_for_workspace, registry_for_workspace
+from omnilead.api.deps import get_ingest, get_registry, get_accounts, ingest_for_workspace, registry_for_workspace, store_for_workspace
 from omnilead.config import Settings, get_settings
 from omnilead.connectors.base import ConnectorError
 from omnilead.connectors.registry import Registry
 from omnilead.ingest import IngestService
 from omnilead.models import Channel, EventIn, Sender
 
-log = logging.getLogger("omnilead.webhooks")
+log = logging.getLogger("uvicorn.error.omnilead.webhooks")
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
@@ -54,7 +54,10 @@ def _ts(value) -> datetime | None:
         return None
     if n > 10_000_000_000:  # milidetik (Instagram)
         n //= 1000
-    return datetime.fromtimestamp(n, tz=timezone.utc)
+    try:
+        return datetime.fromtimestamp(n, tz=timezone.utc)
+    except (ValueError, OSError, OverflowError):
+        return None
 
 
 def parse_whatsapp(payload: dict) -> list[EventIn]:
@@ -79,32 +82,85 @@ def parse_whatsapp(payload: dict) -> list[EventIn]:
     return [e for e in events if e.text.strip()]
 
 
+def _ig_records(value) -> list[dict]:
+    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+
+
 def parse_instagram(payload: dict) -> list[EventIn]:
     events: list[EventIn] = []
-    for entry in payload.get("entry", []):
-        for change in entry.get("changes", []):
-            if change.get("field") != "comments":
+    for entry in _ig_records(payload.get("entry")):
+        account = str(entry.get("id", ""))
+        messages = _ig_records(entry.get("messaging"))
+        for change in _ig_records(entry.get("changes")):
+            field = change.get("field")
+            v = change.get("value") or {}
+            if not isinstance(v, dict):
                 continue
-            v = change.get("value", {})
-            who = v.get("from", {})
-            if not v.get("id") or not v.get("text"):
+            if field == "messages":
+                messages.append(v)
+                continue
+            if field not in {"comments", "live_comments"}:
+                continue
+            who = v.get("from") or {}
+            who = who if isinstance(who, dict) else {}
+            media = v.get("media") or {}
+            media = media if isinstance(media, dict) else {}
+            if (not v.get("id") or not isinstance(v.get("text"), str) or not v["text"].strip()
+                    or (account and str(who.get("id", "")) == account)):
                 continue
             events.append(EventIn(
-                channel=Channel.INSTAGRAM, kind="comment", external_id=v["id"],
-                sender=Sender(handle=who.get("username") or who.get("id", "")),
-                text=v["text"], post_ref=(v.get("media") or {}).get("id"),
-                comment_ref=v["id"], ts=_ts(entry.get("time")),
+                channel=Channel.INSTAGRAM, kind="comment", external_id=str(v["id"]),
+                sender=Sender(handle=str(who.get("username") or who.get("id", ""))),
+                text=v["text"], post_ref=str(media["id"]) if media.get("id") else None,
+                comment_ref=str(v["id"]), ts=_ts(v.get("timestamp") or entry.get("time")),
+                meta={"webhook_field": field},
             ))
-        for m in entry.get("messaging", []):
-            msg = m.get("message") or {}
-            if msg.get("is_echo") or not msg.get("text") or not msg.get("mid"):
+        seen = set()
+        for m in messages:
+            if not isinstance(m, dict):
                 continue
+            msg = m.get("message") or {}
+            who = m.get("sender") or {}
+            to = m.get("recipient") or {}
+            sender = str(who.get("id", "")) if isinstance(who, dict) else ""
+            recipient = str(to.get("id", "")) if isinstance(to, dict) else ""
+            ts = _ts(m.get("timestamp"))
+            if (not isinstance(msg, dict) or msg.get("is_echo") or msg.get("is_deleted")
+                    or msg.get("is_edit") or not isinstance(msg.get("text"), str)
+                    or not msg["text"].strip() or not msg.get("mid") or not sender or ts is None
+                    or (account and sender == account) or (account and recipient and recipient != account)
+                    or str(msg["mid"]) in seen):
+                continue
+            seen.add(str(msg["mid"]))
             events.append(EventIn(
-                channel=Channel.INSTAGRAM, kind="dm", external_id=msg["mid"],
-                sender=Sender(handle=m.get("sender", {}).get("id", "")),
-                text=msg["text"], ts=_ts(m.get("timestamp")),
+                channel=Channel.INSTAGRAM, kind="dm", external_id=str(msg["mid"]),
+                sender=Sender(handle=sender), text=msg["text"], ts=ts,
+                meta={"webhook_field": "messages"},
             ))
     return events
+
+
+def instagram_notification_fields(entry: dict) -> list[str]:
+    """Classify notification types without storing message bodies or model input."""
+    fields = {str(c.get("field", "unknown"))[:64] for c in _ig_records(entry.get("changes"))}
+    names = {"message": "messages", "message_edit": "message_edit", "reaction": "message_reactions",
+             "read": "messaging_seen", "postback": "messaging_postbacks", "referral": "messaging_referral",
+             "optin": "messaging_optins", "pass_thread_control": "messaging_handover",
+             "take_thread_control": "messaging_handover", "request_thread_control": "messaging_handover"}
+    for item in _ig_records(entry.get("messaging")):
+        if isinstance(item, dict):
+            fields.update(name for key, name in names.items() if key in item)
+    if entry.get("standby"):
+        fields.add("standby")
+    return sorted(fields)
+
+
+def _audit_instagram_notification(workspace: str, fields: list[str]) -> None:
+    try:
+        store_for_workspace(workspace).audit("instagram_notification",
+            "Notifikasi tanpa pesan teks baru: " + ", ".join(fields), actor="webhook", channel="instagram")
+    except Exception:
+        log.warning("Tidak dapat menyimpan ringkasan notifikasi Instagram")
 
 
 def parse_facebook(payload: dict) -> list[EventIn]:
@@ -157,7 +213,10 @@ async def _signed_json(request: Request, settings: Settings) -> dict:
     if not verify_signature(secret, raw, request.headers.get("x-hub-signature-256")):
         raise HTTPException(status_code=403, detail="Signature tidak valid")
     try:
-        return json.loads(raw)
+        payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            raise ValueError("Webhook membutuhkan objek JSON")
+        return payload
     except ValueError:
         raise HTTPException(status_code=400, detail="Body bukan JSON")
 
@@ -222,17 +281,33 @@ async def instagram_receive(
     ingest: IngestService = Depends(get_ingest),
 ) -> dict:
     payload = await _signed_json(request, settings)
+    if payload.get("object", "instagram") != "instagram":
+        raise HTTPException(status_code=400, detail="Webhook bukan untuk objek Instagram")
     if settings.auth_enabled:
         accepted = 0
-        for entry in payload.get("entry", []):
+        unmapped = 0
+        without_messages = 0
+        fields = set()
+        for entry in _ig_records(payload.get("entry")):
+            entry_fields = instagram_notification_fields(entry)
+            fields.update(entry_fields)
             workspace = get_accounts().asset_workspace("instagram", str(entry.get("id", "")))
             if workspace:
                 events = parse_instagram({"entry": [entry]})
                 for event in events:
                     event.meta["business_account_id"] = str(entry["id"])
-                background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                if events:
+                    background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                else:
+                    without_messages += 1
+                    background.add_task(_audit_instagram_notification, workspace, entry_fields)
                 accepted += len(events)
-        return {"status": "ok", "accepted": accepted}
+            else:
+                unmapped += 1
+        log.info("Instagram webhook: accepted=%s unmapped_entries=%s entries_without_new_text=%s fields=%s",
+                 accepted, unmapped, without_messages, ",".join(sorted(fields)))
+        return {"status": "ok", "accepted": accepted, "unmapped_entries": unmapped,
+                "entries_without_new_text": without_messages, "fields": sorted(fields)}
     events = parse_instagram(payload)
     background.add_task(_ingest_all, ingest, events)
     return {"status": "ok", "accepted": len(events)}

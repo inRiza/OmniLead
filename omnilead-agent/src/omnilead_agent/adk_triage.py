@@ -8,7 +8,6 @@ Aturan deterministik (`triage.py`) TETAP berjalan dan menjadi pengaman:
 - gagal memanggil LLM -> hasil aturan murni.
 """
 
-import asyncio
 import json
 import os
 import uuid
@@ -20,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from omnilead_agent.schemas import AnalyzeRequest, TriageResult
 from omnilead_agent.triage import triage as rule_triage
+from omnilead_agent.progress import run_async
 
 APP_NAME = "omnilead_triage"
 DEFAULT_MODEL = "gemini-3.5-flash-lite"  # terverifikasi di Vertex (location global)
@@ -115,7 +115,7 @@ class AdkTriager:
     def __call__(self, req: AnalyzeRequest) -> TriageResult:
         rule = rule_triage(req)
         try:
-            out = asyncio.run(_run(build_triage_agent(self._model), req.event.text))
+            out = run_async(_run(build_triage_agent(self._model), req.event.text))
             result = merge(rule, TriageOut.model_validate(out))
         except Exception:  # LLM/jaringan/skema gagal: pakai aturan saja
             return rule

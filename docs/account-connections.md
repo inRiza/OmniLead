@@ -85,6 +85,29 @@ kedaluwarsa atau dicabut diarahkan ke **Hubungkan ulang**.
 Rujukan: [Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/),
 [koleksi resmi Meta](https://www.postman.com/meta/instagram/folder/6raa77c/instagram-api-with-instagram-login).
 
+#### Parsing dan diagnosis webhook Instagram
+
+| Notifikasi | Penanganan saat ini |
+|---|---|
+| `messages`, lewat `entry.messaging[]` atau `entry.changes[].value` | Pesan teks masuk menjadi event DM; ID pesan didedup |
+| `comments`, `live_comments` | Komentar teks masuk menjadi event komentar |
+| `message_edit`, `message_reactions`, `messaging_seen`, `messaging_handover`, `messaging_optins`, `messaging_postbacks`, `messaging_referral`, `standby` | Dicatat sebagai ringkasan notifikasi untuk akun yang dikenal; tidak membuat balasan baru |
+| Echo, pesan sendiri, penghapusan, pesan tanpa teks | Tidak membuat usulan balasan baru |
+
+POST harus lolos signature. Respons memuat `accepted`, `unmapped_entries`,
+`entries_without_new_text`, dan `fields`; log hanya mencatat ringkasannya.
+ID penerima yang tidak terhubung ke bisnis tidak dialihkan ke bisnis lain.
+Sampel tombol **Uji** Meta dapat menggunakan ID dummy `0`, `12334`, dan `23245`:
+HTTP 200 dengan `accepted=0, unmapped_entries=1` berarti endpoint menerima sampel,
+bukan bukti pesan pelanggan sudah masuk. Gunakan DM asli untuk verifikasi akhirnya.
+
+Jika DM terlihat di Instagram tetapi belum ada request webhook di backend,
+periksa status publikasi dan akses messaging pada dashboard provider. Koneksi
+OAuth dan langganan `messages` saja belum membuktikan pengiriman notifikasi.
+Periksa log sejak sebelum DM dikirim; daftar ngrok yang dibatasi 100 request
+dapat cepat tergeser oleh polling dashboard. Jangan menyalin body pesan,
+access token, signature, atau parameter rahasia ke log diagnostik publik.
+
 ### Facebook Page
 
 - Pakai aplikasi Meta yang sama dengan WhatsApp (`OMNILEAD_META_APP_ID`, `OMNILEAD_META_APP_SECRET`).

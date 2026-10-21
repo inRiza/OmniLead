@@ -43,6 +43,9 @@ class FakeAgent:
         if request.url.path == "/health":
             return httpx.Response(200, json={"status": "ok", "engine": "rule", "can_send": False})
         self.calls.append(json.loads(request.content))
+        if request.url.path == "/v1/analyze/stream":
+            return httpx.Response(200, text=json.dumps({"type": "result", "data": self.response}) + "\n",
+                                  headers={"content-type": "application/x-ndjson"})
         return httpx.Response(200, json=self.response)
 
 

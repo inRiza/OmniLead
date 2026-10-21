@@ -36,7 +36,15 @@ mengulang panggilan ketika streaming sudah berjalan lalu gagal.
 - Draf sementara belum selesai diperiksa; persetujuan hanya menggunakan usulan
   final dalam antrean. Draf sementara tidak memiliki tombol kirim.
 - BackgroundTasks berjalan di proses backend, belum merupakan antrean pekerjaan
-  yang tahan restart. Restart saat analisis berlangsung dapat meninggalkan status
-  proses lama; periksa koneksi dan riwayat sebelum memproses ulang.
+  yang tahan restart. Setiap analisis mempunyai ID proses dan batas waktu.
+  Antrean atau analisis yang kedaluwarsa tampil sebagai gagal dan dapat diproses
+  ulang, termasuk setelah restart. Hasil dari ID proses yang sudah diganti
+  tidak boleh membuat usulan baru untuk proses penggantinya.
+- Streaming dibatasi delapan pekerja per proses, 128 kejadian per analisis,
+  dan durasi 180 detik di service agen. Backend mempunyai timeout tersendiri.
+  Putusnya stream membatalkan panggilan SDK asinkron yang sedang berjalan;
+  panggilan tool sinkron tetap bergantung pada timeout transport tool tersebut.
+  Pembatalan lokal tidak menjamin provider membatalkan biaya pekerjaan yang
+  sudah diterimanya. Antrean ini belum mempunyai klaim atomik lintas instance.
 - Akun kanal terhubung tidak membuktikan webhook pesan sudah diterima. Jika
   riwayat kosong, periksa pengiriman webhook provider terlebih dahulu.

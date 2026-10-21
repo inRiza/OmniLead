@@ -27,11 +27,16 @@ from omnilead.models import (
 )
 from omnilead.identity import find_candidates
 from omnilead.store import Store
+from omnilead.analysis_state import visible_analysis_state
 
 WINDOW = timedelta(hours=24)
 WINDOWED_CHANNELS = {Channel.WHATSAPP, Channel.INSTAGRAM, Channel.FACEBOOK}
 TIMELINE_LIMIT = 10
 PROTECTED_LIMIT = 200
+
+
+class AnalysisSuperseded(Exception):
+    pass
 
 
 def norm_phone(raw: str | None) -> str | None:
@@ -97,19 +102,46 @@ class IngestService:
             lead_id=lead.id,
         )
         if defer_analysis:
+            event = self.prepare(event)
             defer_analysis(event, created)
             return event, False
         event = self.process_created(event, created)
         return event, False
 
     def process_created(self, event: Event, created: bool) -> Event:
-        event = self.process(event)
-        if created and event.status in ("analyzed", "review"):
+        expected_run = (event.trace or {}).get("run_id")
+        event = self.process(event, expected_run_id=expected_run)
+        if (created and event.status in ("analyzed", "review")
+                and (not expected_run or (event.trace or {}).get("run_id") == expected_run)):
             self._propose_merges(event)
         return event
 
-    def process(self, event: Event) -> Event:
+    def _lease(self, run_id: str | None = None) -> dict:
+        now = datetime.now(timezone.utc)
+        timeout = float(getattr(self._agent, "timeout_seconds", 60))
+        return {"run_id": run_id or uuid.uuid4().hex, "started_at": now.isoformat(),
+                "lease_expires_at": (now + timedelta(seconds=max(1, timeout) + 30)).isoformat()}
+
+    def prepare(self, event: Event) -> Event:
+        event.status = "new"
+        event.triage = None
+        event.review_reason = ""
+        event.trace = {**self._lease(), "goal": f"Menyiapkan tanggapan via {event.channel.value}",
+                       "plan": [], "steps": [], "activity": [], "status": "Menunggu diproses"}
+        self._store.save_event(event)
+        return event
+
+    def process(self, event: Event, *, expected_run_id: str | None = None) -> Event:
         """Jalankan agen untuk event. Dipanggil juga saat memproses ulang event tertahan."""
+        if expected_run_id:
+            current = self._store.get_event(event.id)
+            if not current or (current.trace or {}).get("run_id") != expected_run_id or current.status != "new":
+                return current or event
+            current = visible_analysis_state(current)
+            if current.status == "agent_error":
+                self._store.save_event(current)
+                return current
+            event = current
         if self._store.get_settings().paused:
             event.status = "held"
             self._store.save_event(event)
@@ -126,13 +158,18 @@ class IngestService:
         event.status = "processing"
         event.review_reason = ""
         event.triage = None
-        event.trace = {"goal": f"Menyiapkan tanggapan via {event.channel.value}",
+        lease = self._lease(expected_run_id)
+        run_id = lease["run_id"]
+        event.trace = {**lease, "goal": f"Menyiapkan tanggapan via {event.channel.value}",
                        "plan": ["Kenali maksud pesan", "Baca konteks bisnis dan riwayat",
                                 "Siapkan usulan", "Periksa usulan", "Minta persetujuan Anda"],
                        "steps": [], "activity": [], "status": "Memulai analisis"}
         self._store.save_event(event)
 
         def on_progress(item: dict) -> None:
+            current = self._store.get_event(event.id)
+            if current and (current.trace or {}).get("run_id") != run_id:
+                raise AnalysisSuperseded()
             trace = event.trace
             if len(trace["activity"]) >= 128:
                 return
@@ -155,7 +192,17 @@ class IngestService:
                 result = self._agent.analyze_stream(payload, on_progress)
             else:
                 result = self._agent.analyze(payload)
+            current = self._store.get_event(event.id)
+            if current and (current.trace or {}).get("run_id") != run_id:
+                raise AnalysisSuperseded()
+            result.trace.update(lease)
+            return self._apply(event, lead, result)
+        except AnalysisSuperseded:
+            return self._store.get_event(event.id) or event
         except AgentUnavailable as exc:
+            current = self._store.get_event(event.id)
+            if current and (current.trace or {}).get("run_id") != run_id:
+                return current
             event.status = "agent_error"
             event.review_reason = f"Service agen tidak tersedia: {exc}"
             event.trace["status"] = "Analisis gagal; perlu diproses ulang"
@@ -168,7 +215,6 @@ class IngestService:
                 lead_id=event.lead_id,
             )
             return event
-        return self._apply(event, lead, result)
 
     def reprocess_held(self) -> list[Event]:
         held = [e for e in self._store.list_events(limit=1000) if e.status == "held"]

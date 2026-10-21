@@ -3,7 +3,35 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
-## Aktivitas agen (22 Okt 2026)
+## Review aktivitas agen dan parser Instagram (22 Okt 2026)
+
+- Sesudah perbaikan review: backend **158 lulus**, agen **51 lulus**, frontend
+  **22 lulus**. Tes memakai rule engine atau transport/model tiruan, tanpa
+  pengiriman pesan Instagram atau panggilan model sungguhan.
+- Tes baru mencakup dua envelope pesan Instagram, komentar/live comments,
+  notifikasi status, echo, payload rusak, signature, dan isolasi bisnis.
+  Sampel Meta dengan ID akun dummy tidak dirutekan ke bisnis pengguna.
+- Review menemukan stream yang tidak membatalkan pekerja ketika terputus dan
+  analisis yang dapat tertinggal pada status processing setelah restart.
+  Keduanya diperbaiki: SDK asinkron dibatalkan, jumlah pekerja/kejadian dibatasi,
+  analisis memiliki batas waktu dan ID proses, serta analisis kedaluwarsa dapat
+  diproses ulang. Tes mencakup hasil proses lama yang datang setelah penggantinya.
+- Uji pembatalan awal mengalami race pada barrier tes; barrier dipindah ke dalam
+  coroutine SDK tiruan agar benar-benar menguji pembatalan panggilan yang berjalan.
+  Suite akhir lulus. Pembatasan pekerja bukan antrean persisten lintas instance.
+- Playwright membuka halaman aktivitas dengan akun demo sintetis pada desktop
+  dan mobile: tidak ada page error JavaScript maupun overflow horizontal mobile.
+  Pemeriksaan ini hanya membaca riwayat yang ada; tidak menyetujui pengiriman.
+- Dua POST dari tombol **Uji** Meta diterima pada 01.06 WIB, dengan bentuk
+  `changes[].field=messages` dan ID akun `0`. Parser kini mendukung bentuk ini
+  selain `entry.messaging[]`. Replay sampel bertanda tangan melalui tunnel
+  setelah restart menghasilkan HTTP 200, `accepted=0, unmapped_entries=1`.
+- Pemeriksaan 01.26 WIB: Conversations API HTTP 200 dengan 0 percakapan.
+  Log backend belum menunjukkan DM asli terkait pesan 01.18 WIB pada screenshot
+  pengguna. Status publikasi aplikasi belum dapat dipastikan. Penerimaan dan
+  pengiriman DM sungguhan tetap belum terverifikasi; hasil sampel tidak membuktikannya.
+
+## Aktivitas agen: pemeriksaan awal (22 Okt 2026)
 
 - Halaman `/dashboard/agent` dan panel aktivitas di Workspace ditambahkan. Agen
   menerbitkan kejadian pelaksanaan melalui NDJSON; backend menyimpan kemajuan

@@ -46,6 +46,7 @@ from omnilead.connectors import handoff
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, NotConnected
 from omnilead.connectors.registry import Registry
 from omnilead.ingest import IngestService
+from omnilead.analysis_state import visible_analysis_state
 from omnilead.scheduler import daily_summary
 from omnilead.models import (
     Action,
@@ -227,7 +228,7 @@ def list_events(
     limit: int = Query(100, ge=1, le=500),
     store: Store = Depends(get_store),
 ) -> list[Event]:
-    return store.list_events(lead_id=lead_id, limit=limit)
+    return [visible_analysis_state(event) for event in store.list_events(lead_id=lead_id, limit=limit)]
 
 
 @router.post("/events/{event_id}/analyze", response_model=Event)
@@ -241,13 +242,14 @@ def reanalyze(
     event = store.get_event(event_id)
     if event is None:
         raise NOT_FOUND
+    event = visible_analysis_state(event)
     if event.status == "processing":
         raise HTTPException(status_code=409, detail="Pesan masih sedang dianalisis")
+    if event.status == "new" and (event.trace or {}).get("run_id"):
+        raise HTTPException(status_code=409, detail="Pesan sudah dijadwalkan untuk dianalisis")
     if run_async:
-        event.status = "new"
-        event.trace = None
-        store.save_event(event)
-        background_tasks.add_task(ingest.process, event)
+        event = ingest.prepare(event)
+        background_tasks.add_task(ingest.process, event, expected_run_id=event.trace["run_id"])
         return event
     return ingest.process(event)
 

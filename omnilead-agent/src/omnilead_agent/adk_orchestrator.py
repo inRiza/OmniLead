@@ -8,7 +8,6 @@ Model dipilih lewat OMNILEAD_AGENT_MODEL (ID dicek di konsol Vertex/AI Studio).
 Autentikasi: GOOGLE_API_KEY, atau Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=1).
 """
 
-import asyncio
 import os
 import uuid
 from datetime import timedelta, timezone, datetime
@@ -24,6 +23,7 @@ from omnilead_agent.orchestrator import (
 )
 from omnilead_agent.schemas import GuardNote, Proposal
 from omnilead_agent.knowledge import sources
+from omnilead_agent.progress import run_async
 
 APP_NAME = "omnilead_agent"
 DEFAULT_MODEL = "gemini-3.8-flash"  # terverifikasi di Vertex (location global), 21 Okt 2026
@@ -276,7 +276,7 @@ class AdkDrafter:
     def draft(self, ctx: DraftContext) -> list[Proposal]:
         sink: list[Proposal] = []
         agent = build_agent(ctx, sink, self._model)
-        asyncio.run(_run(agent, _user_message(ctx)))
+        run_async(_run(agent, _user_message(ctx)))
         return sink
 
     def revise(self, p: Proposal, issues: list[GuardNote], ctx: DraftContext) -> Proposal:
