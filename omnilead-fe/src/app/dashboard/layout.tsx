@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Suspense fallback={<aside className="hidden h-full w-60 shrink-0 md:block" />}>
           <Sidebar />
         </Suspense>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 bg-rc-bg px-3 pt-0 pb-20 md:pr-4 md:pb-4 md:pl-0 [&>*:last-child]:min-h-0 [&>*:last-child]:flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 bg-rc-bg px-3 pt-0 pb-20 md:px-6 md:pb-4 [&>*:last-child]:min-h-0 [&>*:last-child]:flex-1">
           {children}
         </div>
         <MobileNav />

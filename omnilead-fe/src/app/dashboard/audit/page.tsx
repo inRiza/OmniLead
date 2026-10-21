@@ -11,7 +11,7 @@ export default function AuditPage() {
     <>
       <Topbar title="Audit" subtitle="Log keputusan agen dan Anda" />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="w-full max-w-[1400px] rounded-xl border border-rc-border bg-rc-surface px-5 py-2 mb-10">
+        <div className="w-full mx-auto w-full max-w-6xl rounded-xl border border-rc-border bg-rc-surface px-5 py-2 mb-10">
           {loaded && auditLog.length === 0 ? (
             <p className="text-sm text-rc-fg-muted">Belum ada catatan.</p>
           ) : null}

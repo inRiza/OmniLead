@@ -61,7 +61,7 @@ export default function InboxPage() {
         subtitle="Pesan masuk dari semua kanal. Anda yang putuskan balasannya."
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="flex max-w-[1400px] flex-col gap-3 pt-1 pb-10">
+        <div className="flex mx-auto w-full max-w-6xl flex-col gap-3 pt-1 pb-10">
           {pasting ? (
             <PasteMessage
               onCreated={(id) => {

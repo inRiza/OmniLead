@@ -25,7 +25,7 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
 
   return (
     <header className="shrink-0 bg-rc-bg">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-3 pr-1 pl-1 md:pl-0">
+      <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center justify-between gap-3 py-3">
         <div className="min-w-0 space-y-0.5">
           <h1 className="text-lg font-semibold tracking-tight text-rc-fg">
             {title}
@@ -70,7 +70,7 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-1.5">
         {error ? (
           <p
             role="alert"

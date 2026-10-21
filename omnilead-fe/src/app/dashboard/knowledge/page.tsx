@@ -74,7 +74,7 @@ export default function KnowledgePage() {
   return <>
     <Topbar title="Pengetahuan & Tone" subtitle="Kelola sumber informasi dan gaya balasan agen bisnis ini" />
     <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="flex w-full max-w-[1400px] flex-col gap-5 pt-1 pb-10">
+      <div className="flex w-full mx-auto w-full max-w-6xl flex-col gap-5 pt-1 pb-10">
         <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
           <p className="text-sm font-medium text-rc-fg-muted">PENGETAHUAN BISNIS</p>
           <h2 className="mt-1 break-words text-xl font-semibold">Agen untuk {business}</h2>

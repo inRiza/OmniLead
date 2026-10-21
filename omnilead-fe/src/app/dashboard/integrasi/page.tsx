@@ -115,7 +115,7 @@ export default function IntegrasiPage() {
   return <>
     <Topbar title="Akun & Integrasi" subtitle="Hubungkan kanal dan atur akun bisnis Anda" />
     <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="flex w-full max-w-[1400px] flex-col gap-4 pt-1 pb-10">
+      <div className="flex w-full mx-auto w-full max-w-6xl flex-col gap-4 pt-1 pb-10">
         <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
           <h2 className="text-lg font-semibold">Kanal untuk {session.user?.business ?? "bisnis Anda"}</h2>
           <p className="mt-2 text-base text-rc-fg-muted">Klik Hubungkan, masuk ke akun Anda, lalu izinkan akses. OmniLead mengelola koneksinya secara otomatis. Setiap pengiriman tetap menunggu persetujuan Anda.</p>
