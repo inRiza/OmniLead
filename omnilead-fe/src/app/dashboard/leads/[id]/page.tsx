@@ -7,6 +7,7 @@ import { adaptLeadDetail } from "@/lib/adapt";
 import { api } from "@/lib/api";
 import type { LeadDetail } from "@/lib/types";
 import { channelLabel, cn } from "@/lib/ui";
+import { Button } from "@/components/action/button";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ChannelIcon, ScoreBadge } from "@/components/primitives";
@@ -52,6 +53,19 @@ function LeadProfile() {
   }, [load]);
 
   const lead = detail?.lead;
+  const [splitting, setSplitting] = useState<string | null>(null);
+
+  async function split(actionId: string) {
+    setSplitting(actionId);
+    try {
+      await api.undoMerge(actionId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal memisahkan profil");
+    } finally {
+      setSplitting(null);
+    }
+  }
 
   return (
     <>
@@ -123,6 +137,33 @@ function LeadProfile() {
                   </div>
                 </dl>
               </section>
+
+              {detail.undoableMerges.length > 0 ? (
+                <section className="rounded-lg border border-rc-border bg-rc-surface p-6">
+                  <h2 className="text-sm font-semibold text-rc-fg">Profil yang pernah digabung</h2>
+                  <p className="mt-1 text-sm text-rc-fg-muted">
+                    Salah gabung? Pisahkan kembali; riwayat dan identitas dikembalikan ke profil asalnya.
+                  </p>
+                  <ul className="mt-3 space-y-3">
+                    {detail.undoableMerges.map((m) => (
+                      <li key={m.actionId} className="flex flex-wrap items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-rc-fg">{m.sourceName}</p>
+                          <p className="text-sm text-rc-fg-muted">{m.evidence.join("; ")}</p>
+                        </div>
+                        <Button
+                          purpose="action"
+                          style="secondary"
+                          disabled={splitting === m.actionId}
+                          onClick={() => split(m.actionId)}
+                        >
+                          {splitting === m.actionId ? "Memisahkan…" : "Pisahkan"}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
               {detail.mergeEvidence.length > 0 ? (
                 <section className="rounded-lg border border-rc-border bg-rc-surface p-6">

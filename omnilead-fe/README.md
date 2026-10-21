@@ -23,10 +23,10 @@ Jika BE mati, FE menampilkan banner dan data bisa usang.
 |---|---|
 | `/dashboard` | Beranda: hal yang perlu ditangani hari ini, statistik, volume pesan 7 hari, kanal |
 | `/dashboard/inbox` | Workspace: aktivitas berprioritas, filter kanal dan jenis, **Tempel pesan** (teks/screenshot), panel detail dengan rencana, langkah agen, hasil Guard, dan antrean persetujuan |
-| `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan |
+| `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan, tombol **Pisahkan** untuk merge yang salah |
 | `/dashboard/integrasi` | Status kanal, kapabilitas, saklar per kanal, dry-run, status service agen |
 | `/dashboard/audit` | Jejak aksi: pelaksana, kanal, hasil |
-| `/dashboard/konten` | Ide konten (contoh statis, berlabel SIMULASI) |
+| `/dashboard/konten` | Ide konten dari pertanyaan yang sering muncul (draf caption, salin; tidak ada publikasi) |
 
 Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul dan aksi ditahan.
 
@@ -42,7 +42,7 @@ Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul d
 ```bash
 bun run lint
 npx tsc --noEmit
+bun run test        # vitest: adapter dan klien API (22 tes)
 ```
 
-Lint masih melaporkan 1 error dan 3 warning lama di `TimeAgo.tsx` dan `button.tsx`. Belum ada tes otomatis FE;
-verifikasi dilakukan manual di browser (lihat `../TESTING.md`).
+Komponen UI belum punya tes otomatis; diverifikasi manual di browser (lihat `../TESTING.md`).

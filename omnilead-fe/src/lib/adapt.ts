@@ -259,6 +259,9 @@ const AUDIT_LABEL: Record<string, string> = {
   agent_error: "Service agen tidak tersedia",
   lead_created: "Lead baru",
   identity_merged: "Identitas digabung",
+  identity_split: "Profil dipisah kembali",
+  followup_due: "Follow-up jatuh tempo",
+  followup_skipped: "Follow-up dilewati (pelanggan sudah membalas)",
   summary_updated: "Skor dan ringkasan diperbarui",
   flag_for_review: "Ditandai untuk tinjauan manual",
   proposed: "Draf disiapkan",
@@ -311,6 +314,11 @@ export function adaptLeadDetail(d: BeLeadDetail): LeadDetail {
       text: t.text,
     })),
     mergeEvidence: d.merge_evidence.map((e) => ({ id: e.id, ts: e.ts, detail: e.detail })),
+    undoableMerges: (d.undoable_merges ?? []).map((m) => ({
+      actionId: m.action_id,
+      sourceName: m.source_name ?? "profil lain",
+      evidence: m.evidence,
+    })),
   };
 }
 

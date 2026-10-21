@@ -186,6 +186,7 @@ export interface BeLeadDetail {
     text: string;
   }[];
   merge_evidence: BeAudit[];
+  undoable_merges: { action_id: string; source_name: string | null; evidence: string[] }[];
 }
 
 export interface BeSummaryItem {
@@ -194,6 +195,17 @@ export interface BeSummaryItem {
   title: string;
   detail: string;
   lead_id?: string | null;
+}
+
+export interface BeContentIdeas {
+  analyzed: number;
+  ideas: {
+    title: string;
+    why: string;
+    format: string;
+    caption: string;
+    mentions: number;
+  }[];
 }
 
 export interface HandoffPackage {
@@ -213,6 +225,7 @@ export const api = {
   agentHealth: () => request<BeAgentHealth>("/agent/health"),
   leadDetail: (id: string) => request<BeLeadDetail>(`/leads/${id}`),
   summary: () => request<BeSummaryItem[]>("/summary/today"),
+  contentIdeas: () => request<BeContentIdeas>("/content-ideas"),
   pasteText: (body: { channel: string; text: string; handle?: string; name?: string }) =>
     post<BeEvent>("/events/paste", body),
   pasteImage: (body: { channel: string; image_base64: string; mime_type: string }) =>
@@ -223,6 +236,7 @@ export const api = {
   reject: (id: string, reason: string) =>
     post<BeAction>(`/actions/${id}/reject`, { reason }),
   retry: (id: string) => post<BeAction>(`/actions/${id}/retry`),
+  undoMerge: (id: string) => post<BeAction>(`/actions/${id}/undo-merge`),
   markSent: (id: string) => post<BeAction>(`/actions/${id}/sent`),
   handoff: (id: string) => request<HandoffPackage>(`/actions/${id}/handoff`),
   reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze`),

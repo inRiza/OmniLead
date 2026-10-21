@@ -139,6 +139,8 @@ export interface LeadDetail {
   lead: LeadProfile & { phones: string[]; emails: string[]; handles: string[]; scoreReason: string };
   timeline: TimelineEntry[];
   mergeEvidence: { id: number; ts: string; detail: string }[];
+  /** Merge yang sudah dieksekusi dan masih bisa dipisah. */
+  undoableMerges: { actionId: string; sourceName: string; evidence: string[] }[];
 }
 
 export interface SummaryItem {
