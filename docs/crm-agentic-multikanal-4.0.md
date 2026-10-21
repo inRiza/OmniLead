@@ -21,6 +21,9 @@ Label sumber data di dokumen ini:
 **Versi 4.0 (21 Okt 2026).** Kanal MVP ditetapkan: WhatsApp, email, Instagram, dan
 Facebook. LinkedIn, TikTok, dan kanal lain dipindah ke pengembangan lanjutan (lihat
 [Kanal: MVP dan Pengembangan Lanjutan](#kanal-mvp-dan-pengembangan-lanjutan)).
+Sumber data diperbarui ke rilis terbaru yang tersedia per 21 Okt 2026 (BPS
+E-Commerce 2024, Salesforce State of Sales 2026, data Meta 2026, SleekFlow 2026,
+harga Barantum).
 
 **Versi 3.0 (21 Okt 2026).** Disinkronkan dengan kode dan kondisi project GCP
 panitia; bagian Urgensi Masalah ditambahkan; bagian Dampak ditulis ulang (bisnis dan non-bisnis); isi
@@ -31,16 +34,16 @@ Daftar ketidaksinkronan yang diperbaiki ada di
 ## Idea
 
 UMKM Indonesia berjualan lewat chat. Menurut BPS Statistik E-Commerce
-2023, 95,33% usaha e-commerce berjualan melalui aplikasi pesan instan
-dan 33,29% melalui media sosial [S]. Pelanggan menghubungi bisnis lewat
+2024, 94,76% usaha e-commerce berjualan melalui aplikasi pesan instan
+dan 29,66% melalui media sosial [V]. Pelanggan menghubungi bisnis lewat
 komentar Instagram dan Facebook, DM, WhatsApp, dan email, sering kali orang yang sama
 lewat dua atau tiga kanal sekaligus. Di usaha mikro, satu orang biasanya
 merangkap pemilik, admin chat, sales, dan pengelola media sosial.
 
 Akibatnya:
 
-- Respons terlambat, padahal 55% pembeli bisa membatalkan pembelian jika
-  penjual lambat membalas [S].
+- Respons terlambat, padahal 46% pelanggan langsung kehilangan minat bila
+  chat-nya tidak dibalas dalam lima menit [S].
 - Prospek bernilai besar tenggelam di antara chat eceran.
 - Riwayat pelanggan tersebar di banyak aplikasi.
 - Tindak lanjut terlewat.
@@ -63,9 +66,10 @@ Batas demo hackathon:
   untuk akun milik tim, tanpa App Review) adalah **target nyata**. Kodenya
   siap, tetapi per 21 Okt 2026 belum diuji ke akun asli. Selama belum
   diuji, pesan masuk lewat **Tempel pesan** dan dikirim dalam mode dry-run.
-- Facebook Page (komentar dan Messenger) termasuk MVP, tetapi connector-nya
-  **belum diimplementasi**. Sampai selesai, komentar dan pesan Facebook masuk
-  lewat **Tempel pesan** dan balasannya dikirim manual lewat **Salin & buka**.
+- Facebook Page (komentar dan Messenger) termasuk MVP. Connector-nya sudah
+  ada di kode (Facebook Login, webhook Page, Messenger, private reply), tetapi
+  sama seperti kanal lain **belum diuji ke akun asli**. Selama belum terhubung,
+  pesan Facebook masuk lewat **Tempel pesan** dan dibalas lewat **Salin & buka**.
 - LinkedIn, TikTok, dan kanal lain masuk **pengembangan lanjutan**, bukan
   bagian demo.
 - CRM di SQLite lokal untuk demo. Adapter Firestore sudah ada dan
@@ -88,22 +92,30 @@ ikut naik, dan pesaing besar yang mulai memakai AI.
   video commerce naik 90% [S] ([e-Conomy SEA 2025 via Fortune IDN](https://www.fortuneidn.com/tech/laporan-e-conomy-sea-perekonomian-digital-indonesia-terbesar-di-asean-00-kptjc-w3gdzv)).
   Setiap siaran langsung dan video jualan memancing komentar dan DM yang
   harus dibalas.
-- **95,33% usaha e-commerce berjualan lewat aplikasi pesan instan** [S]
-  (BPS *Statistik E-Commerce 2023*). Di chat-lah transaksi UMKM terjadi.
-- 89% konsumen mengirim pesan ke bisnis minimal seminggu sekali, dan 81%
-  lebih mungkin membeli dari bisnis yang bisa di-chat [S] (Meta 2022, via
-  [detik](https://inet.detik.com/cyberlife/d-6795612/jurus-whatsapp-business-raup-200-juta-pengguna-dalam-5-tahun/amp)).
+- **94,76% usaha e-commerce berjualan lewat aplikasi pesan instan** [V]
+  (BPS *Statistik E-Commerce 2024*, rilis 28 Nov 2025, [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html)).
+  Nilai transaksi terbesar pun berasal dari media non-marketplace (media
+  sosial dan pesan instan); marketplace hanya ±15,79% [V]. Di chat-lah
+  transaksi UMKM terjadi.
+- **71% orang Indonesia mengirim pesan ke akun bisnis setiap hari** [S]
+  (data WhatsApp/Meta, WABS Indonesia Agustus 2026, via [Fortune IDN](https://www.fortuneidn.com/tech/whatsapp-perkuat-sektor-bisnis-dengan-agen-ai-00-4pj81-qxb2xn)),
+  dan bagi 9 dari 10 konsumen Indonesia, berkirim pesan adalah cara yang
+  paling disukai untuk menghubungi bisnis [V] ([Meta & BCG](https://whatsappbusiness.com/id/resources/resource-library/business-messaging-indonesia-bcg/)).
+  Studi lama Meta (2022) mencatat 81% lebih mungkin membeli dari bisnis
+  yang bisa di-chat [S] ([detik](https://inet.detik.com/cyberlife/d-6795612/jurus-whatsapp-business-raup-200-juta-pengguna-dalam-5-tahun/amp)).
   Pada survei live shopping, interaksi langsung dengan penjual mendorong
   pembelian bagi **65% responden** [S] ([Jakpat via IndoTelko](https://www.indotelko.com/read/1783986411/live-shopping-lebih-efektif-dongkrak-pembelian-dibanding-affiliate-link)).
 
 ### 2. Pembeli tidak mau menunggu
 
-- 77% pembeli mengharapkan balasan **di bawah 2 menit**, dan 55% bisa
-  membatalkan pembelian bila penjual lambat [S] (survei vendor SleekFlow
-  2023, [detik](https://inet.detik.com/cyberlife/d-6768448/ini-pentingnya-balas-chat-konsumen-untuk-pedagang-marketplace)).
+- **46% pelanggan langsung kehilangan minat** bila pesannya tidak dibalas
+  dalam **lima menit**, dan 72% tidak mau menunggu lebih lama dari itu [S]
+  (riset vendor SleekFlow, via [detik, Mei 2026](https://inet.detik.com/business/d-8507546/whatsapp-jadi-raja-customer-service-di-indonesia-telat-balas-chat-bisa-hilangkan-cuan)).
 - Pada audit 2.241 perusahaan, **23% tidak pernah membalas** lead online.
   Menghubungi dalam satu jam ±7x lebih efektif dibanding satu jam kemudian,
-  dan >60x dibanding 24 jam [S] ([HBR 2011](https://scholarsarchive.byu.edu/facpub/9711)).
+  dan >60x dibanding 24 jam [S] ([HBR 2011](https://scholarsarchive.byu.edu/facpub/9711);
+  studi klasik, belum ada replikasi independen yang lebih baru dengan
+  skala serupa).
 - Pesaing hanya satu ketukan jauhnya: pembeli yang tidak dibalas tinggal
   bertanya ke toko lain di kolom komentar yang sama.
 
@@ -112,9 +124,10 @@ ikut naik, dan pesaing besar yang mulai memakai AI.
 - **99,70% UMKM adalah usaha mikro** [S] (SIDT-UMKM 2025, [UKM Indonesia](https://ukmindonesia.id/baca-deskripsi-posts/data-umkm-jumlah-dan-pertumbuhan-usaha-mikro-kecil-dan-menengah-di-indonesia)).
   Pemilik merangkap produksi, pengiriman, dan admin chat; tidak ada tim
   sales.
-- Bahkan di perusahaan dengan tim sales, hanya **28% waktu sales dipakai
-  untuk menjual**; sisanya untuk pekerjaan administratif [V]
-  ([Salesforce](https://www.salesforce.com/news/stories/sales-research-2023/)).
+- Bahkan di perusahaan dengan tim sales, rata-rata hanya **40% waktu sales
+  dipakai untuk menjual**; sisanya untuk pekerjaan non-penjualan [V]
+  ([Salesforce State of Sales 2026](https://www.salesforce.com/news/stories/state-of-sales-report-announcement-2026/),
+  survei 4.050 profesional sales, Agu–Sep 2025).
 - Target pemerintah **30 juta UMKM masuk ekosistem digital pada 2024**
   [S] ([detik](https://finance.detik.com/berita-ekonomi-bisnis/d-5603587/ri-kejar-30-juta-umkm-go-digital-hingga-2024))
   belum tercapai: 22,81 juta pada Agustus 2023 [S]
@@ -127,7 +140,9 @@ ikut naik, dan pesaing besar yang mulai memakai AI.
 
 - Meta meluncurkan **Business Agent** gratis untuk WhatsApp, Instagram, dan
   Messenger (global, Jun 2026) [S]
-  ([TechWyse](https://www.techwyse.com/news/platform-updates/meta-business-agent-global-launch-whatsapp-instagram)).
+  ([TechWyse](https://www.techwyse.com/news/platform-updates/meta-business-agent-global-launch-whatsapp-instagram)),
+  dan mengumumkannya untuk UKM Indonesia lewat aplikasi WhatsApp Business
+  pada 11 Agu 2026 [S] ([Fortune IDN](https://www.fortuneidn.com/tech/whatsapp-perkuat-sektor-bisnis-dengan-agen-ai-00-4pj81-qxb2xn)).
   Platform CRM seperti Qontak, SleekFlow, dan Respond.io juga menjual AI
   agent, tetapi mulai dari ±Rp750rb/bulan (lihat Diferensiasi).
 - Pilihan yang tersisa bagi usaha mikro saat ini: membalas semuanya
@@ -157,11 +172,12 @@ DM, tanpa catatan siapa mengakses apa.
 | Yang merupakan pesanan acara | 10–20% | [A] |
 | Pesanan acara yang terlambat dibalas lebih dari 1 jam | 1 dari 4 | [A] |
 | Nilai rata-rata pesanan acara | Rp1 juta | [A] |
-| Peluang batal bila lambat | 55% | [S] SleekFlow |
+| Peluang kehilangan minat bila tidak dibalas dalam 5 menit | 46% | [S] SleekFlow (via detik 2026) |
 
 Dengan 8 pesanan acara per bulan, 2 di antaranya terlambat dibalas, dan
-55% peluang batal, Bu Rina kehilangan **sekitar satu pesanan acara (±Rp1
-juta) setiap bulan**, belum termasuk pembeli eceran. Angka ini ilustrasi
+46% peluang pembeli kehilangan minat, Bu Rina kehilangan **sekitar satu
+pesanan acara (2 × 46% ≈ 0,9 pesanan, ±Rp0,9 juta) setiap bulan**, belum
+termasuk pembeli eceran. Angka ini ilustrasi
 dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 
 ## Persona dan Masalah
@@ -170,16 +186,16 @@ dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 
 | Fakta | Angka | Sumber |
 |---|---|---|
-| Jumlah UMKM | ±59–65 juta unit (berbeda antar sumber); 61% PDB, 97% tenaga kerja | [S] [Antara 2024](https://ambon.antaranews.com/berita/204894/presiden-jokowi-kemukakan-sektor-umkm-sokong-61-persen-pdb-nasional), [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
+| Jumlah UMKM | ±64,2–65,5 juta unit (berbeda antar sumber); 61,9% PDB, 97% tenaga kerja (±119 juta orang), data BPS menurut KemenUMKM | [S] [Antara Jul 2025](https://www.antaranews.com/berita/4968741/kementerian-umkm-sebut-655-juta-umkm-serap-119-juta-tenaga-kerja), [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
 | Komposisi | Usaha mikro 99,70% dari 30,21 juta UMKM non-pertanian (SIDT-UMKM 2025) | [S] [UKM Indonesia](https://ukmindonesia.id/baca-deskripsi-posts/data-umkm-jumlah-dan-pertumbuhan-usaha-mikro-kecil-dan-menengah-di-indonesia) |
 | UMKM masuk ekosistem digital | ±25 juta dari 64,2 juta (±39%) | [S] [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
-| Kanal jualan usaha e-commerce | 95,33% pesan instan, 33,29% media sosial, 1,77% website sendiri | [S] [GoodStats / BPS](https://goodstats.id/article/mayoritas-usaha-e-commerce-berjualan-lewat-aplikasi-pesan-instan-HmFph) |
+| Kanal jualan usaha e-commerce | 94,76% pesan instan, 29,66% media sosial, 17,23% marketplace, 2,78% email, 1,36% website (BPS *Statistik E-Commerce 2024*) | [V] [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html) |
 | Pengguna digital | 230 juta pengguna internet (80,5%); 180 juta identitas media sosial; jangkauan iklan Instagram 108 juta; ±9 dari 10 orang memakai WhatsApp tiap bulan | [V] [DataReportal 2026](https://datareportal.com/reports/digital-2026-indonesia), [We Are Social](https://wearesocial.com/id/blog/2025/11/digital-2026-top-digital-and-social-media-trends-in-indonesia/) |
-| Perilaku konsumen | 89% mengirim pesan ke bisnis minimal seminggu sekali; 81% lebih mungkin membeli dari bisnis yang bisa di-chat (Meta 2022) | [S] [detik](https://inet.detik.com/cyberlife/d-6795612/jurus-whatsapp-business-raup-200-juta-pengguna-dalam-5-tahun/amp) |
-| Biaya balasan lambat | 55% bisa batal beli; 77% mengharapkan balasan di bawah 2 menit (SleekFlow 2023, data vendor) | [S] [detik](https://inet.detik.com/cyberlife/d-6768448/ini-pentingnya-balas-chat-konsumen-untuk-pedagang-marketplace) |
-| Kecepatan respons lead | Membalas dalam 1 jam ±7x lebih mungkin mengkualifikasi lead dibanding 1 jam kemudian, dan >60x dibanding 24 jam (HBR 2011) | [S] [BYU](https://scholarsarchive.byu.edu/facpub/9711) |
-| Waktu sales | Hanya 28% waktu sales dipakai untuk menjual | [V] [Salesforce](https://www.salesforce.com/news/stories/sales-research-2023/) |
-| Produk terlaris online | Makanan/minuman 28%, pakaian wanita 22%, aksesoris 14%, skincare 13% (Jakpat 2024) | [S] [GoodStats](https://data.goodstats.id/statistic/produk-paling-banyak-dijual-online-makanan-minuman-pakaian-jadi-primadona-EpfBT) |
+| Perilaku konsumen | 71% mengirim pesan ke akun bisnis setiap hari (data WhatsApp/Meta, Agu 2026); 9 dari 10 paling suka menghubungi bisnis lewat chat (Meta & BCG) | [S] [Fortune IDN](https://www.fortuneidn.com/tech/whatsapp-perkuat-sektor-bisnis-dengan-agen-ai-00-4pj81-qxb2xn); [V] [Meta & BCG](https://whatsappbusiness.com/id/resources/resource-library/business-messaging-indonesia-bcg/) |
+| Biaya balasan lambat | 46% kehilangan minat bila tidak dibalas dalam 5 menit; 72% tidak mau menunggu lebih lama (SleekFlow, data vendor, dikutip Mei 2026) | [S] [detik](https://inet.detik.com/business/d-8507546/whatsapp-jadi-raja-customer-service-di-indonesia-telat-balas-chat-bisa-hilangkan-cuan) |
+| Kecepatan respons lead | Membalas dalam 1 jam ±7x lebih mungkin mengkualifikasi lead dibanding 1 jam kemudian, dan >60x dibanding 24 jam (HBR 2011; studi klasik, belum ada pengganti independen yang lebih baru) | [S] [BYU](https://scholarsarchive.byu.edu/facpub/9711) |
+| Waktu sales | Rata-rata hanya 40% waktu sales dipakai untuk menjual (State of Sales 2026) | [V] [Salesforce](https://www.salesforce.com/news/stories/state-of-sales-report-announcement-2026/) |
+| Produk terlaris online | Makanan/minuman 28%, pakaian wanita 22%, aksesoris 14%, skincare 13% (Jakpat 2024; belum ada edisi publik yang lebih baru). Data BPS 2024: jasa akomodasi dan penyediaan makan-minum adalah jenis barang/jasa yang paling banyak dijual usaha e-commerce urutan kedua (24,84%) setelah perdagangan besar dan eceran (36,64%) | [S] [GoodStats](https://data.goodstats.id/statistic/produk-paling-banyak-dijual-online-makanan-minuman-pakaian-jadi-primadona-EpfBT); [V] [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html) |
 
 ### P1 (persona utama demo): "Bu Rina", penjual rujak dan es teler rumahan
 
@@ -249,7 +265,7 @@ webhook, dan satu pola private reply bisa dipakai bersama.
 | WhatsApp | Chat masuk dan keluar, jendela 24 jam | WhatsApp Cloud API (Embedded Signup) | Ada; belum diuji ke akun asli |
 | Email | Baca, balas dalam thread | Gmail API (OAuth) | Ada; belum diuji ke akun asli |
 | Instagram | Komentar, DM, private reply | Instagram API with Instagram Login | Ada; belum diuji ke akun asli |
-| **Facebook Page** | Komentar di post Page, Messenger, private reply | Graph API (Pages) + Messenger Platform | **Belum diimplementasi** |
+| **Facebook Page** | Komentar di post Page, Messenger, private reply | Graph API (Pages) + Messenger Platform | Ada; belum diuji ke akun asli |
 
 **Kenapa Facebook masuk MVP:** jangkauan iklan Facebook di Indonesia **121 juta
 pengguna** dan Messenger **33,7 juta** [V]
@@ -703,7 +719,7 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 8. **Pause Agent.** Tekan Pause saat agen menyusun draf. Banner merah
    muncul dan antrean terkunci.
 
-### Skenario tambahan: Facebook Page (±45 detik, setelah connector Facebook selesai)
+### Skenario tambahan: Facebook Page (±45 detik)
 
 1. Komentar di post Facebook Page Bu Rina: "kak rujaknya bisa kirim ke
    Cimahi?".
@@ -715,7 +731,7 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 4. Pesan ke juri: "Engine-nya sama untuk empat kanal. Menambah kanal berarti
    menambah connector, bukan mengubah agen."
 
-Bila connector Facebook belum selesai, skenario ini dijalankan lewat
+Bila Page belum berhasil dihubungkan saat demo, skenario ini dijalankan lewat
 **Tempel pesan** dan **Salin & buka**, dan disebutkan apa adanya ke juri.
 
 ### Skenario gagal
@@ -734,7 +750,7 @@ Bila connector Facebook belum selesai, skenario ini dijalankan lewat
 | Gmail baca dan kirim | **Target nyata, belum diuji** | Kode siap (OAuth refresh token, kirim dalam thread, push + polling). Gmail API belum aktif di project panitia. OAuth mode Testing dengan anggota tim sebagai test user. `gmail.send` termasuk scope sensitive; `gmail.modify`/`readonly` restricted ([scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)), cukup untuk mode Testing. |
 | WhatsApp | **Target nyata (terbatas), belum diuji** | Kode siap (webhook dengan signature, jendela 24 jam). Nomor uji Cloud API hanya ke beberapa nomor terdaftar (±5). HP anggota tim berperan sebagai pelanggan. |
 | Instagram komentar, DM, private reply | **Target nyata (Standard Access), belum diuji; cadangan: Tempel pesan** | Akun IG Professional milik tim dengan `instagram_business_manage_comments`/`..._manage_messages`. Standard Access cukup untuk akun sendiri atau akun yang punya role di app, jadi App Review **tidak** diperlukan untuk demo ([Messaging](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api), [Comments](https://developers.facebook.com/docs/instagram-platform/comment-moderation)). Tidak ada mock Instagram; bila akses belum siap, komentar masuk lewat Tempel pesan. |
-| Facebook Page: komentar, Messenger, private reply | **MVP, belum diimplementasi; cadangan: Tempel pesan** | Connector belum ada di kode. Standard Access cukup untuk akun anggota tim yang punya role di aplikasi ([Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)). |
+| Facebook Page: komentar, Messenger, private reply | **Target nyata, belum diuji; cadangan: Tempel pesan** | Kode siap (Facebook Login dengan pemilihan Page, webhook `feed`/`messages` dengan signature, jendela 24 jam dan private reply 7 hari), diuji dengan HTTP tiruan. Standard Access cukup untuk akun anggota tim yang punya role di aplikasi ([Private Replies](https://developers.facebook.com/docs/messenger-platform/discovery/private-replies)). |
 | LinkedIn, TikTok, dan kanal lain | **Pengembangan lanjutan** | Kode dihapus 21 Okt 2026; lihat bagian Kanal |
 | CRM | **Nyata, lokal** | SQLite di laptop demo. Adapter Firestore siap (diuji dengan fake), menunggu Firestore diaktifkan panitia |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
@@ -836,8 +852,10 @@ pengukuran di bawah).
   mengkualifikasi lead** dibanding yang menunggu satu jam lebih lama, dan
   **>60x** dibanding yang menunggu 24 jam atau lebih [S] ([Oldroyd,
   McElheran, Elkington, HBR 2011](https://scholarsarchive.byu.edu/facpub/9711)).
-- 55% pembeli bisa membatalkan pembelian jika penjual lambat membalas [S]
-  (survei vendor SleekFlow 2023, [detik](https://inet.detik.com/cyberlife/d-6768448/ini-pentingnya-balas-chat-konsumen-untuk-pedagang-marketplace)).
+  Ini studi klasik; angka yang beredar di blog vendor setelahnya tidak
+  lebih kuat secara metodologi, jadi HBR tetap dipakai.
+- 46% pelanggan langsung kehilangan minat bila pesannya tidak dibalas
+  dalam lima menit [S] (riset vendor SleekFlow, via [detik, Mei 2026](https://inet.detik.com/business/d-8507546/whatsapp-jadi-raja-customer-service-di-indonesia-telat-balas-chat-bisa-hilangkan-cuan)).
 - Waktu dari pesan masuk sampai draf siap: **0,34–0,40 detik** dengan
   engine aturan dan **±41 detik** dengan Gemini [U]. Keduanya jauh di
   bawah satu jam. Waktu respons yang tersisa adalah waktu sampai pemilik
@@ -867,18 +885,20 @@ jam gratis sampai 1.000 per nomor per bulan [V]
 
 | Fakta | Angka | Status |
 |---|---|---|
-| Jumlah UMKM | ±65 juta unit; 61% PDB; 97% tenaga kerja | [S] [Kompas 2024](https://lestari.kompas.com/partner/shopee/read/2024/03/07/16040301/jokowi-jumlah-umkm-kita-65-juta-dan-penyerapan-tenaga-kerja-97-persen) |
+| Jumlah UMKM | ±65,5 juta unit; 61,9% PDB; 97% tenaga kerja (±119 juta orang) | [S] KemenUMKM mengutip BPS ([Antara Jul 2025](https://www.antaranews.com/berita/4968741/kementerian-umkm-sebut-655-juta-umkm-serap-119-juta-tenaga-kerja)) |
 | UMKM di ekosistem digital | ±25 juta dari 64,2 juta (±39%) | [S] [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
-| Usaha e-commerce yang berjualan lewat pesan instan | 95,33%; media sosial 33,29%; website sendiri 1,77% | [S] BPS *Statistik E-Commerce 2023* (rilis 30 Jan 2025, [BPS](https://www.bps.go.id/id/publication/2025/01/30/d52af11843aee401403ecfa6/statistik-e-commerce-2023.html)), angka dikutip [GoodStats](https://goodstats.id/article/mayoritas-usaha-e-commerce-berjualan-lewat-aplikasi-pesan-instan-HmFph) |
+| Usaha e-commerce yang berjualan lewat pesan instan | 94,76%; media sosial 29,66%; marketplace 17,23%; website 1,36%; total 4,40 juta usaha e-commerce dengan nilai transaksi Rp1.288,93 triliun (2024) | [V] BPS *Statistik E-Commerce 2024* (rilis 28 Nov 2025, [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html)) |
 
 Pasar awal: UMKM makanan dan minuman (termasuk olahan buah) dan fashion
 wanita yang aktif di Instagram dan WhatsApp.
 
 ### Dampak non-bisnis
 
-**1. Beban kerja dan waktu pribadi pemilik.** Sekitar **64,5% UMKM
-dikelola perempuan** [S] ([Kemen PPPA via Antara](https://jatim.antaranews.com/berita/715125/kemen-pppa-tegaskan-literasi-digital-penting-bagi-perempuan-pelaku-umkm);
-tahun data dikutip berbeda-beda, 2021 atau 2024). Di usaha mikro, pemilik
+**1. Beban kerja dan waktu pribadi pemilik.** Sekitar **64,5% dari 65,5
+juta UMKM dikelola perempuan** [S] (siaran pers Kemkomdigi 29 Jul 2026
+yang mengutip OJK, [InfoPublik](https://infopublik.id/kategori/siaran-pers/981106/siaran-pers-jadi-penggerak-ekonomi-kerakyatan-kemkomdigi-tingkatkan-kapasitas-perempuan-pelaku-umkm);
+tahun data OJK tidak disebut, dan angka 64,5% sudah beredar sejak data
+Kemenkop UKM/BPS 2021). Di usaha mikro, pemilik
 sering merangkap admin chat di sela memasak, mengantar, dan mengurus
 rumah. Jam yang dihemat (±2,7 jam/hari [A]) bisa kembali ke keluarga dan
 istirahat. Ini hipotesis yang perlu dikonfirmasi lewat wawancara pengguna.
@@ -944,7 +964,7 @@ UMKM.
 | Respond.io | AI Agents: kualifikasi, update CRM | Sangat banyak | US$79–99/bulan; AI Agents mulai US$159 | Mahal dan dalam USD [V] ([pricing](https://respond.io/pricing)) |
 | HubSpot | Prospecting/Data Agent; Customer Agent di Pro (US$0,50/resolusi) | Email, chat, WA, Messenger | US$7–20/seat | Agent utama ada di tier Pro, IG tidak tercantum [V] ([HubSpot](https://www.hubspot.com/pricing/crm)) |
 | SleekFlow | AI Agent, Inbox Co-pilot | WA, Gmail, IG, TikTok | Rp1,8 juta/bulan | Untuk usaha kecil-menengah, bukan mikro [V] ([pricing](https://sleekflow.io/pricing)) |
-| Barantum | AI Agent 24/7, follow-up | WA, IG, email, marketplace | ±Rp269rb per 3 user, minimal 1 tahun [S] | Implementasi dilaporkan kompleks [S] |
+| Barantum | AI Agent 24/7, follow-up | WA, IG, email, marketplace | Omnichannel mulai Rp897rb per 3 user/bulan; AI Agent di paket Professional mulai Rp1.797.000 per 3 user/bulan; minimal 1 tahun [V] ([pricing](https://www.barantum.com/id/pricing)) | Kontrak tahunan; chatbot lanjutan dikenai biaya implementasi [V]; implementasi dilaporkan kompleks [S] |
 | Kommo | AI agents (tier Advanced) | WA, IG | US$25–45/user, minimal 6 bulan di muka | Pembayaran USD di muka [V] ([pricing](https://www.kommo.com/pricing/)) |
 
 ### Validasi pasar: startup YC yang berdekatan
@@ -1324,8 +1344,8 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 
 ## Status Implementasi
 
-**Kanal (PRD 4.0):** MVP = WhatsApp, email, Instagram, dan Facebook. Kode saat ini
-mendukung Instagram, WhatsApp, dan email; **connector Facebook belum ada**. LinkedIn dan
+**Kanal (PRD 4.0):** MVP = WhatsApp, email, Instagram, dan Facebook. Keempatnya ada di
+kode; connector Facebook Page ditambahkan 21 Okt 2026 (PR #6). LinkedIn dan
 TikTok dihapus dari entry API, OAuth, agen, UI, dan pengaturan pengetahuan (21 Okt 2026)
 dan masuk pengembangan lanjutan. Instagram memakai Instagram Login di `graph.instagram.com` (default `v26.0`).
 
@@ -1334,7 +1354,7 @@ penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/
 akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
 pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
 dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
-Hasil pengujian terbaru: BE 87, FE 22; alur provider diuji dengan HTTP tiruan.
+Hasil pengujian terbaru: BE 98, agen 43, FE 22; alur provider (termasuk Facebook) diuji dengan HTTP tiruan.
 
 Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
 [../TESTING.md](../TESTING.md), deploy di [Lampiran B](#lampiran-b-deploy-ke-google-cloud), sumber dan lisensi di [SOURCES.md](SOURCES.md).
@@ -1356,7 +1376,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |
-| Connector Facebook Page: komentar, Messenger, private reply | Must | Belum | Kanal MVP sejak PRD 4.0 |
+| Connector Facebook Page: komentar, Messenger, private reply | Must | Selesai (tiruan) | 8 tes BE + 1 tes agen; belum diuji ke akun asli |
 | Tempel pesan (teks/screenshot), Salin & buka, Sudah dikirim | Could | Selesai | Cadangan untuk kanal yang belum terhubung |
 | FE terhubung ke BE, panel trace, profil, merge, filter | Must | Selesai | Diverifikasi di browser |
 | Seed data + skrip reset | Must | Selesai | 30 lead dummy + Ani |
@@ -1376,7 +1396,7 @@ Rumus TOR: nilai = Σ (skor 1–5 ÷ 5 × bobot). Target realistis ±88–92.
 
 | Kriteria (bobot) | Target | Aksi kunci |
 |---|---|---|
-| Relevansi (15%) | 5 | Persona P1 spesifik; data BPS 95% dan SleekFlow 55%; 2–3 kutipan nyata UMKM |
+| Relevansi (15%) | 5 | Persona P1 spesifik; data BPS 2024 94,76% dan SleekFlow 46%; 2–3 kutipan nyata UMKM |
 | Kualitas Agentic (25%) | 5 | Panel trace; tiga peran agen dengan justifikasi; MCP; antrean persetujuan + executor terpisah; belajar dari penolakan; Pause. Penentu seri nomor 1. |
 | Kelayakan Teknis (20%) | 4–5 | Demo lokal stabil; Gmail/WA diuji ke akun asli bila sempat; pass^3 untuk engine aturan dan Gemini dicatat apa adanya; README rapi. Penentu seri nomor 2. |
 | Potensi Dampak (20%) | 4–5 | Model dampak dengan angka terukur dan asumsi dipisahkan; hitungan rupiah; hipotesis harga |
@@ -1794,13 +1814,17 @@ bun). Cek ulang; bila masih gagal, sinkronkan lockfile atau ganti Dockerfile ke 
 -   [Brynjolfsson, Li, Raymond: Generative AI at Work (NBER w31161)](https://www.nber.org/papers/w31161)
     --- dampak asisten AI pada 5.179 agen layanan pelanggan.
 -   [Oldroyd, McElheran, Elkington: The Short Life of Online Sales Leads (HBR 2011)](https://scholarsarchive.byu.edu/facpub/9711)
-    --- kecepatan respons dan kualifikasi lead.
+    --- kecepatan respons dan kualifikasi lead (studi klasik).
+-   [Salesforce: State of Sales 2026](https://www.salesforce.com/news/stories/state-of-sales-report-announcement-2026/)
+    --- porsi waktu sales untuk menjual dan adopsi agen AI.
+-   [Meta & BCG: Faktor Sukses Pesan Bisnis di Indonesia](https://whatsappbusiness.com/id/resources/resource-library/business-messaging-indonesia-bcg/)
+    --- preferensi konsumen Indonesia menghubungi bisnis lewat chat.
 -   [McKinsey: The economic potential of generative AI (2023)](https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-economic-potential-of-generative-ai-the-next-productivity-frontier)
     --- proyeksi nilai AI generatif untuk layanan pelanggan.
 -   [e-Conomy SEA 2025 (Google, Temasek, Bain)](https://www.bain.com/about/media-center/press-releases/sea/e-conomy-sea-2025/)
     --- pertumbuhan ekonomi digital dan e-commerce Asia Tenggara; angka Indonesia via [Fortune IDN](https://www.fortuneidn.com/tech/laporan-e-conomy-sea-perekonomian-digital-indonesia-terbesar-di-asean-00-kptjc-w3gdzv).
--   [BPS: Statistik E-Commerce 2023](https://www.bps.go.id/id/publication/2025/01/30/d52af11843aee401403ecfa6/statistik-e-commerce-2023.html)
-    --- kanal penjualan usaha e-commerce.
+-   [BPS: Statistik E-Commerce 2024](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html)
+    --- kanal penjualan, jenis barang/jasa, dan nilai transaksi usaha e-commerce (data 2024, rilis 28 Nov 2025).
 -   [UU No. 8 Tahun 1999 tentang Perlindungan Konsumen](https://peraturan.go.id/files/uu8-1999.pdf)
     --- kewajiban informasi yang benar, jelas, dan jujur.
 -   UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi

@@ -26,7 +26,7 @@ updated: 2026-10-21
 | # | Slide | Isi | Waktu bicara |
 |---|---|---|---|
 | 1 | **Judul** | OmniLead: "AI yang menyiapkan, pemilik yang memutuskan." Nama tim. | 5 dtk |
-| 2 | **Masalah** | Cerita Bu Rina (katering): pertanyaan masuk dari IG, WA, dan email; order korporat terlewat. Data: **95%** usaha online berjualan lewat chat (BPS), **55%** pembeli bisa batal jika dibalas lambat (SleekFlow). | 25 dtk |
+| 2 | **Masalah** | Cerita Bu Rina (katering): pertanyaan masuk dari IG, WA, dan email; order korporat terlewat. Data: **94,76%** usaha e-commerce berjualan lewat pesan instan (BPS 2024), **46%** pembeli kehilangan minat bila tidak dibalas dalam 5 menit (SleekFlow, via detik 2026). | 25 dtk |
 | 3 | **Solusi** | Satu profil pelanggan dari WA + IG + email. Agen menyiapkan balasan dan follow-up beserta alasannya; pemilik tinggal Setujui/Edit/Tolak. | 15 dtk |
 | 4 | **Alur agen** | Diagram: Ingest → Triage → Identity → Orchestrator (tools via MCP) → Guard → Antrean persetujuan → Executor. Tekankan: **agen tidak memegang tool kirim**. Stack: ADK + Gemini + Cloud Run + Firestore. | 20 dtk |
 | 5 | **Demo** | (Pindah ke live demo) | lihat skrip |
