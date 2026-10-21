@@ -1,5 +1,14 @@
 # Plan Implementasi OmniLead
 
+Pembaruan Facebook Page dan Gemini 21 Okt 2026:
+
+- [x] Kanal MVP ditetapkan (PRD 4.0): WhatsApp, email, Instagram, Facebook Page. LinkedIn/TikTok ke pengembangan lanjutan.
+- [x] Connector Facebook Page: komentar, Messenger, private reply; webhook `/webhooks/facebook`; Facebook Login dengan pemilihan Page; Facebook di dashboard dan landing.
+- [x] Gemini sungguhan: model terverifikasi (`gemini-3.8-flash`, `gemini-3.5-flash-lite`, location `global`); evalset engine `adk` 14/18 pass^3, ±41 detik per kasus.
+- [x] Image Docker agen dan BE dibangun dan jalan lokal. BE 98, agen 43, FE 22 tes lulus.
+- [ ] Percepat engine `adk` (jalur hybrid: aturan dulu, Gemini hanya bila perlu) dan perbaiki kasus gagal H3, H6, S3.
+- [ ] Uji Facebook Page dengan akun nyata (Facebook Login, webhook Page, Messenger).
+
 Pembaruan login/koneksi akun 21 Okt 2026:
 
 - [x] Pendaftaran akun pribadi tanpa nama bisnis; tambah dan pilih beberapa bisnis dari dashboard.
@@ -30,8 +39,8 @@ agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau ora
 - [x] Pause global (menahan eksekusi dan event), saklar kanal, dry-run, batas kirim per jam
 - [x] API key REST, token Scheduler (Bearer/OIDC), webhook dengan signature
 - [x] `POST /events`: dedup, merge pasti (HP/email/handle), usulan merge ambigu dengan bukti, panggil agen
-- [x] Executor: WhatsApp, Gmail (masuk thread), Instagram (DM, private reply); jendela 24 jam / 7 hari / sekali
-- [x] Webhook WhatsApp dan Instagram, push Gmail, polling Gmail, perpanjang `watch`
+- [x] Executor: WhatsApp, Gmail (masuk thread), Instagram dan Facebook Page (DM/Messenger, private reply); jendela 24 jam / 7 hari / sekali
+- [x] Webhook WhatsApp, Instagram, dan Facebook Page, push Gmail, polling Gmail, perpanjang `watch`
 - [x] Follow-up jatuh tempo → usulan baru; ringkasan harian; tempel teks dan screenshot
 - [x] Alasan penolakan → preferensi bisnis
 - [x] Adapter Firestore (diuji dengan fake)
@@ -57,19 +66,19 @@ agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau ora
 - [x] Tempel pesan (teks/screenshot); filter kanal dan jenis; empty state sesuai PRD; font minimal 14px
 - [x] Integrasi: saklar kanal, dry-run, status agen; Beranda dengan ringkasan harian dan data nyata
 - [x] Halaman Konten membaca ide dari agen (label SIMULASI dihapus); tombol Pisahkan di profil lead
-- [x] Tes otomatis FE (vitest, 22 tes: adapter dan klien API); lint bersih; ikon untuk tiga kanal aktif
+- [x] Tes otomatis FE (vitest, 22 tes: adapter dan klien API); lint bersih; ikon untuk empat kanal MVP
 
 **Dokumen**
-- [x] PRD v3.0 (deploy di Lampiran B), `TESTING.md`, `docs/SOURCES.md`, README per bagian, Dockerfile
+- [x] PRD v4.0 (kanal MVP, dampak, urgensi; deploy di Lampiran B), `TESTING.md`, `docs/SOURCES.md`, README per bagian, Dockerfile
 
 ## Belum — butuh kredensial atau akun
 
-- [ ] Uji **Gemini sungguhan**: engine `adk`, triage LLM, `/v1/extract`; lalu `adk eval` + pass^3 untuk model
-- [ ] Uji **WhatsApp Cloud API**, **Instagram Graph API**, **Gmail API** pada akun uji; konfirmasi format yang diterima
+- [x] Uji **Gemini sungguhan** engine `adk` + pass^3 (14/18). Sisa: `/v1/extract` dengan screenshot, `adk eval` resmi
+- [ ] Uji **WhatsApp Cloud API**, **Instagram API**, **Facebook Page**, **Gmail API** pada akun uji; konfirmasi format yang diterima
   platform (kini hanya diuji dengan transport tiruan). WA pesan bebas dari nomor uji: berhasil atau perlu metode bayar?
 - [ ] Uji adapter Firestore terhadap Firestore/emulator
-- [ ] Bangun image Docker, deploy Cloud Run, buat job Cloud Scheduler dan Pub/Sub Gmail (Lampiran B PRD)
-- [ ] Cek ID model Gemini di konsol Vertex (PRD menyebut `gemini-3.5-flash-lite`/`gemini-3.8-flash`; tidak ada di dokumentasi ADK)
+- [ ] Perbaiki build Docker FE (`npm ci` gagal; lockfile), deploy Cloud Run, job Cloud Scheduler, Pub/Sub Gmail (Lampiran B PRD). Deploy tidak wajib menurut TOR; repo Artifact Registry dan Firestore butuh panitia
+- [x] Cek ID model Gemini di Vertex: `gemini-3.8-flash` dan `gemini-3.5-flash-lite` hanya di location `global`
 
 ## Belum — keputusan atau pekerjaan non-kode
 

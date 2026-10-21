@@ -1,5 +1,5 @@
 # Cloud Run: omnilead-fe. URL backend dan key dibaca server saat runtime.
-# Belum diuji build di mesin pengembang (Docker daemon tidak aktif).
+# Build terakhir (21 Okt 2026) gagal di `npm ci`: package-lock.json tidak sinkron (tim memakai bun).
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

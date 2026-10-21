@@ -1,4 +1,4 @@
-# Cloud Run: omnilead-agent. Belum diuji build di mesin pengembang (Docker daemon tidak aktif).
+# Cloud Run: omnilead-agent. Dibangun dan dijalankan di Docker lokal (21 Okt 2026).
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 UV_LINK_MODE=copy
 RUN pip install --no-cache-dir uv

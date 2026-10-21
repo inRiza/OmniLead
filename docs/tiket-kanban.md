@@ -69,7 +69,7 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | TSK-24 | Tangani kasus data tidak lengkap dan tandai tidak pasti | backend | Sebagian | Agen mati → event `agent_error` + analisis ulang; nama sama tanpa konteks → usulan ke dua profil, manusia memilih. Belum ada penanda "tidak pasti" umum. |
 | TSK-25 | Tulis README arsitektur agent dan cara menjalankan | docs | Sebagian | README root dan per service ada. Kurang **pembagian kontribusi anggota** (wajib TOR §7). |
 | TSK-26 | Tulis catatan sumber, dataset, lisensi, dan penggunaan AI | docs | Sebagian | [SOURCES.md](SOURCES.md) ada; bagian "dibantu asisten coding AI" masih kosong (wajib TOR §6.3). |
-| TSK-27 | Isi bukti uji dengan skenario, input, dan hasil aktual | docs | Sebagian | [TESTING.md](../TESTING.md) ada untuk engine aturan. Hasil engine `adk` (14/18 pass^3, ±41 dtk) sudah ada di `omnilead-agent/eval/results-adk.md` dan PRD 3.0, tapi belum dimasukkan ke TESTING.md. |
+| TSK-27 | Isi bukti uji dengan skenario, input, dan hasil aktual | docs | Sebagian | [TESTING.md](../TESTING.md) ada untuk engine aturan. Hasil engine `adk` (14/18 pass^3, ±41 dtk) sudah dimasukkan ke TESTING.md. |
 | TSK-28 | Bekukan versi dan buat tag rilis untuk penilai | devops | Belum | Tag `v1.0-freeze` paling lambat Kamis 22 Okt 13.00. |
 | TSK-29 | Susun slide deck seleksi pitch dua menit | deck | Belum | Rencana di [rencana-deck-demo-top10.md](rencana-deck-demo-top10.md). Batas Kamis 15.00. |
 | TSK-30 | Rekam video cadangan demo versi yang sama | deck | Belum | Rekam setelah freeze, versi yang sama. |
@@ -107,14 +107,15 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 2. Tutup atau tulis ulang tiket beda arah: TSK-10 (tutup), TSK-11 → "Uji Instagram API di akun tim",
    TSK-12 dan TSK-13 → pindah ke kolom/label "Pengembangan lanjutan" (PRD 4.0), TSK-6/TSK-7/TSK-31 (tutup; data contoh).
 3. Gabungkan TSK-33 ke TSK-37 dan TSK-38, lalu ubah keduanya menjadi "uji ke akun nyata".
-4. Tambah tiket untuk sisa wajib TOR: kontribusi anggota di README, bagian AI di SOURCES.md, hasil eval Gemini di
-   TESTING.md, freeze, deck, video.
+4. Tambah tiket untuk sisa wajib TOR: kontribusi anggota di README, bagian AI di SOURCES.md, freeze, deck, video
+   (hasil eval Gemini sudah masuk TESTING.md).
 5. Tambah tiket baru dari PRD 3.0:
 
    | Usulan tiket | Label | Alasan |
    |---|---|---|
-   | **Bangun connector Facebook Page: komentar, Messenger, private reply** | integration | Kanal MVP sejak PRD 4.0; belum ada di kode |
-   | Tampilkan Facebook di landing page dan halaman Integrasi | frontend | Landing dan Integrasi baru menampilkan WA, IG, email |
+   | ~~Bangun connector Facebook Page: komentar, Messenger, private reply~~ | integration | **Selesai di kode** (branch `feat/facebook-connector`); tinggal uji akun nyata |
+   | ~~Tampilkan Facebook di landing page dan halaman Integrasi~~ | frontend | **Selesai** |
+   | Uji Facebook Page dengan akun nyata (Facebook Login, webhook Page, Messenger) | integration | Kode hanya diuji dengan HTTP tiruan |
    | Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah (rujak, es teler) | data, frontend | PRD 4.0 P1 sudah olahan buah; demo masih katering |
    | Jalur hybrid triage dan draf: aturan dulu, Gemini hanya bila perlu | ai | Gemini ±41 dtk per pesan terlalu lambat untuk live demo |
    | Evalset "pesan sulit" (10–15 kasus) untuk membandingkan aturan vs Gemini | ai | Bukti kenapa LLM dibutuhkan; evalset sekarang ditulis bersama aturan |

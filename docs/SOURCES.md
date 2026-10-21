@@ -40,11 +40,12 @@ Versi dan lisensi dibaca dari metadata paket yang terpasang pada 21 Okt 2026. Pe
 | tailwindcss | 4.3.3 | MIT |
 
 Ikon kanal dimuat dari CDN `cdn.simpleicons.org` saat runtime (Simple Icons; periksa lisensi dan aturan merek
-masing-masing logo sebelum dipakai di materi publik). Satu ikon (LinkedIn) mengembalikan 404 dari CDN.
+masing-masing logo sebelum dipakai di materi publik). Ikon yang dipakai: Instagram, Facebook, WhatsApp, Gmail.
 
 ### API dan layanan eksternal
 
-Gmail API, WhatsApp Cloud API, Instagram Graph API, LinkedIn Share API, Google Cloud (Cloud Run, Firestore,
+Gmail API, WhatsApp Cloud API, Instagram API with Instagram Login, Facebook Graph API dan Messenger Platform
+(Facebook Page), Google Cloud (Cloud Run, Firestore,
 Pub/Sub, Secret Manager, Cloud Scheduler, Vertex AI / Gemini). Ketentuan dan batas tiap platform dijelaskan di PRD
 bagian "Nyata vs simulasi". Status integrasi per 21 Okt 2026: lihat `TESTING.md` bagian "Belum diuji".
 
@@ -64,13 +65,13 @@ contoh (dummy, anonim), bukan data pelanggan nyata.
 
 | Peran | Model | Status |
 |---|---|---|
-| Orchestrator (draf, rencana) | Gemini via ADK, default `gemini-flash-latest` (`OMNILEAD_AGENT_MODEL`) | Terhubung di kode; belum dipanggil ke model sungguhan |
-| Triage (opsional) | Gemini Flash-Lite via ADK, default `gemini-flash-lite-latest` | Sama; aturan deterministik selalu berjalan sebagai pengaman |
-| Ekstraksi screenshot | Gemini multimodal (`google-genai`) | Sama |
-| Mode `rule` (default) | Tidak ada LLM | Dipakai untuk semua pengujian |
+| Orchestrator (draf, rencana) | `gemini-3.8-flash` via ADK (`OMNILEAD_AGENT_MODEL`) | Dipanggil sungguhan lewat evalset: 14/18 pass^3, ±41 detik per kasus |
+| Triage (opsional) | `gemini-3.5-flash-lite` via ADK (`OMNILEAD_AGENT_TRIAGE_MODEL`) | Dipanggil sungguhan bersama orchestrator; aturan deterministik selalu berjalan sebagai pengaman |
+| Ekstraksi screenshot | `gemini-3.8-flash` (`google-genai`, `OMNILEAD_AGENT_EXTRACT_MODEL`) | Terhubung di kode; belum diuji dengan screenshot sungguhan |
+| Mode `rule` (default) | Tidak ada LLM | Dipakai untuk tes otomatis |
 
-PRD menyebut ID `gemini-3.5-flash-lite` dan `gemini-3.8-flash`; ID itu tidak ditemukan di dokumentasi ADK yang
-dibaca, sehingga default memakai alias yang terdokumentasi. Verifikasi ID model di konsol sebelum demo.
+ID model diverifikasi langsung ke Vertex AI project `hackathon-primestep-03` pada 21 Okt 2026: Gemini 3.x hanya
+tersedia di location `global`; alias `gemini-flash-latest` 404 di Vertex.
 
 ## Bagian yang dibantu asisten coding AI
 

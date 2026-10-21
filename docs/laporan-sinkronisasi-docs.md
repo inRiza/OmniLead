@@ -14,7 +14,8 @@ dibandingkan satu sama lain dan dengan kode. Dokumen ini daftar kerjanya.
 Sudah diperbaiki: **#1, #2, #3, #4, #15, #16, #17, #18, #19, #20, #21, #26**.
 Selesai karena filenya dihapus (sudah tidak dipakai): **#6, #22, #23, #24, #25**
 (`customer-follow-up-retention-agent.md` dan ketiga `todo-*.md`).
-Masih terbuka: **#5, #7–#14, #27**.
+Diperbaiki kemudian (README, TESTING, plan, SOURCES): **#7** (model; bagian bantuan AI masih diisi tim), **#8**, **#9**,
+**#10**, **#11**, **#12**. **#27** (komentar Dockerfile) juga sudah. Masih terbuka: **#5** (deck), **#13**, **#14** (feasibility).
 
 ## Acuan yang benar (fakta per 21 Okt 2026)
 

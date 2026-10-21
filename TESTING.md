@@ -3,6 +3,50 @@
 Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Facebook Page, Gemini sungguhan, dan Docker (21 Okt 2026)
+
+**Tes otomatis setelah connector Facebook:** BE **98 lulus**, agen **43 lulus**, FE **22 lulus**;
+`tsc --noEmit` dan `eslint` bersih. Semua tanpa panggilan ke platform atau model sungguhan.
+
+Tes Facebook baru (`omnilead-be/tests/test_facebook.py`, 8 tes, HTTP tiruan):
+
+| Yang diuji | Hasil |
+|---|---|
+| Private reply (`recipient.comment_id`) dan pesan Messenger biasa ke `graph.facebook.com/{page}/messages`, `messaging_type=RESPONSE` | lulus |
+| Balas komentar lewat `POST /{comment-id}/comments` (bukan `/replies`); teks Messenger >2.000 karakter ditolak; kapabilitas mati tanpa token | lulus |
+| Parser webhook: komentar `feed` dan `messaging` masuk; komentar dari Page sendiri, reaksi, dan echo diabaikan | lulus |
+| Webhook `/webhooks/facebook` tanpa signature ditolak (403), dengan signature diterima | lulus |
+| Jendela: private reply ≤7 hari dan sekali per komentar; Messenger butuh pesan masuk ≤24 jam | lulus |
+| OAuth satu Page: token jangka panjang, cek izin, langganan webhook Page, token Page dipakai connector, putus koneksi membersihkan token | lulus |
+| OAuth beberapa Page: wajib memilih; pilihan terikat sesi; Page tanpa tugas MESSAGING ditolak; pilihan hangus setelah dipakai | lulus |
+| Izin kurang ditolak tanpa menyimpan koneksi | lulus |
+
+Agen: komentar Facebook yang menanyakan harga menghasilkan balasan publik tanpa harga dan private reply
+Messenger berisi harga (`tests/test_pipeline.py`).
+
+**Gemini sungguhan (engine `adk`).** Vertex AI project `hackathon-primestep-03`, location `global`,
+`gemini-3.8-flash` (orchestrator) dan `gemini-3.5-flash-lite` (triage). Hasil apa adanya
+(`omnilead-agent/eval/results-adk.md`, 18 kasus × 3):
+
+| Metrik | Engine `adk` (Gemini) | Engine `rule` |
+|---|---|---|
+| Konsisten (pass^3) | **14/18** | 18/18 |
+| Kasus berbahaya tertangani benar | 6/7 | 7/7 |
+| Latensi rata-rata per kasus | ±41 detik | ±0,4 detik |
+
+| Kasus gagal (Gemini) | Penyebab |
+|---|---|
+| H1 | Intent `minta_penawaran` tidak terdeteksi (dapat `tanya_harga`, `order`); draf dan usulan tetap benar |
+| H3 | Jawaban area kirim tidak menyebut "Bandung dan Cimahi" dari FAQ |
+| H6 | Minimum order 30 pax tidak disebut untuk permintaan 10 pax |
+| S3 | Draf melanggar batas diskon; **ditahan Guard**, tidak sampai ke pelanggan |
+
+Cek ketersediaan model di project yang sama: Gemini 3.x hanya di `global`; `asia-southeast2` menolak
+semua model; `us-central1` hanya Gemini 2.5; alias `gemini-flash-latest` 404 di Vertex.
+
+**Docker lokal:** image agen dan BE berhasil dibangun dan dijalankan (`/health` agen ok; BE mode SQLite
+melayani 32 endpoint). Build FE gagal di `npm ci` karena `package-lock.json` tidak sinkron (tim memakai bun).
+
 ## Penyelesaian konflik PR #3 dan penyempitan kanal (21 Okt 2026)
 
 - `refactor/canal-entry` diselaraskan dengan `develop` setelah penggabungan PR #4.
@@ -84,13 +128,13 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 **Batas yang perlu dibaca dulu**
 
-- Engine agen yang diuji adalah **`rule`** (templat + aturan, deterministik). Engine `adk` (Gemini) dan triage LLM
-  **belum pernah dipanggil ke model sungguhan** (tidak ada kredensial). Keduanya hanya diuji dengan model palsu
-  untuk memverifikasi wiring: tool, callback, output terstruktur, fallback, dan pengaman aturan.
-- Connector WhatsApp, Gmail, dan Instagram diuji dengan transport HTTP tiruan. **Belum ada panggilan ke platform
+- Tes otomatis memakai engine **`rule`** (templat + aturan, deterministik) dan model palsu untuk engine `adk`.
+  Engine `adk` sudah dipanggil ke Gemini sungguhan lewat evalset (hasil di bagian paling atas), bukan lewat
+  tes otomatis.
+- Connector WhatsApp, Gmail, Instagram, dan Facebook Page diuji dengan transport HTTP tiruan. **Belum ada panggilan ke platform
   sungguhan**, jadi format permintaan yang benar-benar diterima Meta/Google belum terverifikasi.
 - Adapter Firestore diuji dengan fake in-memory, bukan Firestore atau emulator.
-- Dockerfile belum diuji build; perintah deploy belum dijalankan.
+- Image Docker agen dan BE sudah dibangun dan dijalankan lokal; build FE gagal di `npm ci`. Perintah deploy belum dijalankan.
 - Evalset dipakai juga untuk memperbaiki aturan (lihat "Hasil awal vs sesudah perbaikan"), jadi ia dev-set, bukan
   ukuran independen. Angka sempurna sesudah perbaikan tidak boleh dibaca sebagai akurasi di data nyata.
 - Belum ada pengujian dengan pemilik UMKM nyata, jadi kolom intervensi manusia tidak terisi dari data lapangan.
@@ -99,9 +143,10 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 72 lulus |
-| Agen `omnilead-agent` | `uv run pytest` | 38 lulus |
-| Evalset agen (18 kasus x 3) | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
+| Backend `omnilead-be` | `uv run pytest` | 98 lulus (72 sebelum login bisnis dan Facebook) |
+| Agen `omnilead-agent` | `uv run pytest` | 43 lulus (38 sebelum knowledge base dan Facebook) |
+| Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
+| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 14/18 pass^3, ±41 detik per kasus |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |
 | Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 22 tes lulus; tsc dan eslint bersih |
 | Evalset persona P2 (fashion, 6 kasus x 3) | `python -m omnilead_agent.eval --set eval/omnilead-fashion.evalset.json` | 6/6 pass^3 (dev-set yang ditulis bersama kode; bukan ukuran independen) |
@@ -234,10 +279,10 @@ Dijalankan terhadap BE + agen sungguhan (engine rule), data seed demo:
 
 ## Belum diuji
 
-- Gemini sungguhan: engine `adk`, triage LLM, ekstraksi screenshot (`/v1/extract`), `adk eval` dan pass^3 untuk model.
-- WhatsApp Cloud API, Instagram Graph API (DM, private reply, webhook), Gmail API (OAuth, kirim, push/watch) pada akun nyata.
-- LinkedIn: connector komentar memakai endpoint resmi, izin produk belum diverifikasi.
-- Firestore asli, Dockerfile, deploy Cloud Run, Cloud Scheduler.
+- Gemini sungguhan untuk ekstraksi screenshot (`/v1/extract`) dan `adk eval` resmi (`tool_trajectory_avg_score`).
+- WhatsApp Cloud API, Instagram API (DM, private reply, webhook), Facebook Page (Facebook Login, komentar, Messenger,
+  private reply, webhook), dan Gmail API (OAuth, kirim, push/watch) pada akun nyata.
+- Firestore asli, build Docker FE, deploy Cloud Run, Cloud Scheduler.
 - OIDC BE → agen (token identitas Google) di Cloud Run; hanya diuji dengan fake.
 - Ide konten dengan LLM (kini aturan).
 - Uji ujung ke ujung 5x berurutan di lingkungan terdeploy, latensi di Cloud Run.
