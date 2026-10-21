@@ -54,7 +54,6 @@ def test_empty_business_context_never_inherits_another_catalog():
 
 
 def test_order_with_quantity_on_empty_knowledge_base_still_drafts():
-    # Akun baru belum mengisi produk: pesan berisi jumlah pesanan tidak boleh membuat agen gagal.
     req = AnalyzeRequest.model_validate({
         "event": {"id": "kosong", "channel": "whatsapp", "kind": "message", "sender": {"phone": "0812", "name": "Dewi"},
                   "text": "Kak, mau pesan nasi box 50 pax buat Sabtu, harganya berapa ya?"},

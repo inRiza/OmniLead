@@ -166,7 +166,7 @@ class TemplateDrafter:
     @staticmethod
     def _name(req: AnalyzeRequest) -> str:
         n = req.event.sender.name or (req.lead.name if req.lead else None) or ""
-        # "Pak Budi" -> "Budi", supaya tidak menjadi "Bapak/Ibu Pak" atau "kak Pak".
+        # Buang sapaan seperti Pak atau Bu dari nama.
         words = [w for w in n.split() if w.lower().rstrip(".") not in HONORIFICS]
         return words[0] if words else ""
 
@@ -239,7 +239,7 @@ class TemplateDrafter:
         faq = ctx.catalog.faq_answer(ctx.req.event.text) or fallback_answer(ctx.req.business_context, ctx.req.event.text)
         if wants_price:
             if pkg is None and ctx.catalog.packages and not stock_text:
-                # Pelanggan tidak menyebut produk: tawarkan pilihan dari katalog, bukan "kami cek dulu".
+                # Produk tidak disebut: tawarkan pilihan dari katalog.
                 options = "; ".join(f"{p.name} {rupiah(p.unit_price)}/{p.unit} (min. {p.min_order} {p.unit})"
                                     for p in ctx.catalog.packages[:4])
                 ask = ("Mohon informasikan pilihan, jumlah, dan tanggal acara agar kami hitungkan totalnya."
@@ -274,7 +274,7 @@ class TemplateDrafter:
                     dl = e.get("days_left")
                     if isinstance(dl, int) and dl < lead_days:
                         parts.append(f"Karena pemesanan idealnya H-{lead_days}, kami cek dulu ketersediaannya ya kak.")
-            # Pertanyaan lain di pesan yang sama (area kirim, pembayaran) tetap dijawab dari FAQ.
+            # Pertanyaan lain di pesan yang sama tetap dijawab dari FAQ.
             if faq and faq not in "\n".join(parts):
                 parts.append(faq)
         else:
