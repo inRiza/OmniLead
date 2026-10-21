@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
+import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardContext";
 import {
@@ -48,14 +49,9 @@ export function Sidebar() {
 
   return (
     <aside className="rc-scrollbar hidden h-full w-60 shrink-0 flex-col bg-rc-bg md:flex">
-      <div className="flex min-h-14 shrink-0 items-center gap-2.5 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-rc-primary text-sm font-semibold text-rc-primary-fg">
-          O
-        </div>
-        <span className="text-base font-semibold tracking-tight text-rc-fg">
-          OmniLead
-        </span>
-      </div>
+      <Link href="/" className="flex min-h-14 shrink-0 items-center px-4 py-3">
+        <Logo />
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-5 px-2 py-1">
         <NavGroup items={withBadge(main)} isActive={isActive} />
