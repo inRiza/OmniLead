@@ -273,6 +273,28 @@ class OAuthService:
         })
         return {"selection": selection, "accounts": choices}
 
+    def whatsapp_manual(self, workspace: str, phone_number_id: str, waba_id: str, token: str) -> None:
+        """Nomor uji Meta: ID dan token dari dashboard diverifikasi ke Meta sebelum disimpan."""
+        if not self.s.meta_app_secret:
+            raise OAuthError("Pengelola belum mengisi App Secret Meta, jadi webhook WhatsApp belum bisa diverifikasi.")
+        base = f"https://graph.facebook.com/{self.s.whatsapp_graph_version}"
+        auth = {"Authorization": f"Bearer {token}"}
+        try:
+            listing = self.call("GET", f"{base}/{waba_id}/phone_numbers", headers=auth,
+                                params={"fields": "id,display_phone_number,verified_name", "limit": 100})
+        except OAuthError:
+            raise OAuthError("Token atau WhatsApp Business Account ID tidak valid. Salin ulang dari halaman API Setup Meta.") from None
+        phone = next((p for p in listing.get("data", []) if str(p.get("id")) == phone_number_id), None)
+        if not phone:
+            raise OAuthError("Phone Number ID tidak ditemukan di akun WhatsApp Business tersebut.")
+        if self.accounts.asset_workspace("whatsapp", phone_number_id) not in (None, workspace):
+            raise OAuthError("Nomor ini sudah terhubung ke bisnis lain. Putuskan koneksi sebelumnya dahulu.")
+        self.activate(workspace, "whatsapp", {
+            "access_token": token, "account_id": phone_number_id, "waba_id": waba_id,
+            "label": phone.get("display_phone_number") or phone.get("verified_name") or "Nomor WhatsApp",
+            "scopes": SCOPES["whatsapp"], "expires_at": None, "source": "manual",
+        })
+
     def whatsapp_select(self, workspace: str, session: str, selection: str, account_id: str, pin: str) -> None:
         self.accounts.consume_state(selection, "whatsapp-select", session)
         pending = self.accounts.connection(workspace, "pending-whatsapp")
@@ -349,6 +371,7 @@ class OAuthService:
         for provider in PROVIDERS:
             data = self.connection(workspace, provider)
             result.append({"provider": provider, "channel": CHANNELS[provider], "configured": self.ready(provider),
+                           "manual": provider == "whatsapp" and bool(self.s.meta_app_secret),
                            "status": data["status"] if data else "disconnected", "label": data["label"] if data else "",
                            "expires_at": data.get("expires_at") if data else None,
                            "scopes": data.get("scopes", []) if data else [], "error": data.get("error", "") if data else ""})
