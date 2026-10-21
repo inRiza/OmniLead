@@ -59,6 +59,11 @@ gcloud run deploy omnilead-agent --source omnilead-agent --region $REGION \
 identitas Google); `OMNILEAD_AGENT_API_KEY` wajib terisi di produksi. Agen tidak punya jalur kirim ke platform
 dan tidak memegang token platform.
 
+**Opsi lebih aman (OIDC):** deploy agen dengan `--no-allow-unauthenticated`, beri service account BE peran
+`roles/run.invoker` pada agen, dan set `OMNILEAD_AGENT_AUTH=oidc` di BE. BE lalu menambahkan token identitas
+Google (audience = URL agen) di setiap panggilan; `X-API-Key` tetap boleh dipakai sebagai lapis kedua. Belum
+diuji di Cloud Run.
+
 Uji tanpa LLM dulu: `OMNILEAD_AGENT_ENGINE=rule` (default). Cek ID model di konsol Vertex sebelum demo
 (`OMNILEAD_AGENT_MODEL`, `OMNILEAD_AGENT_TRIAGE_MODEL`).
 
@@ -80,7 +85,7 @@ OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_ACCESS_TOKE
 `--allow-unauthenticated` diperlukan karena webhook Meta dan push Pub/Sub tidak membawa identitas Google.
 Perlindungan ada di aplikasi: API key untuk FE, signature `X-Hub-Signature-256` untuk Meta, token di query
 untuk push Gmail, dan token Bearer untuk Scheduler. Peningkatan produksi: tutup agen dari publik dan pakai
-token OIDC antar-service (belum diimplementasikan; saat ini `X-API-Key`).
+token OIDC antar-service (`OMNILEAD_AGENT_AUTH=oidc`, lihat bagian agen).
 
 Isi juga `OMNILEAD_WHATSAPP_PHONE_NUMBER_ID`, `OMNILEAD_INSTAGRAM_USER_ID`, `OMNILEAD_GMAIL_CLIENT_ID`,
 `OMNILEAD_GMAIL_PUBSUB_TOPIC` (nilai non-rahasia, lewat `--set-env-vars`).

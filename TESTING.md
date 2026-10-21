@@ -20,11 +20,12 @@ kasus yang gagal tetap dicantumkan.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 64 lulus |
-| Agen `omnilead-agent` | `uv run pytest` | 33 lulus |
+| Backend `omnilead-be` | `uv run pytest` | 72 lulus |
+| Agen `omnilead-agent` | `uv run pytest` | 38 lulus |
 | Evalset agen (18 kasus x 3) | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |
-| Frontend `omnilead-fe` | `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | tsc bersih; eslint: 1 error + 3 warning lama di `TimeAgo.tsx` dan `button.tsx`, tidak diubah |
+| Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 22 tes lulus; tsc dan eslint bersih |
+| Evalset persona P2 (fashion, 6 kasus x 3) | `python -m omnilead_agent.eval --set eval/omnilead-fashion.evalset.json` | 6/6 pass^3 (dev-set yang ditulis bersama kode; bukan ukuran independen) |
 | Latensi event → draf (HTTP BE→agen, engine rule, lokal) | 5 percobaan `POST /events` | 0,34 – 0,40 detik |
 
 ## Evalset agen
@@ -106,7 +107,7 @@ kemiripan tidak pernah digabung tanpa persetujuan.
 
 ## Cakupan tes otomatis
 
-**Backend (64 tes)** — `omnilead-be/tests/`
+**Backend (72 tes)** — `omnilead-be/tests/`
 
 - `test_approval_flow`, `test_controls`: transisi status (approve/reject/retry hanya dari status sah), aksi ditolak
   tidak pernah dikirim, Pause menahan aksi yang sudah disetujui, saklar kanal, dry-run, batas laju, gagal → coba
@@ -120,8 +121,10 @@ kemiripan tidak pernah digabung tanpa persetujuan.
 - `test_connectors_live`: WhatsApp, Gmail (refresh token, thread, parsing, polling), Instagram DM/private reply,
   semuanya dengan transport tiruan.
 - `test_firestore_store`: logika adapter Firestore dengan fake.
+- `test_undo_merge`: pisah profil mengembalikan profil, event, dan identitas; identitas yang masuk sesudah merge tetap di tujuan.
+- `test_agent_auth_ideas`: token OIDC dikirim bersama API key, kegagalan token = agen tidak tersedia, `/content-ideas` hanya mengirim pesan terbaru.
 
-**Agen (33 tes)** — `omnilead-agent/tests/`
+**Agen (38 tes)** — `omnilead-agent/tests/`
 
 - `test_pipeline`: triage, golden path (4 usulan, harga Rp2.100.000, tanpa harga di publik, Guard lolos),
   injection, spam, jendela tertutup, harga salah diblokir, kebocoran data, preferensi mengubah draf.
@@ -130,7 +133,10 @@ kemiripan tidak pernah digabung tanpa persetujuan.
 - `test_triage_extract`: triage LLM digabung dengan aturan (flag injection dari aturan tidak bisa dihapus model),
   fallback, ekstraksi screenshot (tipe, ukuran, kredensial).
 - `test_mcp`: server MCP hanya tool baca, gateway memblokir tool efek samping, output ditandai tidak tepercaya.
-- `test_eval`: regresi evalset (harus pass^3).
+- `test_eval`, `test_persona`: regresi evalset utama dan persona fashion (harus pass^3); pemilihan persona lewat env.
+- `test_content_ideas`: tanpa data = tanpa ide, harga caption dari katalog, endpoint.
+
+**Frontend (22 tes)** — `omnilead-fe/src/lib/*.test.ts` (vitest): pemetaan event/aksi/trace/lead/audit dari JSON BE, jalur API vs handoff, aksi internal, klien API (URL, API key, error HTTP, BE mati, isi permintaan), ikon LinkedIn lokal. Komponen UI belum punya tes otomatis.
 
 ## Uji manual di browser (21 Okt 2026)
 
@@ -143,7 +149,9 @@ Dijalankan terhadap BE + agen sungguhan (engine rule), data seed demo:
 - Tolak dengan alasan wajib → tersimpan sebagai preferensi bisnis.
 - Pause → banner merah, aksi ditahan, event baru ditahan lalu diproses saat dilanjutkan.
 - Tempel pesan TikTok → draf, rute handoff.
-- Halaman Beranda, Lead, Profil, Integrasi, Audit memuat data live; tidak ada error aplikasi di konsol (satu 404 ikon LinkedIn dari CDN, sudah ada sebelumnya).
+- Halaman Beranda, Lead, Profil, Integrasi, Audit, Konten memuat data live; tidak ada error aplikasi di konsol (404 ikon LinkedIn sudah diperbaiki dengan glyph lokal).
+- Tombol **Pisahkan** di profil Ani: dua profil kembali, audit `identity_split` tercatat.
+- Halaman Konten: tiga ide dari 8 pesan nyata (daftar harga, FAQ, Hampers Premium) dengan harga dari katalog.
 
 ## Belum diuji
 
@@ -151,5 +159,8 @@ Dijalankan terhadap BE + agen sungguhan (engine rule), data seed demo:
 - WhatsApp Cloud API, Instagram Graph API (DM, private reply, webhook), Gmail API (OAuth, kirim, push/watch) pada akun nyata.
 - LinkedIn: connector komentar memakai endpoint resmi, izin produk belum diverifikasi.
 - Firestore asli, Dockerfile, deploy Cloud Run, Cloud Scheduler.
+- OIDC BE → agen (token identitas Google) di Cloud Run; hanya diuji dengan fake.
+- Ide konten dengan LLM (kini aturan).
 - Uji ujung ke ujung 5x berurutan di lingkungan terdeploy, latensi di Cloud Run.
 - Responsivitas FE di ponsel dan keterbacaan di proyektor (font minimal 14px sudah diterapkan, belum dicek di proyektor).
+- Tes komponen/e2e FE.

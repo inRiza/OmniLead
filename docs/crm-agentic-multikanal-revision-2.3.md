@@ -1054,8 +1054,10 @@ HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipa
 | Evalset 18 kasus, pass^3, evaluasi identitas | Should | Selesai (parsial) | Format sendiri; `adk eval` belum dijalankan |
 | Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
 | Dockerfile, panduan deploy Cloud Run + Scheduler | Should | Ditulis | Belum dibangun/dijalankan |
-| Persona P2 sebagai konfigurasi, ide konten dari agen | Could | Belum | Halaman Konten masih contoh statis berlabel SIMULASI |
-| Pisah profil (undo merge) | Should | Belum | |
+| Persona P2 sebagai konfigurasi | Could | Selesai | `OMNILEAD_AGENT_PERSONA=fashion`: katalog, stok per ukuran, reseller, ambang skor; evalset 6 kasus |
+| Ide konten dari pertanyaan yang sering muncul | Could | Selesai (aturan) | Draf saja; tanpa data cukup hasilnya kosong; belum memakai LLM |
+| Pisah profil (undo merge) | Should | Selesai | Snapshot saat merge; riwayat dan identitas dikembalikan |
+| Autentikasi OIDC BE → agen | Should | Selesai (fake) | `OMNILEAD_AGENT_AUTH=oidc`; belum diuji di Cloud Run |
 | Verifikasi izin produk LinkedIn untuk komentar | - | Belum | Ditandai [A] |
 | Deck, video cadangan, wawancara UMKM | Must | Belum | Non-kode |
 

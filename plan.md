@@ -3,8 +3,8 @@
 Acuan: [PRD](docs/crm-agentic-multikanal-revision-2.3.md) (bagian *Status Implementasi*), TODO per peran di
 `docs/todo-*.md`. Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [docs/deploy.md](docs/deploy.md).
 
-Per 21 Okt 2026 semua yang bisa dikerjakan tanpa kredensial platform **sudah ada di kode dan lulus tes** (BE 64,
-agen 33). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: tercatat di bawah.
+Per 21 Okt 2026 semua yang bisa dikerjakan tanpa kredensial platform **sudah ada di kode dan lulus tes** (BE 72,
+agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: tercatat di bawah.
 
 ## Selesai
 
@@ -19,6 +19,9 @@ agen 33). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: ter
 - [x] Follow-up jatuh tempo → usulan baru; ringkasan harian; tempel teks dan screenshot
 - [x] Alasan penolakan → preferensi bisnis
 - [x] Adapter Firestore (diuji dengan fake)
+- [x] Pisah profil (undo merge): snapshot saat merge, endpoint `POST /actions/{id}/undo-merge`
+- [x] OIDC BE → agen (`OMNILEAD_AGENT_AUTH=oidc`, token identitas Google; diuji dengan fake)
+- [x] `GET /content-ideas` (BE) memanggil agen
 
 **Agen (`omnilead-agent`, service terpisah)**
 - [x] Triage, orchestrator, Guard (maks 2 revisi), skor lead dengan alasan, katalog
@@ -27,6 +30,8 @@ agen 33). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: ter
 - [x] Server MCP baca-saja + gateway (allowlist, tool kirim dibuang, output tidak tepercaya, audit)
 - [x] Ekstraksi screenshot (`/v1/extract`, Gemini multimodal)
 - [x] Evalset 18 kasus + runner pass^3; evaluasi identitas pada 50 lead dummy
+- [x] Persona P2 (toko fashion) sebagai konfigurasi katalog (`OMNILEAD_AGENT_PERSONA=fashion`): stok per ukuran, reseller, ambang skor; evalset 6 kasus
+- [x] Ide konten dari pertanyaan yang sering muncul (`/v1/content-ideas`, aturan, draf saja)
 
 **Frontend (`omnilead-fe`)**
 - [x] Tersambung ke BE (polling 3 detik); tipe dan adapter; `mock.ts` dihapus
@@ -34,7 +39,9 @@ agen 33). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: ter
 - [x] Panel trace (rencana, langkah, Guard); label Guard; banner Pause merah; banner BE/agen putus
 - [x] Profil lead + timeline; UI usulan merge (dua profil, bukti, keyakinan); dua usulan berdampingan
 - [x] Tempel pesan (teks/screenshot); filter kanal dan jenis; empty state sesuai PRD; font minimal 14px
-- [x] Integrasi: saklar kanal, dry-run, status agen; Beranda dengan ringkasan harian dan data nyata; Konten berlabel SIMULASI
+- [x] Integrasi: saklar kanal, dry-run, status agen; Beranda dengan ringkasan harian dan data nyata
+- [x] Halaman Konten membaca ide dari agen (label SIMULASI dihapus); tombol Pisahkan di profil lead
+- [x] Tes otomatis FE (vitest, 22 tes: adapter dan klien API); lint bersih; ikon LinkedIn lokal (CDN 404)
 
 **Dokumen**
 - [x] PRD v2.4, `TESTING.md`, `docs/SOURCES.md`, `docs/deploy.md`, README per bagian, Dockerfile
@@ -58,10 +65,10 @@ agen 33). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: ter
 
 ## Belum — fitur yang tidak dikerjakan
 
-- [ ] Pisah profil (undo merge)
 - [ ] Identity berbasis LLM untuk kasus ambigu (kini aturan nama/perusahaan/handle; bentuk hasil sama: usulan + bukti)
 - [ ] Guard berbasis LLM (kini aturan; Guard tidak menilai makna di luar aturan)
-- [ ] Persona P2 sebagai konfigurasi; ide konten dari agen (halaman Konten masih contoh statis)
-- [ ] Autentikasi antar-service BE → agen dengan OIDC (kini `X-API-Key`); proxy server-side untuk API key FE
-- [ ] Tes otomatis FE; perbaiki 1 error + 3 warning lint lama (`TimeAgo.tsx`, `button.tsx`); ikon LinkedIn 404 dari CDN
+- [ ] Proxy server-side untuk API key FE (kini `NEXT_PUBLIC_API_KEY` ikut ke bundle browser)
+- [ ] Uji OIDC BE → agen di Cloud Run sungguhan (kini hanya fake)
+- [ ] Tes komponen/e2e FE (kini hanya adapter dan klien API; UI diverifikasi manual di browser)
+- [ ] Ide konten dengan LLM (kini aturan: hitung topik dari pesan); caption lebih bervariasi
 - [ ] Multi-tenant (di luar scope)
