@@ -9,8 +9,8 @@ Tiga bagian, masing-masing dijalankan di terminal terpisah:
 | `omnilead-be` | webhook, identitas, antrean persetujuan, executor (satu-satunya yang mengirim) |
 | `omnilead-fe` | UI |
 
-Dokumen: [PRD](docs/crm-agentic-multikanal-revision-2.3.md) · [plan.md](plan.md) (yang sudah dan belum) ·
-[TESTING.md](TESTING.md) · [docs/deploy.md](docs/deploy.md) · [docs/SOURCES.md](docs/SOURCES.md).
+Dokumen: [PRD](docs/crm-agentic-multikanal-3.0.md) · [plan.md](plan.md) (yang sudah dan belum) ·
+[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-3.0.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
 
 Urutan menjalankan: **agen → BE → FE**. Sebagian besar integrasi nyata (WhatsApp, Gmail, Instagram, Gemini) belum
 diuji dengan kredensial sungguhan; lihat `TESTING.md`.
