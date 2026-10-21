@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
 import { ChannelIcon } from "@/components/primitives";
+import { LandingChannelIcon, landingChannelLabel, type LandingChannel } from "@/components/landing/channels";
 import type { Channel } from "@/lib/types";
 import { channelLabel } from "@/lib/ui";
 import { cn } from "@/lib/utils";
@@ -362,18 +363,18 @@ function MockFrame({ title, children }: { title: string; children: ReactNode }) 
 }
 
 function MockWorkspace() {
-  const rows: { channel: Channel; who: string; msg: string; tag: string; tone: string }[] = [
+  const rows: { channel: LandingChannel; who: string; msg: string; tag: string; tone: string }[] = [
     { channel: "instagram", who: "Ani · PT Maju Jaya", msg: "Kak, bisa buat 60 orang tgl 30? harga?", tag: "Hot", tone: "bg-rc-highlight text-rc-navy" },
     { channel: "whatsapp", who: "Budi", msg: "salah kirim menu, minta refund ya", tag: "Komplain", tone: "bg-rc-danger text-white" },
     { channel: "email", who: "PT Nusa Corp", msg: "Penawaran katering 100 pax", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
-    { channel: "instagram", who: "@sari.eats", msg: "hampers premium 10 box brp kak?", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
+    { channel: "facebook", who: "Sari · Facebook", msg: "hampers premium 10 box brp kak?", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
   ];
   return (
     <div className="flex flex-col gap-2">
       {rows.map((r, i) => (
         <Stagger key={r.who} i={i}>
           <div className="flex items-center gap-3 rounded-xl border border-rc-border px-3 py-3 transition-colors hover:bg-rc-surface-hover">
-            <ChannelIcon channel={r.channel} />
+            <LandingChannelIcon channel={r.channel} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{r.who}</p>
               <p className="truncate text-sm text-rc-fg-muted">{r.msg}</p>
@@ -651,16 +652,16 @@ export function ControlPanel() {
       <div className={darkCard}>
         <DarkHead icon={ToggleRight} title="Saklar per kanal" body="Kanal yang dimatikan masuk mode uji: balasan tetap disiapkan, tapi tidak benar-benar dikirim." />
         <ul className="mt-6 flex flex-col gap-2">
-          {(["whatsapp", "instagram", "email"] as Channel[]).map((c) => (
+          {(["whatsapp", "instagram", "facebook", "email"] as LandingChannel[]).map((c) => (
             <li key={c} className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.06] px-4 py-2.5">
               <span className="flex items-center gap-3 text-sm text-white">
-                <ChannelIcon channel={c} />
-                {channelLabel[c]}
+                <LandingChannelIcon channel={c} />
+                {landingChannelLabel[c]}
                 <span className="text-[#7d89a6]">{channels[c] ? "aktif" : "mode uji"}</span>
               </span>
               <Switch
                 on={channels[c]}
-                label={`Pengiriman lewat ${channelLabel[c]}`}
+                label={`Pengiriman lewat ${landingChannelLabel[c]}`}
                 onChange={() => setChannels((s) => ({ ...s, [c]: !s[c] }))}
               />
             </li>

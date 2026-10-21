@@ -4,9 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Loader2, Menu, Pencil, ShieldCheck, X } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/Logo";
-import { ChannelIcon } from "@/components/primitives";
-import type { Channel } from "@/lib/types";
-import { channelLabel } from "@/lib/ui";
+import { LandingChannelIcon, landingChannelLabel, type LandingChannel } from "@/components/landing/channels";
 import { cn } from "@/lib/utils";
 
 // Contoh di halaman ini diambil dari evalset dan katalog demo (data contoh, bukan pelanggan nyata).
@@ -256,7 +254,7 @@ export function LandingHeader() {
 type Proposal = { kind: string; text: string; guard: string; manual?: boolean };
 
 type Scenario = {
-  channel: Channel;
+  channel: LandingChannel;
   sender: string;
   message: string;
   /** [teks saat berjalan, teks hasil] */
@@ -323,22 +321,22 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    channel: "instagram",
-    sender: "@sari.eats · ditempel manual",
+    channel: "facebook",
+    sender: "Sari · komentar di Page",
     message: "hampers premium 10 box brp kak?",
     steps: [
-      ["Membaca pesan…", "Tanya harga · hampers"],
+      ["Membaca komentar…", "Tanya harga · hampers"],
       ["Mencari di katalog…", "Hampers Premium"],
       ["Mengecek balasan…", "Semua pengecekan lolos"],
     ],
     proposals: [
+      { kind: "Balasan komentar", text: "Bisa, Kak Sari! Rincian harganya kami kirim lewat Messenger ya.", guard: "Harga tidak ditulis di komentar" },
       {
-        kind: "Balasan Instagram",
+        kind: "Private reply Messenger",
         text: "Hampers Premium untuk 10 box totalnya Rp1.500.000, Kak. Mau dikirim ke mana?",
-        guard: "Salin balasan ke Instagram",
-        manual: true,
+        guard: "Harga sesuai katalog",
       },
-      { kind: "Catatan pelanggan", text: "Calon pembeli baru dari Instagram · Warm", guard: "Hanya dicatat, tidak dikirim" },
+      { kind: "Catatan pelanggan", text: "Calon pembeli baru dari Facebook · Warm", guard: "Hanya dicatat, tidak dikirim" },
     ],
   },
 ];
@@ -433,9 +431,9 @@ export function HeroStage() {
                   : "border-rc-border bg-rc-surface/70 hover:border-rc-border-strong hover:bg-rc-surface",
               )}
             >
-              <ChannelIcon channel={s.channel} size="md" />
+              <LandingChannelIcon channel={s.channel} size="md" />
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-rc-fg">{channelLabel[s.channel]}</span>
+                <span className="block text-sm font-medium text-rc-fg">{landingChannelLabel[s.channel]}</span>
                 <span className="block text-sm whitespace-nowrap text-rc-fg-subtle">
                   {on ? "Sedang dibaca AI" : "Kirim contoh pesan"}
                 </span>
@@ -516,7 +514,7 @@ export function HeroStage() {
 
         <div className="space-y-4 p-5">
           <div key={`msg-${active}-${run}`} className="rc-enter flex items-start gap-3">
-            <ChannelIcon channel={sc.channel} size="md" />
+            <LandingChannelIcon channel={sc.channel} size="md" />
             <div className="min-w-0">
               <p className="text-sm text-rc-fg-muted">{sc.sender}</p>
               <p className="mt-1 inline-block rounded-2xl rounded-tl-sm bg-rc-surface-hover px-3 py-2 text-sm text-rc-fg">

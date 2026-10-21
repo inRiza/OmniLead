@@ -4,15 +4,15 @@ import { ArrowRight, Gauge, LayoutGrid, MessageCircleQuestion, ShieldCheck, Spar
 import { Logo } from "@/components/brand/Logo";
 import { AnnouncementBar, HeroStage, LandingHeader, Reveal, UseCases } from "@/components/landing/Interactive";
 import { ControlPanel, FeatureTabs, SkillsExplorer, WhyToggle } from "@/components/landing/Sections";
-import { ChannelIcon } from "@/components/primitives";
-import type { Channel } from "@/lib/types";
+import { LandingChannelIcon, type LandingChannel } from "@/components/landing/channels";
 import { cn } from "@/lib/utils";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const CHANNELS: { channel: Channel; name: string; path: string }[] = [
+const CHANNELS: { channel: LandingChannel; name: string; path: string }[] = [
   { channel: "whatsapp", name: "WhatsApp", path: "Terhubung langsung" },
   { channel: "instagram", name: "Instagram", path: "Komentar dan DM" },
+  { channel: "facebook", name: "Facebook", path: "Komentar Page dan Messenger" },
   { channel: "email", name: "Gmail", path: "Terhubung langsung" },
 ];
 
@@ -31,7 +31,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Kanal apa saja yang bisa dipakai?",
-    a: "Instagram, WhatsApp, dan Gmail tersedia. Hubungkan akun bisnis melalui halaman Integrasi, atau tempel pesan dari kanal tersebut untuk menyiapkan draf balasan.",
+    a: "WhatsApp, Instagram (komentar dan DM), Facebook (komentar Page dan Messenger), dan Gmail. Hubungkan akun bisnis lewat halaman Integrasi. Selama kanal belum terhubung, tempel pesannya untuk menyiapkan draf balasan.",
   },
   {
     q: "Apakah AI paham bahasa chat sehari-hari?",
@@ -158,7 +158,7 @@ export default function Landing() {
                 className="rc-enter mx-auto mt-6 max-w-2xl text-base text-rc-fg-muted sm:text-lg"
                 style={{ animationDelay: "160ms" }}
               >
-                Pesan pelanggan dari WhatsApp, Instagram, dan email terkumpul di satu tempat. AI menyiapkan
+                Pesan pelanggan dari WhatsApp, Instagram, Facebook, dan email terkumpul di satu tempat. AI menyiapkan
                 balasan, mencatat data pelanggan, dan mengingatkan Anda untuk menindaklanjuti. Tidak ada pesan yang
                 terkirim sebelum Anda setujui.
               </p>
@@ -183,9 +183,6 @@ export default function Landing() {
             </div>
             <div className="rc-enter mt-14 lg:mt-20" style={{ animationDelay: "380ms" }}>
               <HeroStage />
-              <p className="mt-4 text-center text-sm text-rc-fg-subtle">
-                Ini contoh, bukan data asli. Klik salah satu kanal, lalu setujui atau tolak balasan yang disiapkan.
-              </p>
             </div>
           </div>
         </section>
@@ -203,7 +200,7 @@ export default function Landing() {
                   aria-hidden={i >= CHANNELS.length || undefined}
                   className="flex items-center gap-3 rounded-2xl border border-rc-border bg-rc-bg px-5 py-3"
                 >
-                  <ChannelIcon channel={c.channel} size="md" />
+                  <LandingChannelIcon channel={c.channel} size="md" />
                   <span>
                     <span className="block text-sm font-medium">{c.name}</span>
                     <span className="block text-sm whitespace-nowrap text-rc-fg-muted">{c.path}</span>
