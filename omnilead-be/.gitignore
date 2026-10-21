@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Rahasia dan token: JANGAN pernah di-commit
+.env
+.secrets/
+
+# Database lokal
+data/
