@@ -1,7 +1,7 @@
 ---
 title: Validasi OmniLead, startup YC serupa dan peta MCP per kanal
 updated: 2026-10-21
-related: crm-agentic-multikanal-revision.md
+related: crm-agentic-multikanal-revision-2.3.md
 ---
 
 Label sumber mengikuti dokumen revisi:

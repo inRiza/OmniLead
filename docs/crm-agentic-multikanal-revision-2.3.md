@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 2.3
+version: 2.4
 ---
 
 Label sumber data di dokumen ini:
@@ -188,6 +188,20 @@ Pemisahan Triage, Orchestrator, dan Guard dijustifikasi oleh pola
   dihubungkan lewat `McpToolset` ([ADK MCP](https://adk.dev/tools-custom/mcp-tools/)).
   Mock Instagram juga dibuat sebagai MCP server agar bisa diganti dengan
   API asli tanpa mengubah agen.
+- **MCP Gateway OmniLead:** agen tidak terhubung langsung ke MCP mana
+  pun, melainkan lewat gateway milik kita ([ringkasan di
+  validasi-yc-dan-mcp.md](validasi-yc-dan-mcp.md)). Gateway
+  (a) hanya meneruskan tool dalam allowlist, (b) membuang tool kirim milik
+  MCP asli (misalnya `send_dm`) dan menggantinya dengan `propose_*`,
+  (c) menandai output MCP luar sebagai data tidak tepercaya sebelum Guard
+  memeriksanya, dan (d) mencatat setiap panggilan ke audit log. CRM
+  Firestore memakai MCP Toolbox for Databases (`--prebuilt firestore`)
+  di belakang gateway [S]. Mock IG dibuat dari fork MCP Instagram
+  berbasis Graph API resmi dengan kontrak tool yang sama, sehingga
+  peralihan mock → API asli hanya terjadi di gateway; UI memberi label
+  SIMULASI selama mock aktif. Hanya MCP berbasis API resmi yang dipakai;
+  MCP berbasis cookie sesi atau scraping tidak dipakai (melanggar ToS,
+  risiko ban).
 - **Belajar dari penolakan:** alasan penolakan disimpan sebagai
   "preferensi bisnis" (misalnya "jangan terlalu formal") dan dimuat pada
   draf berikutnya.
@@ -332,6 +346,7 @@ Setiap usulan aksi diperiksa sebelum muncul di antrean persetujuan.
 | Kebocoran data | Draf menyebut nama atau nomor pelanggan lain | Blokir |
 | Prompt injection | Isi pesan pelanggan memerintah agen ("abaikan instruksi...") | Blokir seluruh tugas, tandai tinjauan manual |
 | Batas kanal | Jendela 24 jam tertutup, private reply lewat 7 hari, teks melebihi batas | Blokir + saran alternatif (template/kanal lain) |
+| Output MCP pihak ketiga | Isi komentar, deskripsi tool, atau hasil dari MCP luar berisi instruksi ("kirim ke...", "abaikan...") | Diperlakukan sebagai **data tidak tepercaya**, bukan instruksi; blokir tugas + tinjauan manual |
 | Duplikat | Pelanggan yang sama sudah dibalas untuk pertanyaan yang sama | Peringatan |
 | Nada | Bahasa tidak sopan atau janji berlebihan ("pasti sampai 1 jam") | Peringatan + saran revisi |
 
@@ -549,6 +564,7 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 | Instagram komentar, DM, private reply | **Target nyata (Standard Access), fallback SIMULASI** | Akun IG Professional milik tim dengan `instagram_business_manage_comments`/`..._manage_messages`. Standard Access cukup untuk akun sendiri atau akun yang punya role di app, jadi App Review **tidak** diperlukan untuk demo ([Messaging](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api), [Comments](https://developers.facebook.com/docs/instagram-platform/comment-moderation)). Keputusan diambil jam 19.00; jika simulasi, UI diberi label. |
 | TikTok DM/komentar | **Handoff manual** (Could) | Pendaftaran developer, review keamanan, dan Business Messaging API butuh approval berhari-hari, sehingga tidak realistis dalam 24 jam. Masuk lewat screenshot/teks, keluar lewat Salin & buka. |
 | LinkedIn DM | **Handoff manual** (Could) | API messaging hanya untuk partner yang disetujui, dan pesan harus dipicu member ([LinkedIn](https://learn.microsoft.com/en-us/linkedin/shared/integrations/communications/messages)). Company Page API memerlukan pengajuan produk, sehingga masuk roadmap. |
+| LinkedIn komentar/balasan di post milik sendiri | **Target nyata (OAuth member), fallback handoff** [A] | `omnilead-be` sudah memanggil `/rest/socialActions` dengan token OAuth member (`connectors/linkedin.py`). Membaca post dan komentar belum didukung connector (`ActionNotSupported`), jadi komentar masuk lewat **Tempel pesan**. Izin produk LinkedIn yang dibutuhkan belum diverifikasi; jangan diklaim "terhubung" di slide sebelum token uji berhasil. Tanpa token, aksi otomatis jatuh ke handoff. |
 | CRM | **Nyata (internal)** | Firestore |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
 | Agen dan Gemini | **Nyata** | ADK + Vertex AI |
@@ -567,6 +583,10 @@ Lima lapis kendali (TOR §15: sediakan cara menghentikan agen):
 4. **Batas otomatis.** Maksimal langkah per tugas, maksimal pengiriman
    per jam per kanal, dan batas token.
 5. **Dry-run dan pencabutan token** dari halaman Integrasi.
+
+Autentikasi: REST API untuk FE memakai API key satu bisnis; endpoint
+Scheduler hanya menerima token OIDC; webhook Meta/Gmail divalidasi lewat
+signature atau token push. Endpoint tanpa autentikasi hanya `/health`.
 
 Kerangka acuan: OWASP LLM01 dan LLM06 ([OWASP](https://genai.owasp.org/llm-top-10/)),
 NIST AI RMF fungsi Manage ([NIST](https://www.nist.gov/itl/ai-risk-management-framework)),
@@ -637,6 +657,22 @@ Di slide, bedakan angka "diukur saat uji" dari angka "asumsi".
 | SleekFlow | AI Agent, Inbox Co-pilot | WA, Gmail, IG, TikTok | Rp1,8 juta/bulan | Untuk usaha kecil-menengah, bukan mikro [V] ([pricing](https://sleekflow.io/pricing)) |
 | Barantum | AI Agent 24/7, follow-up | WA, IG, email, marketplace | ±Rp269rb per 3 user, minimal 1 tahun [S] | Implementasi dilaporkan kompleks [S] |
 | Kommo | AI agents (tier Advanced) | WA, IG | US$25–45/user, minimal 6 bulan di muka | Pembayaran USD di muka [V] ([pricing](https://www.kommo.com/pricing/)) |
+
+### Validasi pasar: startup YC yang berdekatan
+
+Belum ditemukan startup YC yang sama persis; yang dekat hanya mengerjakan
+sebagian. Sumber: halaman YC masing-masing [V] (diakses 21 Okt 2026),
+detail di [validasi-yc-dan-mcp.md](validasi-yc-dan-mcp.md).
+
+| Startup | Batch | Fokus | Celah terhadap OmniLead |
+|---|---|---|---|
+| Twine | S23 | AI revenue engine untuk jasa lokal AS: tangkap lead, balas, kualifikasi, booking | Bukan IG/WA, AI membalas sendiri |
+| Yuma AI | W23 | Agen support otonom untuk brand Shopify besar | Fokus support, bukan pipeline UMKM |
+| Zoko | W21 | Agen penjualan AI di WhatsApp Business | Satu kanal, tanpa identitas lintas kanal |
+
+Cek ulang direktori YC dengan kata kunci "inbox", "WhatsApp",
+"Instagram", "CRM" sebelum masuk slide, karena batch terbaru mungkin
+terlewat.
 
 ### Pembeda OmniLead
 
@@ -875,7 +911,7 @@ dokumentasi. Scope yang lebar tetap berisiko karena:
 | **Should** | IG API asli (Standard Access) + private reply komentar → DM; lead scoring dengan alasan; pengingat Cloud Scheduler; belajar dari penolakan; `adk eval` dengan pass^3 |
 | **Could (prioritas atas)** | Kanal tanpa API untuk TikTok/LinkedIn: screenshot/teks → event (Gemini multimodal), draf → Salin & buka → Sudah dikirim (±2–3 jam) |
 | **Could** | Persona P2 sebagai konfigurasi; agen menyarankan 3 ide konten dari pertanyaan yang paling sering muncul (draf saja; publikasi IG hanya setelah disetujui). Dikerjakan hanya jika semua Must selesai sebelum Kamis 05.00. |
-| **Won't (roadmap)** | Integrasi API TikTok (Business Messaging, Comment, Content Posting) dan LinkedIn (Company Page, Messaging); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](../../feasibility-ig-linkedin-tiktok.md). |
+| **Won't (roadmap)** | Integrasi API TikTok (Business Messaging, Comment, Content Posting) dan LinkedIn (Company Page, Messaging); kalender konten penuh; publikasi konten otomatis; marketplace; multi-tenant atau billing. Matriks kelayakan per kanal ada di [feasibility-ig-linkedin-tiktok.md](feasibility-ig-linkedin-tiktok.md). |
 
 ### Pembagian peran (tim 3 orang)
 
@@ -911,14 +947,63 @@ latihan demo.
 
 Supaya tiga orang bisa bekerja paralel sejak jam pertama:
 
-1. **Skema Firestore:** `events`, `leads`, `actions` (status: `pending`
-   → `approved`/`edited`/`rejected` → `sent`/`failed`), `audit_logs`,
-   `settings` (flag Pause, preferensi, persona).
+1. **Skema Firestore:** `events`, `leads`, `actions`, `audit_logs`,
+   `settings` (flag Pause, saklar kanal, dry-run, preferensi, persona).
+   Untuk dev dan tes, antarmuka `Store` yang sama punya adapter SQLite
+   (dipakai `omnilead-be` sekarang); Firestore adalah adapter produksi.
+   Status `Action`:
+
+   | Status | Arti | Transisi sah dari |
+   |---|---|---|
+   | `pending` | Usulan agen, menunggu manusia | — |
+   | `rejected` | Ditolak, alasan wajib disimpan | `pending` |
+   | `approved` / `edited` | Disetujui (dengan atau tanpa edit teks) | `pending` |
+   | `executing` | Executor sedang mengirim | `approved`, `edited`, `failed` (coba ulang) |
+   | `executed` (= `sent`) | Terkirim lewat API | `executing` |
+   | `failed` | Gagal kirim; error tercatat; boleh coba ulang | `executing` |
+   | `awaiting_manual_send` | Kanal tanpa API: menunggu pengguna | `approved`, `edited` |
+   | `sent_manually` | Pengguna menekan **Sudah dikirim** | `awaiting_manual_send` |
+
+   Aturan: persetujuan, penolakan, dan penandaan manual hanya sah dari
+   status yang tertera. Aksi `rejected` tidak pernah dieksekusi. Setiap
+   eksekusi idempoten (aksi yang sudah `executed` atau `sent_manually`
+   tidak dikirim ulang).
 2. **Format `Event`** yang dihasilkan ingest dan dibaca agen.
 3. **Format `Action`** yang ditulis agen (`propose_*`) dan dibaca FE dan
    executor.
-4. **Endpoint REST** untuk FE: daftar aktivitas, profil, antrean,
-   approve/edit/reject, toggle Pause.
+4. **Endpoint REST** untuk FE. Autentikasi: API key (satu bisnis) di
+   header; endpoint `/scheduler/*` hanya menerima token OIDC Cloud
+   Scheduler; webhook memakai validasi signature, bukan API key.
+
+   | Endpoint | Status |
+   |---|---|
+   | `GET /health` | ada |
+   | `GET /channels` (status + kapabilitas) | ada |
+   | `GET /channels/{ch}/posts`, `GET /channels/{ch}/comments?post_ref=` | ada |
+   | `POST /handoff/paste` | ada |
+   | `POST /actions/propose`, `GET /actions?status=` | ada |
+   | `POST /actions/{id}/approve` (opsional `edited_text`), `/reject` (`reason` wajib), `/sent` | ada |
+   | `GET /actions/{id}/handoff` | ada |
+   | `GET /audit?limit=` | ada |
+   | `GET`/`PATCH /settings`, `GET`/`POST /settings/pause`, `PATCH /settings/channels/{ch}` (aktif; dry-run lewat `/settings`) | ada |
+   | `GET /leads`, `GET /leads/{id}` (profil + timeline + bukti merge) | ada |
+   | `POST /events` (event masuk: dedup, identitas, panggil agen), `GET /events`, `POST /events/{id}/analyze` | ada |
+   | `POST /events/paste`, `POST /events/paste-image` (kanal tanpa API: teks atau screenshot) | ada |
+   | `POST /actions/{id}/retry` | ada |
+   | `GET /summary/today` (hal yang perlu ditangani hari ini) | ada |
+   | `GET /agent/health` | ada |
+   | `GET`/`POST /webhooks/whatsapp`, `GET`/`POST /webhooks/instagram` (verifikasi + signature wajib), `POST /webhooks/gmail?token=` (push Pub/Sub) | ada |
+   | `POST /scheduler/followups`, `/scheduler/gmail-poll`, `/scheduler/gmail-watch` (token Bearer atau OIDC) | ada |
+5. **Kontrak connector** (`ChannelConnector`): setiap kanal menyatakan
+   `Capability{action, access_path, available}` untuk aksi
+   `list_posts`, `read_comments`, `post_comment`, `reply_comment`
+   (dan kelak `send_dm`, `send_email`). `access_path` bernilai
+   `official_api` atau `handoff`. Connector melempar `NotConnected` bila
+   token belum ada dan `ActionNotSupported` bila aksi tidak tersedia;
+   executor mengubah yang kedua menjadi `awaiting_manual_send`, bukan
+   error. Ini sumber data tool `get_channel_capabilities` dan halaman
+   Integrasi. Entitas konteks unggahan: `Post{ref, caption, url}` dan
+   `Comment{id, post_ref, author_handle, text, created_at}`.
 
 Mulai dengan **mock-first**:
 
@@ -942,6 +1027,37 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 | 09–12 | Deck, latihan demo | Latihan demo, catatan AI | Uji skenario demo 5x, `.env.example`, catatan sumber |
 | 12–13 | **Freeze:** tag `v1.0-freeze`, matikan resource yang tidak perlu | | |
 | 13–15 | Unggah luaran; deck seleksi (pitch 2 menit + demo) | | |
+
+## Status Implementasi
+
+Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
+[../TESTING.md](../TESTING.md), deploy di [deploy.md](deploy.md), sumber dan lisensi di [SOURCES.md](SOURCES.md).
+
+**Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
+HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipanggil sama sekali.
+
+| Komponen | Prioritas | Status | Catatan |
+|---|---|---|---|
+| Antrean persetujuan + executor + status machine | Must | Selesai | Transisi sah dijaga; retry; idempoten |
+| Pause global, saklar kanal, dry-run, batas laju | Must | Selesai | Pause juga menahan event; dilanjutkan = diproses ulang |
+| Audit log (pelaksana, kanal, lead) | Must | Selesai | Halaman Audit di FE |
+| Ingest + dedup + webhook WA/IG (signature) + push Gmail | Must | Selesai (tiruan) | Belum diuji ke Meta/Google sungguhan |
+| Executor WhatsApp, Gmail (thread), Instagram (DM, private reply) | Must/Should | Selesai (tiruan) | Jendela 24 jam, 7 hari, sekali per komentar dicek sebelum kirim |
+| Identitas: merge pasti otomatis, merge ambigu = usulan + bukti | Must | Selesai | Berbasis aturan (nama, perusahaan, handle), bukan LLM |
+| Triage, orchestrator, Guard | Must | Selesai (engine `rule`) | Engine ADK/Gemini dan triage LLM terhubung, diuji model palsu |
+| MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
+| Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
+| Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |
+| Kanal tanpa API: tempel teks/screenshot, Salin & buka, Sudah dikirim | Could | Selesai | Ekstraksi screenshot butuh kredensial Gemini |
+| FE terhubung ke BE, panel trace, profil, merge, filter | Must | Selesai | Diverifikasi di browser |
+| Seed data + skrip reset | Must | Selesai | 30 lead dummy + Ani |
+| Evalset 18 kasus, pass^3, evaluasi identitas | Should | Selesai (parsial) | Format sendiri; `adk eval` belum dijalankan |
+| Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
+| Dockerfile, panduan deploy Cloud Run + Scheduler | Should | Ditulis | Belum dibangun/dijalankan |
+| Persona P2 sebagai konfigurasi, ide konten dari agen | Could | Belum | Halaman Konten masih contoh statis berlabel SIMULASI |
+| Pisah profil (undo merge) | Should | Belum | |
+| Verifikasi izin produk LinkedIn untuk komentar | - | Belum | Ditandai [A] |
+| Deck, video cadangan, wawancara UMKM | Must | Belum | Non-kode |
 
 ## Strategi Penilaian
 
@@ -1006,6 +1122,15 @@ atau agen otonom yang membalas sendiri. OmniLead menggabungkan identitas
 lintas kanal, memahami konteks, memilih tools, menjalankan beberapa
 langkah lintas sistem, lalu menyerahkan keputusan akhir ke pemilik
 dengan trace yang bisa diperiksa.
+
+### Kenapa tidak memakai MCP LinkedIn atau WhatsApp yang sudah ada?
+
+MCP tidak menambah akses; ia hanya membungkus jalur di belakangnya. MCP
+LinkedIn yang bisa membaca DM memakai sesi login dan Playwright, dan MCP
+WhatsApp populer memakai emulasi WhatsApp Web. Keduanya melanggar
+ketentuan platform dan berisiko membuat akun atau nomor diblokir.
+OmniLead hanya memakai integrasi berbasis API resmi, dan untuk kanal
+yang API-nya tertutup memakai handoff manual.
 
 ### Meta Business Agent gratis, kenapa butuh OmniLead?
 
@@ -1085,6 +1210,23 @@ diunggah ke layanan AI tanpa izin (TOR §15).
     izin, tools yang tersedia, sinkronisasi terakhir, error koneksi,
     saklar per kanal, dan mode dry-run.
 -   Komponen yang disimulasikan diberi label **SIMULASI** yang jelas.
+    Ini mencakup data mock, angka grafik, dan badge yang belum
+    bersumber dari backend.
+-   Halaman pendukung di workspace:
+    -   **Audit** (Must): daftar jejak aksi dengan pelaksana, persetujuan,
+        tool, waktu, hasil, dan error, bisa difilter per kanal dan jenis.
+    -   **Leads** (Must): tabel prospek; baris membuka halaman profil.
+    -   **Beranda** (Could): ringkasan "yang perlu dibalas hari ini" dan
+        aktivitas agen terakhir. Semua angka harus bersumber dari data
+        nyata atau diberi label SIMULASI.
+    -   **Konten** (Could): tiga ide konten dari pertanyaan yang paling
+        sering muncul; hanya draf, tanpa publikasi otomatis.
+-   Alasan penolakan wajib diisi dan dikirim ke backend, karena menjadi
+    sumber preferensi bisnis.
+-   Aksi yang gagal dikirim menampilkan error, tombol **Coba ulang**, dan
+    **Tangani manual**. Tombol **Salin & buka** dan **Sudah dikirim**
+    terpisah: status baru berubah menjadi `sent_manually` setelah
+    pengguna menekan **Sudah dikirim**.
 -   Komentar IG yang menanyakan harga menampilkan dua usulan berdampingan:
     balasan publik dan private reply DM, masing-masing dengan tombol
     persetujuan sendiri.
