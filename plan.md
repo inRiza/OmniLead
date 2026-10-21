@@ -1,5 +1,21 @@
 # Plan Implementasi OmniLead
 
+Pembaruan login/koneksi akun 21 Okt 2026:
+
+- [x] Pendaftaran akun pribadi tanpa nama bisnis; tambah dan pilih beberapa bisnis dari dashboard.
+- [x] Knowledge base Markdown/teks, produk/harga, tone dan pemilihan sumber per kanal; konteks diteruskan ke agen.
+- [x] Isolasi knowledge base dan katalog antarbisnis; perlindungan tab lama setelah berganti bisnis.
+- [x] Playwright lokal: pendaftaran/login, beberapa bisnis, impor Markdown, harga produk, konfigurasi kanal/tone, dan tampilan ponsel.
+- [x] Satu pesan nyata ke Gemini memakai knowledge base Instagram dan tone profesional, tanpa fallback; BE 91, agen 42, FE 22 tes lulus.
+
+- [x] Daftar/masuk/keluar pengguna, cookie sesi, profil bisnis, pemisahan store CRM per bisnis.
+- [x] Token kanal terenkripsi per bisnis; OAuth Instagram/Gmail/LinkedIn dan WhatsApp Embedded Signup.
+- [x] UI Hubungkan/Hubungkan ulang/ganti/putuskan akun; pilih nomor WhatsApp; status izin berakhir.
+- [x] Proxy Next.js agar kredensial tidak masuk bundle browser; webhook dan scheduler per bisnis.
+- [x] Tes offline: BE 87, FE 22; TypeScript dan lint lulus. Lihat `TESTING.md`.
+- [ ] Aktivasi aplikasi dan kredensial provider oleh pengelola sekali, kemudian uji login/izin dengan akun nyata.
+  Petunjuk: [docs/account-connections.md](docs/account-connections.md).
+
 Acuan: [PRD](docs/crm-agentic-multikanal-revision-2.3.md) (bagian *Status Implementasi*), TODO per peran di
 `docs/todo-*.md`. Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [docs/deploy.md](docs/deploy.md).
 
@@ -67,8 +83,8 @@ agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau ora
 
 - [ ] Identity berbasis LLM untuk kasus ambigu (kini aturan nama/perusahaan/handle; bentuk hasil sama: usulan + bukti)
 - [ ] Guard berbasis LLM (kini aturan; Guard tidak menilai makna di luar aturan)
-- [ ] Proxy server-side untuk API key FE (kini `NEXT_PUBLIC_API_KEY` ikut ke bundle browser)
+- [x] Proxy server-side FE dan sesi cookie (browser tidak memakai `NEXT_PUBLIC_API_KEY`)
 - [ ] Uji OIDC BE → agen di Cloud Run sungguhan (kini hanya fake)
 - [ ] Tes komponen/e2e FE (kini hanya adapter dan klien API; UI diverifikasi manual di browser)
 - [ ] Ide konten dengan LLM (kini aturan: hitung topik dari pesan); caption lebih bervariasi
-- [ ] Multi-tenant (di luar scope)
+- [x] Pemisahan data/koneksi/pengetahuan per bisnis; satu akun dapat membuat beberapa bisnis. Undangan tim dan peran tambahan belum tersedia

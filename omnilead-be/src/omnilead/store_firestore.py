@@ -23,6 +23,7 @@ from omnilead.models import (
     AuditEntry,
     Event,
     Lead,
+    KnowledgeBase,
 )
 
 
@@ -57,7 +58,7 @@ class FirestoreStore:
         return query
 
     def reset(self) -> None:
-        for name in ("actions", "audit", "leads", "events", "event_keys", "settings"):
+        for name in ("actions", "audit", "leads", "events", "event_keys", "settings", "knowledge"):
             for doc in self._db.collection(name).stream():
                 doc.reference.delete()
 
@@ -191,6 +192,19 @@ class FirestoreStore:
         return [Event.model_validate_json(r["data"]) for r in rows[:limit]]
 
     # --- settings ---
+
+    def list_knowledge(self) -> list[KnowledgeBase]:
+        return [KnowledgeBase.model_validate_json(d.to_dict()["data"]) for d in self._db.collection("knowledge").stream()]
+
+    def get_knowledge(self, id: str) -> KnowledgeBase | None:
+        doc = self._db.collection("knowledge").document(id).get()
+        return KnowledgeBase.model_validate_json(doc.to_dict()["data"]) if doc.exists else None
+
+    def save_knowledge(self, knowledge: KnowledgeBase) -> None:
+        self._db.collection("knowledge").document(knowledge.id).set({"data": knowledge.model_dump_json()})
+
+    def delete_knowledge(self, id: str) -> None:
+        self._db.collection("knowledge").document(id).delete()
 
     def get_settings(self) -> AppSettings:
         snap = self._db.collection("settings").document("app").get()

@@ -649,6 +649,7 @@ name = "omnilead-be"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
@@ -668,6 +669,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=44" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "google-cloud-firestore", marker = "extra == 'firestore'", specifier = ">=2.16" },
     { name = "httpx", specifier = ">=0.27" },

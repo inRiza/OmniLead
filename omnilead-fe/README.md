@@ -7,7 +7,7 @@ persetujuan, profil lead, dan kendali agen. Data berasal dari `omnilead-be`; tid
 
 ```bash
 cd omnilead-fe
-cp .env.example .env.local     # NEXT_PUBLIC_API_URL, NEXT_PUBLIC_API_KEY (opsional)
+cp .env.example .env.local     # OMNILEAD_BACKEND_URL, hanya dibaca server
 bun install                    # atau npm install
 bun run dev                    # http://localhost:3000
 ```
@@ -15,20 +15,27 @@ bun run dev                    # http://localhost:3000
 Urutan menjalankan seluruh sistem: agen (8100) → BE (8000) → FE (3000); lihat `../README.md`.
 Jika BE mati, FE menampilkan banner dan data bisa usang.
 
-`NEXT_PUBLIC_*` ikut ke bundle browser. Untuk produksi, lewatkan API key lewat proxy server-side.
+Browser memakai proxy Next.js `/api/backend` dan cookie sesi. API key tidak masuk
+bundle browser. Mulai dari `/login`, daftar bisnis, lalu hubungkan akun melalui
+halaman Integrasi. Panduan pengelola: [account-connections.md](../docs/account-connections.md).
 
 ## Halaman
 
 | Rute | Isi |
 |---|---|
+| `/login` | Masuk atau daftar bisnis; sesi pengguna dan pemisahan data per bisnis |
 | `/dashboard` | Beranda: hal yang perlu ditangani hari ini, statistik, volume pesan 7 hari, kanal |
 | `/dashboard/inbox` | Workspace: aktivitas berprioritas, filter kanal dan jenis, **Tempel pesan** (teks/screenshot), panel detail dengan rencana, langkah agen, hasil Guard, dan antrean persetujuan |
 | `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan, tombol **Pisahkan** untuk merge yang salah |
-| `/dashboard/integrasi` | Status kanal, kapabilitas, saklar per kanal, dry-run, status service agen |
+| `/dashboard/integrasi` | Hubungkan/ganti/putuskan akun, pilih nomor WhatsApp, profil bisnis, keluar, jeda kanal, mode latihan |
+| `/dashboard/knowledge` | Editor/impor Markdown, produk dan harga, pemilihan sumber pengetahuan serta tone per kanal |
 | `/dashboard/audit` | Jejak aksi: pelaksana, kanal, hasil |
 | `/dashboard/konten` | Ide konten dari pertanyaan yang sering muncul (draf caption, salin; tidak ada publikasi) |
 
 Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul dan aksi ditahan.
+
+Pendaftaran cukup nama/email/kata sandi. Bisnis ditambah dari dashboard dan dapat
+diganti lewat dropdown header. Panduan: [knowledge-base.md](../docs/knowledge-base.md).
 
 ## Struktur data
 

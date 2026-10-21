@@ -16,8 +16,25 @@ class Settings(BaseSettings):
     db_path: Path = Path("data/omnilead.db")
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # Autentikasi REST untuk FE. Kosong = mati (hanya dev).
+    # API key mode demo lama (hanya berlaku jika auth_enabled=false).
     api_key: str = ""
+
+    # Login pengguna dan OAuth. Token kanal disimpan per bisnis, bukan di browser.
+    auth_enabled: bool = True
+    accounts_db_path: Path = Path("data/accounts.db")
+    frontend_url: str = "http://localhost:3000"
+    token_encryption_key: str = ""  # Fernet; lokal dibuat di .secrets/oauth.key
+    session_days: int = 7
+    registration_enabled: bool = True
+    meta_app_id: str = ""
+    whatsapp_signup_config_id: str = ""
+    whatsapp_signup_version: str = "v25.0"
+    instagram_client_id: str = ""
+    instagram_client_secret: str = ""
+    instagram_api_host: str = "https://graph.facebook.com"  # legacy token; OAuth uses graph.instagram.com
+    linkedin_access_token: str = ""
+    linkedin_person_urn: str = ""
+    linkedin_use_legacy_token: bool = True
 
     # Service agen (terpisah, dipanggil oleh BE)
     agent_url: str = "http://localhost:8100"

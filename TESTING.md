@@ -3,6 +3,70 @@
 Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Pembaruan login dan koneksi akun (21 Okt 2026)
+
+**Perapihan UI bisnis dan pengetahuan:** TypeScript, lint, dan **22 tes frontend lulus**.
+Playwright Chromium memeriksa header bisnis di Beranda, tombol tambah bisnis di header,
+dialog dengan autofocus/Escape/pengembalian fokus, editor pengetahuan yang tertutup saat awal,
+impor Markdown, tambah/edit/simpan/hapus sumber, serta dialog pengaturan kanal dan persistensi
+sumber/tone sesudah reload. Layar desktop 1440×1000 serta ponsel 390×844 dan 320×844 diperiksa;
+halaman dan dialog tidak melebar keluar viewport, tanpa page error. Pemeriksaan memakai akun sintetis.
+Script dan screenshot lokal: `omnilead-be/data/local-runtime/check-ui-cleanup.cjs`,
+`09-clean-integrasi.png` sampai `14-clean-mobile-editor-320.png` (gitignored).
+Tambah bisnis melalui dialog header juga berhasil, lalu berpindah kembali mempertahankan sumber pengetahuan.
+
+**Sapaan akun dan logout dashboard:** sapaan mengambil nama akun dari sesi. Playwright pada
+desktop 1440 dan ponsel 320 piksel memeriksa nama sapaan, konteks bisnis terpisah, tombol Keluar
+di sidebar/header, penghapusan sesi sesudah logout, dan redirect saat dashboard dibuka kembali.
+Simulasi logout gagal menampilkan pesan serta mengizinkan percobaan ulang. Tanpa page error
+atau overflow; TypeScript dan lint lulus. Bukti lokal: `check-greeting-logout.cjs` dan
+`15-greeting-logout-*.png` di direktori runtime yang sama.
+
+**Pembaruan berikutnya — beberapa bisnis dan knowledge base:** BE **91 lulus**, agen **42 lulus**,
+TypeScript dan lint lulus. Tambahan tes memeriksa pendaftaran tanpa nama bisnis, perpindahan bisnis,
+penolakan akses bisnis pengguna lain dan request dari tab usang, CRUD serta pelepasan knowledge base,
+pengetahuan terpilih per kanal pada payload agen, katalog bisnis menggantikan katalog demo,
+tone formal pada fallback, sumber pada tool ADK, dan pencegahan penggunaan MCP global untuk request bisnis.
+
+**Playwright lokal (Chromium, 1440×1000 dan 390×844):** route terlindungi mengarah ke login;
+daftar/login/logout serta pesan kata sandi salah; cookie HttpOnly; status provider belum disiapkan;
+simpan profil; jeda/aktifkan kanal; daftar tanpa nama bisnis; tambah dan ganti bisnis; impor `.md`;
+simpan harga produk; pilih sumber Instagram dan tone profesional; persistensi setelah reload;
+isolasi sumber/tone saat berganti bisnis. Tidak ada page error atau HTTP 5xx pada pemeriksaan.
+Screenshot dan hasil lokal ada di `omnilead-be/data/local-runtime/` (gitignored).
+
+Pada percobaan pesan pertama, konteks knowledge base dan tone benar, tetapi Gemini jatuh ke
+templat karena proses sandbox tidak boleh mengakses `oauth2.googleapis.com` (WinError 10013).
+Templat mengutip jam buka dan menerapkan sapaan formal. Setelah agen dijalankan dengan akses
+jaringan, pemeriksaan satu pesan menggunakan **Gemini sungguhan berhasil tanpa fallback**:
+tool membaca `Panduan Toko Demo`, tone `professional`, dan draf menjelaskan buka Senin–Sabtu
+09.00–17.00 WIB serta Minggu tutup dengan sapaan "Yth. Bapak/Ibu". Hasil lokal:
+`omnilead-be/data/local-runtime/live-knowledge-result.json`. Ini satu kasus, bukan evaluasi model.
+Tidak ada pesan dikirim ke platform.
+
+- Backend: **87 lulus**, satu peringatan deprecation Starlette/httpx. Perintah:
+  `.venv/Scripts/python.exe -m pytest -q --basetemp .venv/pytest-tmp-final -o cache_dir=.venv/pytest-cache`.
+- Frontend: **22 lulus**, `npx tsc --noEmit` dan `npm run lint` lulus.
+- 14 tes baru di `test_accounts_oauth.py`: rotasi/logout sesi, API key tidak melewati login,
+  isolasi data/setting/token antar bisnis, CSRF, state sekali pakai dan terikat sesi/provider,
+  enkripsi dan pengikatan token ke bisnis, Instagram code/long-lived token/subscription,
+  PKCE dan refresh Gmail, profil/expiry LinkedIn, discovery nomor WhatsApp,
+  webhook ke bisnis penerima, penggantian akun tidak mengirim draf lama,
+  serta token legacy tidak diwariskan ke bisnis baru.
+- Tes kapabilitas diperbarui: akun terhubung menyediakan aksi resmi; akun yang belum
+  terhubung tidak mengklaim akses tulis. Satu tes tambahan memeriksa keadaan terputus.
+- Kegagalan awal: lokasi temp/cache bawaan pytest ditolak sandbox Windows;
+  dijalankan ulang dengan direktori dalam workspace. Dua tes lama juga mengasumsikan
+  akses tulis tersedia tanpa token; fixture kini memakai kredensial tiruan dan
+  keadaan tanpa token diperiksa secara terpisah. Hasil akhir 87/87.
+- Semua panggilan OAuth pada tes memakai HTTP tiruan. Dashboard aplikasi provider
+  belum dikonfigurasi di mesin ini (empat pasangan kredensial aplikasi belum terisi).
+  Consent/login provider, webhook, dan pengiriman sungguhan **belum diuji**.
+- Build Docker dan pemeriksaan UI login melalui browser belum dilakukan pada perubahan ini.
+- Koneksi Firestore untuk akun/sesi belum diuji terhadap layanan/emulator sungguhan.
+
+Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
+
 **Batas yang perlu dibaca dulu**
 
 - Engine agen yang diuji adalah **`rule`** (templat + aturan, deterministik). Engine `adk` (Gemini) dan triage LLM

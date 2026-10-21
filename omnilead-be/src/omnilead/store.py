@@ -17,6 +17,7 @@ from omnilead.models import (
     AuditEntry,
     Event,
     Lead,
+    KnowledgeBase,
 )
 
 
@@ -63,6 +64,10 @@ class Store:
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS knowledge (
+                id TEXT PRIMARY KEY,
+                data TEXT NOT NULL
+            );
             """
         )
         # DB lama (sebelum kolom audit diperluas)
@@ -78,7 +83,7 @@ class Store:
 
     def reset(self) -> None:
         """Hapus semua data (dipakai skrip seed)."""
-        for table in ("actions", "audit", "leads", "events", "settings"):
+        for table in ("actions", "audit", "leads", "events", "settings", "knowledge"):
             self._db.execute(f"DELETE FROM {table}")
         self._db.commit()
 
@@ -260,6 +265,22 @@ class Store:
         return [Event.model_validate_json(r["data"]) for r in rows]
 
     # --- settings ---
+
+    def list_knowledge(self) -> list[KnowledgeBase]:
+        rows = self._db.execute("SELECT data FROM knowledge ORDER BY id").fetchall()
+        return [KnowledgeBase.model_validate_json(row["data"]) for row in rows]
+
+    def get_knowledge(self, id: str) -> KnowledgeBase | None:
+        row = self._db.execute("SELECT data FROM knowledge WHERE id=?", (id,)).fetchone()
+        return KnowledgeBase.model_validate_json(row["data"]) if row else None
+
+    def save_knowledge(self, knowledge: KnowledgeBase) -> None:
+        self._db.execute("INSERT OR REPLACE INTO knowledge VALUES (?,?)", (knowledge.id, knowledge.model_dump_json()))
+        self._db.commit()
+
+    def delete_knowledge(self, id: str) -> None:
+        self._db.execute("DELETE FROM knowledge WHERE id=?", (id,))
+        self._db.commit()
 
     def get_settings(self) -> AppSettings:
         row = self._db.execute(

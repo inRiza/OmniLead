@@ -1,13 +1,10 @@
-# Cloud Run: omnilead-fe. NEXT_PUBLIC_* ikut ke bundle saat build.
+# Cloud Run: omnilead-fe. URL backend dan key dibaca server saat runtime.
 # Belum diuji build di mesin pengembang (Docker daemon tidak aktif).
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_API_KEY=""
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
 RUN npm run build
 
 FROM node:22-alpine

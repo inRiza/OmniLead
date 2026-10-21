@@ -9,7 +9,8 @@ import hmac
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from omnilead.api.deps import get_ingest, get_queue, get_registry, get_store
+from omnilead.api.deps import (get_ingest, get_queue, get_registry, get_store, get_accounts,
+                               store_for_workspace, registry_for_workspace, ingest_for_workspace)
 from omnilead.api.webhooks import poll_gmail
 from omnilead.approvals.queue import ApprovalQueue
 from omnilead.config import Settings, get_settings
@@ -49,6 +50,9 @@ router = APIRouter(prefix="/scheduler", tags=["scheduler"], dependencies=[Depend
 
 @router.post("/followups")
 def followups(store: Store = Depends(get_store), queue: ApprovalQueue = Depends(get_queue)) -> dict:
+    if get_settings().auth_enabled:
+        return {"workspaces": {w: run_followups(store_for_workspace(w), ApprovalQueue(store_for_workspace(w)))
+                               for w in get_accounts().workspace_ids()}}
     return run_followups(store, queue)
 
 
@@ -56,11 +60,25 @@ def followups(store: Store = Depends(get_store), queue: ApprovalQueue = Depends(
 def gmail_poll(
     registry: Registry = Depends(get_registry), ingest: IngestService = Depends(get_ingest)
 ) -> dict:
+    if get_settings().auth_enabled:
+        return {"events": sum(poll_gmail(registry_for_workspace(w), ingest_for_workspace(w))
+                              for w in get_accounts().workspace_ids())}
     return {"events": poll_gmail(registry, ingest)}
 
 
 @router.post("/gmail-watch")
 def gmail_watch(registry: Registry = Depends(get_registry)) -> dict:
+    if get_settings().auth_enabled:
+        results = {}
+        for workspace in get_accounts().workspace_ids():
+            gmail = registry_for_workspace(workspace).gmail()
+            if not gmail or not gmail.configured:
+                continue
+            try:
+                results[workspace] = gmail.watch()
+            except ConnectorError:
+                results[workspace] = {"error": "Gagal memperpanjang akses notifikasi Gmail"}
+        return {"workspaces": results}
     gmail = registry.gmail()
     if gmail is None or not gmail.configured:
         return {"skipped": "Gmail belum terhubung"}

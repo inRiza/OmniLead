@@ -39,9 +39,10 @@ class LinkedInConnector(ChannelConnector):
     def __init__(self, settings: Settings, client: httpx.Client | None = None):
         self._settings = settings
         self._client = client or httpx.Client(timeout=15.0)
-        self._token: str | None = None
-        self._person_urn: str | None = None
-        self._load_token()
+        self._token: str | None = settings.linkedin_access_token or None
+        self._person_urn: str | None = settings.linkedin_person_urn or None
+        if settings.linkedin_use_legacy_token and not self._token:
+            self._load_token()
 
     # --- token OAuth (disimpan oleh alur /auth/linkedin) ---
 
@@ -70,6 +71,7 @@ class LinkedInConnector(ChannelConnector):
     # --- kapabilitas ---
 
     def capabilities(self) -> list[Capability]:
+        connected = bool(self._token and self._person_urn)
         return [
             Capability(
                 action="list_posts",
@@ -84,14 +86,14 @@ class LinkedInConnector(ChannelConnector):
             ),
             Capability(
                 action="post_comment",
-                available=True,
-                path="official_api",
+                available=connected,
+                path="official_api" if connected else "handoff",
                 note="Share on LinkedIn (w_member_social).",
             ),
             Capability(
                 action="reply_comment",
-                available=True,
-                path="official_api",
+                available=connected,
+                path="official_api" if connected else "handoff",
                 note="Balasan komentar via socialActions.",
             ),
         ]
@@ -150,6 +152,8 @@ class LinkedInConnector(ChannelConnector):
 
     @staticmethod
     def _comment_id(resp: httpx.Response) -> str:
+        if resp.status_code == 401:
+            raise NotConnected("Akses LinkedIn berakhir atau dicabut")
         if resp.status_code >= 400:
             raise ConnectorError(
                 f"LinkedIn socialActions error {resp.status_code}: {resp.text[:200]}"

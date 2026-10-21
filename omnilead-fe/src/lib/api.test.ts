@@ -22,13 +22,14 @@ afterEach(() => {
 });
 
 describe("api client", () => {
-  it("memakai NEXT_PUBLIC_API_URL tanpa slash akhir dan menambah X-API-Key bila ada", async () => {
+  it("memakai proxy origin yang sama dan tidak mengekspos key environment browser", async () => {
     const { api } = await loadApi({ NEXT_PUBLIC_API_URL: "http://be:9000/", NEXT_PUBLIC_API_KEY: "rahasia" });
     const f = mockFetch(() => json([]));
     await api.leads();
     const [url, init] = f.mock.calls[0];
-    expect(url).toBe("http://be:9000/leads");
-    expect((init?.headers as Record<string, string>)["x-api-key"]).toBe("rahasia");
+    expect(url).toBe("/api/backend/leads");
+    expect((init?.headers as Record<string, string>)["x-api-key"]).toBeUndefined();
+    expect(init?.credentials).toBe("same-origin");
     expect(init?.cache).toBe("no-store");
   });
 
@@ -53,12 +54,12 @@ describe("api client", () => {
     await expect(api.summary()).rejects.toMatchObject({ status: 502, message: "Bad Gateway" });
   });
 
-  it("BE tidak terjangkau = status 0 dengan alamat BE", async () => {
+  it("BE tidak terjangkau = status 0 dengan alamat proxy", async () => {
     const { api } = await loadApi({ NEXT_PUBLIC_API_URL: "http://be:9000" });
     mockFetch(() => {
       throw new TypeError("fetch failed");
     });
-    await expect(api.channels()).rejects.toMatchObject({ status: 0, message: expect.stringContaining("http://be:9000") });
+    await expect(api.channels()).rejects.toMatchObject({ status: 0, message: expect.stringContaining("/api/backend") });
   });
 
   it("approve mengirim edited_text; reject mengirim alasan; pause mengirim flag", async () => {
