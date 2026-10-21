@@ -79,3 +79,17 @@ def test_llm_failure_falls_back_to_template(ani_lead):
 
     r = analyze(make_req(GOLDEN, lead=ani_lead), drafter=AdkDrafter(model=Boom()))
     assert r.proposals and any("templat" in x for x in r.trace.plan)
+
+
+def test_adk_stops_after_reply_and_crm_without_closing_turn(ani_lead):
+    calls = []
+
+    class Counting(ScriptedLlm):
+        async def generate_content_async(self, llm_request, stream=False):
+            calls.append(1)
+            async for r in super().generate_content_async(llm_request, stream):
+                yield r
+
+    r = analyze(make_req(GOLDEN, lead=ani_lead), drafter=AdkDrafter(model=Counting(script=_script())))
+    assert [p.kind for p in r.proposals] == ["reply_comment", "send_message", "crm_update"]
+    assert len(calls) == len(_script())
