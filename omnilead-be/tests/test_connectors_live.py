@@ -52,6 +52,26 @@ def test_whatsapp_errors():
         bad.send_message("6281", "x")
 
 
+def test_whatsapp_phone_info_for_connection_check():
+    seen = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["method"], seen["url"] = req.method, str(req.url)
+        return httpx.Response(200, json={"display_phone_number": "+1 555 0100", "verified_name": "Test Number"})
+
+    wa = WhatsAppConnector(cfg(whatsapp_phone_number_id="123", whatsapp_access_token="tok"), client(handler))
+    assert wa.phone_info()["verified_name"] == "Test Number"
+    assert seen["method"] == "GET" and "/123?" in seen["url"]
+    with pytest.raises(NotConnected):
+        WhatsAppConnector(cfg(), client(handler)).phone_info()
+    expired = WhatsAppConnector(
+        cfg(whatsapp_phone_number_id="123", whatsapp_access_token="tok"),
+        client(lambda r: httpx.Response(401, json={"error": {"message": "expired", "code": 190}})),
+    )
+    with pytest.raises(NotConnected):
+        expired.phone_info()
+
+
 # --- Gmail ---
 
 
@@ -79,6 +99,18 @@ def test_gmail_send_threads_reply():
     assert ref == "gm-1" and sent["auth"] == "Bearer at" and sent["body"]["threadId"] == "th1"
     raw = base64.urlsafe_b64decode(sent["body"]["raw"]).decode()
     assert "In-Reply-To: <abc@x>" in raw and "Subject: Re: Info katering" in raw and "Penawaran terlampir" in raw
+
+
+def test_gmail_profile_for_connection_check():
+    def handler(req: httpx.Request) -> httpx.Response:
+        if "oauth2" in str(req.url):
+            return httpx.Response(200, json={"access_token": "at", "expires_in": 3600})
+        assert req.method == "GET" and str(req.url).endswith("/me/profile")
+        return httpx.Response(200, json={"emailAddress": "rina@katering.example", "messagesTotal": 12})
+
+    assert GmailConnector(gmail_cfg(), client(handler)).profile()["emailAddress"] == "rina@katering.example"
+    with pytest.raises(NotConnected):
+        GmailConnector(cfg(), client(handler)).profile()
 
 
 def test_gmail_revoked_refresh_token():
