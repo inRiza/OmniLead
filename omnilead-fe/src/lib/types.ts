@@ -1,11 +1,6 @@
 // Tipe FE OmniLead. Dibuat selaras dengan models backend (omnilead-be).
 
-export type Channel =
-  | "instagram"
-  | "linkedin"
-  | "whatsapp"
-  | "email"
-  | "tiktok";
+export type Channel = "instagram" | "whatsapp" | "email";
 
 export type LeadScore = "hot" | "warm" | "cold";
 

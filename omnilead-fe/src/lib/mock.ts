@@ -28,15 +28,6 @@ export const channelStatuses: ChannelStatus[] = [
     ],
   },
   {
-    channel: "linkedin",
-    connected: true,
-    detail: "Tulis · Share on LinkedIn · baca lewat handoff",
-    capabilities: [
-      { action: "read_comments", available: false, path: "handoff" },
-      { action: "post_comment", available: true, path: "official_api" },
-    ],
-  },
-  {
     channel: "whatsapp",
     connected: true,
     detail: "Terhubung · Cloud API (nomor uji)",
@@ -47,15 +38,6 @@ export const channelStatuses: ChannelStatus[] = [
     connected: true,
     detail: "Terhubung · Gmail",
     capabilities: [{ action: "send_dm", available: true, path: "official_api" }],
-  },
-  {
-    channel: "tiktok",
-    connected: false,
-    detail: "Belum dihubungkan",
-    capabilities: [
-      { action: "read_comments", available: false, path: "handoff" },
-      { action: "reply_comment", available: false, path: "handoff" },
-    ],
   },
 ];
 
@@ -90,21 +72,6 @@ export const activities: Activity[] = [
     scoreValue: 86,
     reason: "Nomor cocok dengan signature email. Lead sama, kanal berbeda.",
     leadId: "lead-ani",
-  },
-  {
-    id: "act-3",
-    channel: "linkedin",
-    kind: "dm",
-    authorName: "Rendi Pratama",
-    authorHandle: "Procurement Lead, Nusa Corp",
-    text: "Tim kami butuh katering mingguan untuk 25 orang. Bisa kirim proposal?",
-    receivedAt: "2026-10-21T09:10:00+07:00",
-    status: "baru",
-    urgency: "sedang",
-    score: "warm",
-    scoreValue: 61,
-    reason: "Potensi langganan rutin, tapi volume lebih kecil. Masuk via tempel.",
-    leadId: "lead-rendi",
   },
   {
     id: "act-4",
@@ -232,19 +199,6 @@ export const proposedActions: ProposedAction[] = [
     path: "official_api",
     status: "pending",
   },
-  {
-    id: "pa-4",
-    activityId: "act-3",
-    channel: "linkedin",
-    kind: "send_message",
-    title: "Balasan DM LinkedIn (handoff)",
-    target: "Rendi Pratama · Nusa Corp",
-    text: "Terima kasih Pak Rendi. Untuk 25 pax mingguan, kami siapkan proposal paket langganan. Boleh kami kirim ke email?",
-    reason: "LinkedIn DM tanpa API: draf disiapkan, dikirim manual lewat Salin & buka.",
-    path: "handoff",
-    status: "awaiting_manual_send",
-    riskNote: "Dikirim manual oleh pengguna.",
-  },
 ];
 
 export const auditLog: AuditEntry[] = [
@@ -253,12 +207,6 @@ export const auditLog: AuditEntry[] = [
     ts: "2026-10-21T09:31:00+07:00",
     event: "Guard memblokir",
     detail: "Komentar @promo.cuan.id dicurigai manipulatif (prompt injection).",
-  },
-  {
-    id: 6,
-    ts: "2026-10-21T09:12:00+07:00",
-    event: "Draf disiapkan",
-    detail: "Balasan DM LinkedIn untuk Rendi Pratama (handoff).",
   },
   {
     id: 5,
@@ -288,7 +236,7 @@ export const auditLog: AuditEntry[] = [
     id: 1,
     ts: "2026-10-21T08:00:00+07:00",
     event: "Sinkronisasi",
-    detail: "4 kanal terhubung: Instagram, LinkedIn, WhatsApp, Email.",
+    detail: "3 kanal terhubung: Instagram, WhatsApp, Email.",
   },
 ];
 
@@ -305,16 +253,6 @@ export const leads: Record<string, LeadProfile> = {
     channels: ["instagram", "whatsapp", "email"],
     mergedEvidence:
       "Nomor WA cocok dengan signature email; handle IG cocok berdasarkan nama & konteks (disetujui).",
-  },
-  "lead-rendi": {
-    id: "lead-rendi",
-    name: "Rendi Pratama",
-    company: "Nusa Corp",
-    score: "warm",
-    scoreValue: 61,
-    stage: "tertarik",
-    summary: "Butuh katering mingguan 25 pax. Potensi langganan rutin.",
-    channels: ["linkedin"],
   },
   "lead-sari": {
     id: "lead-sari",
