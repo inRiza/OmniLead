@@ -49,7 +49,7 @@ Dari `~/.claude/CLAUDE.md` pengguna dan percakapan:
 ## 2. Apa proyek ini
 
 **OmniLead**: CRM agentic multi-kanal untuk UMKM Indonesia (hackathon). Agen menyiapkan balasan dan tindak lanjut,
-**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-4.0.md`
+**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-5.0.md`
 (versi isi 2.4; nama file tetap). Status terkini ada di PRD bagian "Status Implementasi" dan di `plan.md`.
 
 Tiga bagian di satu repo (`github.com/inRiza/OmniLead`, remote `origin`):

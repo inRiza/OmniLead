@@ -47,7 +47,8 @@ Page access token. Login lewat Facebook Login (aplikasi Meta yang sama dengan Wh
 beberapa Page, pengguna memilih satu Page di halaman Integrasi. Untuk mode lokal tanpa login, isi
 `OMNILEAD_FACEBOOK_PAGE_ID` dan `OMNILEAD_FACEBOOK_PAGE_ACCESS_TOKEN`.
 
-Semua connector baru diuji dengan transport HTTP tiruan; belum pernah dipanggil ke platform sungguhan.
+Semua connector diuji dengan transport HTTP tiruan. Ke platform sungguhan, Instagram sudah diverifikasi
+(baca post dan komentar). WhatsApp, Gmail, dan Facebook Page belum diverifikasi end-to-end di lingkungan ini.
 
 ## Menjalankan
 
@@ -67,7 +68,26 @@ Dokumentasi API: http://localhost:8000/docs. Service agen harus jalan di `OMNILE
 `http://localhost:8100`); jika mati, event ditandai `agent_error` dan bisa dianalisis ulang
 (`POST /events/{id}/analyze`).
 
+### Mode demo: kredensial kanal di `.env`
+
+Dengan `OMNILEAD_AUTH_ENABLED=false`, connector memakai token dari `.env` (bukan OAuth per bisnis).
+Langkah mengisi tiap key ada di komentar `.env.example`. Dua skrip bantu:
+
+```bash
+uv run python scripts/gmail_refresh_token.py   # login Google, cetak OMNILEAD_GMAIL_REFRESH_TOKEN
+uv run python scripts/check_channels.py        # cek Instagram, WhatsApp, Gmail (baca-saja)
+uv run python scripts/check_channels.py --whatsapp-to 62812xxxx --gmail-to nama@domain  # + kirim pesan uji
+```
+
+Pesan masuk: WhatsApp lewat webhook `/webhooks/whatsapp` (butuh URL HTTPS publik; lokal pakai
+`cloudflared tunnel --url http://localhost:8001`). Gmail lewat poll
+`POST /scheduler/gmail-poll` dengan header `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>`.
+
 Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
+
+Akun demo untuk juri: isi `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD`. Saat server menyala, akun itu
+dibuat (bila belum ada) dan bisnisnya diisi data demo (`demo.py`). Dipakai untuk deploy publik di Cloud Run;
+lihat PRD bagian *Deploy Publik untuk Juri*.
 
 Penyimpanan: `OMNILEAD_STORE=sqlite` (default; cukup untuk dev, tes, dan demo lokal) atau `firestore`
 (`store_firestore.py`, untuk deploy Cloud Run; belum diuji ke Firestore sungguhan).

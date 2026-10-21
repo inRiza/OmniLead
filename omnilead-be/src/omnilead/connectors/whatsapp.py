@@ -53,6 +53,34 @@ class WhatsAppConnector(ChannelConnector):
             capabilities=self.capabilities(),
         )
 
+    def phone_info(self) -> dict:
+        """Info nomor bisnis (nomor tampil, nama terverifikasi). Baca-saja, untuk cek koneksi."""
+        if not self.configured:
+            raise NotConnected(
+                "WhatsApp belum terhubung: OMNILEAD_WHATSAPP_PHONE_NUMBER_ID / "
+                "OMNILEAD_WHATSAPP_ACCESS_TOKEN kosong."
+            )
+        try:
+            resp = self._client.get(
+                f"{self._base}/{self._phone_id}",
+                headers={"Authorization": f"Bearer {self._token}"},
+                params={"fields": "display_phone_number,verified_name,quality_rating"},
+            )
+        except httpx.HTTPError as exc:
+            raise ConnectorError(f"WhatsApp tidak terjangkau: {exc}") from exc
+        try:
+            body = resp.json()
+        except ValueError:
+            raise ConnectorError(f"Respons non-JSON dari WhatsApp: {resp.text[:200]}")
+        if resp.status_code == 401:
+            raise NotConnected("Token WhatsApp kedaluwarsa atau tidak valid")
+        if resp.status_code >= 400 or "error" in body:
+            err = body.get("error", {})
+            raise ConnectorError(
+                f"WhatsApp error {resp.status_code}: {err.get('message', body)} (code {err.get('code')})"
+            )
+        return body
+
     def list_posts(self, limit: int = 10) -> list[Post]:
         raise ActionNotSupported("whatsapp: list_posts tidak tersedia")
 

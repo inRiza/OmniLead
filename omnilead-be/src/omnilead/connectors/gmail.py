@@ -166,6 +166,10 @@ class GmailConnector(ChannelConnector):
             raise ConnectorError(f"Respons Gmail tanpa ID: {body}")
         return body["id"]
 
+    def profile(self) -> dict:
+        """Akun Gmail yang terhubung (users.getProfile). Baca-saja, untuk cek koneksi."""
+        return self._call("GET", "profile")
+
     # --- terima ---
 
     def poll(self, max_results: int = 10, query: str = "in:inbox newer_than:2d") -> list[EventIn]:
