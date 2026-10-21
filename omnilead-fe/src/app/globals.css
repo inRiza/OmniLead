@@ -14,6 +14,30 @@
   --rc-card-border: #e4e4e7;
   --rc-danger: #b91c1c;
   --rc-danger-fg: #fef2f2;
+  /* Aksen merek: cobalt (aksi, fokus, status) dan saffron (sorotan kecil). */
+  --rc-accent: #2f5bea;
+  --rc-accent-fg: #ffffff;
+  --rc-accent-soft: #eef2fe;
+  --rc-highlight: #f5a524;
+  --rc-highlight-soft: #fef3dc;
+  --rc-accent-hover: #2449c7;
+  --rc-navy: #0b1a3a;
+}
+
+/* Palet merek yang lebih berwarna; untuk sementara hanya dipakai landing page. */
+.rc-brand {
+  --rc-bg: #f6f8fc;
+  --rc-surface: #ffffff;
+  --rc-surface-hover: #eef2f9;
+  --rc-border: #e2e7f2;
+  --rc-border-strong: #cbd3e4;
+  --rc-fg: #0b1736;
+  --rc-fg-muted: #5a6680;
+  --rc-fg-subtle: #8a94ab;
+  --rc-primary: #0b1736;
+  --rc-primary-fg: #ffffff;
+  --rc-accent-soft: #eef3ff;
+  --rc-highlight-soft: #fff8ea;
 }
 
 .dark {
@@ -30,6 +54,11 @@
   --rc-card-border: #27272a;
   --rc-danger: #ef4444;
   --rc-danger-fg: #1f0707;
+  --rc-accent: #6b8cff;
+  --rc-accent-fg: #09090b;
+  --rc-accent-soft: #141c3a;
+  --rc-highlight: #f5b544;
+  --rc-highlight-soft: #2a1f0a;
 }
 
 @theme inline {
@@ -46,6 +75,13 @@
   --color-rc-card-border: var(--rc-card-border);
   --color-rc-danger: var(--rc-danger);
   --color-rc-danger-fg: var(--rc-danger-fg);
+  --color-rc-accent: var(--rc-accent);
+  --color-rc-accent-fg: var(--rc-accent-fg);
+  --color-rc-accent-soft: var(--rc-accent-soft);
+  --color-rc-highlight: var(--rc-highlight);
+  --color-rc-highlight-soft: var(--rc-highlight-soft);
+  --color-rc-accent-hover: var(--rc-accent-hover);
+  --color-rc-navy: var(--rc-navy);
   --font-sans: var(--font-geist-sans);
   --animate-in: enter 0.2s ease-out;
   --animate-out: exit 0.2s ease-in;
@@ -88,6 +124,116 @@
   }
   to {
     opacity: 0;
+  }
+}
+
+/* --- Motion landing page. Semua dimatikan bila pengguna memilih reduce motion. --- */
+@keyframes rc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rc-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rc-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes rc-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Komet yang berjalan di sepanjang garis alir hero; satuan mengikuti pathLength=100. */
+@keyframes rc-flow {
+  from {
+    stroke-dashoffset: 16;
+  }
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.rc-flow {
+  stroke-dasharray: 16 200;
+  animation: rc-flow 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.rc-marquee {
+  animation: rc-marquee 40s linear infinite;
+}
+.rc-marquee:hover {
+  animation-play-state: paused;
+}
+
+.rc-enter {
+  animation: rc-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rc-pop {
+  animation: rc-pop 0.35s ease-out both;
+}
+.rc-ping {
+  animation: rc-ping 1.6s ease-out infinite;
+}
+
+/* Muncul saat di-scroll; hanya disembunyikan bila JS aktif supaya konten tidak hilang tanpa JS. */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .rc-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.6s ease,
+      transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .rc-reveal[data-shown] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-enter,
+  .rc-pop,
+  .rc-ping,
+  .rc-marquee {
+    animation: none;
+  }
+  .rc-flow {
+    animation: none;
+    stroke-dasharray: none;
+    opacity: 0;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }
 
