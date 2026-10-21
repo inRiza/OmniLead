@@ -94,6 +94,10 @@ class Executor:
         if not window.open:
             return self._fail(action, window.reason)
 
+        bindings = getattr(self._registry, "account_ids", None)
+        if bindings is not None and action.payload.get("_connection_account") != bindings.get(action.channel.value, ""):
+            return self._fail(action, "Akun kanal telah diganti sejak draf dibuat. Analisis ulang pesan sebelum mengirim.")
+
         if settings.dry_run:
             action.status = ActionStatus.EXECUTED
             action.result_ref = "dry-run"
@@ -135,6 +139,10 @@ class Executor:
 
     def _context(self, action: Action) -> dict:
         """Metadata kanal dari pesan masuk terakhir lead (mis. thread Gmail)."""
+        if action.event_id:
+            event = self._store.get_event(action.event_id)
+            if event and event.channel == action.channel:
+                return event.meta
         if not action.lead_id:
             return {}
         for e in self._store.list_events(lead_id=action.lead_id, limit=50):

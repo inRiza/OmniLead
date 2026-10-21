@@ -323,7 +323,7 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    channel: "tiktok",
+    channel: "instagram",
     sender: "@sari.eats · ditempel manual",
     message: "hampers premium 10 box brp kak?",
     steps: [
@@ -333,12 +333,12 @@ const SCENARIOS: Scenario[] = [
     ],
     proposals: [
       {
-        kind: "Balasan TikTok",
+        kind: "Balasan Instagram",
         text: "Hampers Premium untuk 10 box totalnya Rp1.500.000, Kak. Mau dikirim ke mana?",
-        guard: "Dikirim manual lewat TikTok",
+        guard: "Salin balasan ke Instagram",
         manual: true,
       },
-      { kind: "Catatan pelanggan", text: "Calon pembeli baru dari TikTok · Warm", guard: "Hanya dicatat, tidak dikirim" },
+      { kind: "Catatan pelanggan", text: "Calon pembeli baru dari Instagram · Warm", guard: "Hanya dicatat, tidak dikirim" },
     ],
   },
 ];
@@ -593,7 +593,7 @@ export function HeroStage() {
                         {state === "no"
                           ? "Ditolak · alasan dicatat"
                           : p.manual
-                            ? "Disalin · tempel di TikTok untuk mengirim"
+                            ? "Disalin · tempel di Instagram untuk mengirim"
                             : "Disetujui · pesan dikirim"}
                       </span>
                     ) : (

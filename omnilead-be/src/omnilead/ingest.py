@@ -72,6 +72,13 @@ class IngestService:
 
     def ingest(self, ev: EventIn) -> tuple[Event, bool]:
         """Mengembalikan (event, duplikat)."""
+        bindings = self._queue.account_bindings
+        if bindings is not None:
+            meta = dict(ev.meta)
+            meta.setdefault("business_account_id", bindings.get(ev.channel.value, ""))
+            original = meta.setdefault("platform_external_id", ev.external_id)
+            account = meta["business_account_id"]
+            ev = ev.model_copy(update={"meta": meta, "external_id": f"{account}:{original}" if account else original})
         existing = self._store.find_event(ev.channel.value, ev.external_id)
         if existing:
             return existing, True
@@ -245,7 +252,7 @@ class IngestService:
                 t for t in [other.name, *other.phones, *other.emails]
                 if t and len(t) >= 3 and t.lower() not in own
             ]
-        return {
+        payload = {
             "event": {
                 "id": event.id,
                 "channel": event.channel.value,
@@ -261,6 +268,10 @@ class IngestService:
             "windows": windows,
             "protected_terms": protected[:PROTECTED_LIMIT],
         }
+        if self._queue.account_bindings is not None or settings.agent_channels:
+            from omnilead.knowledge import build_context
+            payload["business_context"] = build_context(self._store, event.channel.value, event.text)
+        return payload
 
     def _lead_context(self, event: Event, lead: Lead) -> dict:
         items: list[tuple[str, dict]] = []

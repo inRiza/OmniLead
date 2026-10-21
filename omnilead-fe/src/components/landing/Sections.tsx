@@ -366,7 +366,7 @@ function MockWorkspace() {
     { channel: "instagram", who: "Ani · PT Maju Jaya", msg: "Kak, bisa buat 60 orang tgl 30? harga?", tag: "Hot", tone: "bg-rc-highlight text-rc-navy" },
     { channel: "whatsapp", who: "Budi", msg: "salah kirim menu, minta refund ya", tag: "Komplain", tone: "bg-rc-danger text-white" },
     { channel: "email", who: "PT Nusa Corp", msg: "Penawaran katering 100 pax", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
-    { channel: "tiktok", who: "@sari.eats", msg: "hampers premium 10 box brp kak?", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
+    { channel: "instagram", who: "@sari.eats", msg: "hampers premium 10 box brp kak?", tag: "Warm", tone: "bg-rc-accent-soft text-rc-accent" },
   ];
   return (
     <div className="flex flex-col gap-2">

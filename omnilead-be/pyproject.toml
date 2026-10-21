@@ -1,7 +1,7 @@
 [project]
 name = "omnilead-be"
 version = "0.1.0"
-description = "Backend OmniLead: connector Instagram & LinkedIn (API resmi), handoff manual, antrean persetujuan, executor"
+description = "Backend OmniLead: connector Instagram (API resmi), handoff manual, antrean persetujuan, executor"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.4",
     "httpx>=0.27",
+    "cryptography>=44",
 ]
 
 [project.optional-dependencies]

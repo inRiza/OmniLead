@@ -1,13 +1,9 @@
 // Klien REST ke omnilead-be. Tipe "Be*" = bentuk JSON dari backend apa adanya;
 // adapt.ts mengubahnya ke tipe FE.
 
-const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(
-  /\/$/,
-  "",
-);
-// Hanya untuk dev: nilai NEXT_PUBLIC_* terkirim ke browser. Untuk produksi,
-// lewatkan lewat proxy server-side.
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
+const BASE = "/api/backend";
+let activeWorkspace: string | null = null;
+export function setActiveWorkspace(id: string | null) { activeWorkspace = id; }
 
 export class ApiError extends Error {
   constructor(
@@ -23,9 +19,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
+      credentials: "same-origin",
       headers: {
         "content-type": "application/json",
-        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+        ...(activeWorkspace ? { "x-omnilead-workspace": activeWorkspace } : {}),
         ...init?.headers,
       },
       cache: "no-store",
@@ -214,8 +211,83 @@ export interface HandoffPackage {
   hint: string;
 }
 
+export interface AccountUser {
+  id: string;
+  workspace_id: string;
+  email: string;
+  name: string;
+  business: string;
+  workspaces: { id: string; name: string }[];
+}
+
+export interface AccountSession {
+  enabled: boolean;
+  user: AccountUser | null;
+  registration_enabled: boolean;
+}
+
+export interface Connection {
+  provider: "instagram" | "gmail" | "whatsapp";
+  channel: string;
+  configured: boolean;
+  status: "connected" | "disconnected" | "reconnect_required";
+  label: string;
+  expires_at: number | null;
+  scopes: string[];
+  error: string;
+}
+
+export interface KnowledgeProduct {
+  name: string;
+  unit_price: number;
+  unit: string;
+  min_order: number;
+}
+
+export interface KnowledgeBase {
+  id: string;
+  name: string;
+  content: string;
+  products: KnowledgeProduct[];
+  updated_at: string;
+}
+
+export interface ChannelAgentConfig {
+  knowledge_base_ids: string[];
+  tone: "friendly" | "professional" | "casual" | "concise" | "custom";
+  custom_tone: string;
+}
+
+export type ConnectionStart =
+  | { mode: "redirect"; url: string }
+  | { mode: "embedded"; app_id: string; config_id: string; version: string; state: string };
+
+export interface WhatsAppAccounts {
+  selection: string;
+  accounts: { id: string; waba_id: string; label: string; registered: boolean }[];
+}
+
 export const api = {
   base: BASE,
+  session: () => request<AccountSession>("/auth/session"),
+  login: (email: string, password: string) => post<AccountUser>("/auth/login", { email, password }),
+  register: (body: { email: string; password: string; name: string }) => post<AccountUser>("/auth/register", body),
+  addWorkspace: (name: string) => post<{ id: string; name: string }>("/workspaces", { name }),
+  selectWorkspace: (workspace_id: string) => post<{ ok: boolean }>("/workspaces/select", { workspace_id }),
+  knowledgeBases: () => request<KnowledgeBase[]>("/knowledge-bases"),
+  saveKnowledge: (body: Pick<KnowledgeBase, "name" | "content" | "products">, id?: string) => id
+    ? request<KnowledgeBase>(`/knowledge-bases/${id}`, { method: "PUT", body: JSON.stringify(body) })
+    : post<KnowledgeBase>("/knowledge-bases", body),
+  deleteKnowledge: (id: string) => request<{ ok: boolean }>(`/knowledge-bases/${id}`, { method: "DELETE" }),
+  agentChannelSettings: () => request<Record<string, ChannelAgentConfig>>("/agent/channel-settings"),
+  saveAgentChannelSettings: (channel: string, body: ChannelAgentConfig) => request<ChannelAgentConfig>(`/agent/channel-settings/${channel}`, { method: "PATCH", body: JSON.stringify(body) }),
+  logout: () => post<{ ok: boolean }>("/auth/logout"),
+  updateProfile: (name: string, business: string) => request<AccountUser>("/auth/profile", { method: "PATCH", body: JSON.stringify({ name, business }) }),
+  connections: () => request<Connection[]>("/connections"),
+  connect: (provider: string) => post<ConnectionStart>(`/connections/${provider}/start`),
+  disconnect: (provider: string) => request<{ ok: boolean }>(`/connections/${provider}`, { method: "DELETE" }),
+  whatsappExchange: (state: string, code: string) => post<WhatsAppAccounts>("/connections/whatsapp/exchange", { state, code }),
+  whatsappSelect: (selection: string, account_id: string, pin: string) => post<{ ok: boolean }>("/connections/whatsapp/select", { selection, account_id, pin }),
   events: () => request<BeEvent[]>("/events?limit=200"),
   actions: () => request<BeAction[]>("/actions"),
   leads: () => request<BeLead[]>("/leads"),

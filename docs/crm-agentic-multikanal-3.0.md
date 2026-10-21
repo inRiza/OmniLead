@@ -1254,12 +1254,25 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 
 ## Status Implementasi
 
+**Penyempitan kanal (21 Okt 2026):** kanal aktif hanya Instagram, WhatsApp, dan email.
+LinkedIn dan TikTok dihapus dari entry API, OAuth, agen, UI, dan pengaturan pengetahuan.
+Pembahasan kedua kanal pada bagian riset/rencana sebelumnya merupakan konteks historis,
+bukan fitur yang tersedia. Instagram memakai Instagram Login di `graph.instagram.com` (default `v26.0`).
+
+**Pembaruan login bisnis (21 Okt 2026):** tersedia daftar/masuk/keluar, pemisahan data per bisnis,
+penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/ganti/putuskan
+akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
+pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
+dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
+Hasil pengujian terbaru: BE 87, FE 22; alur provider diuji dengan HTTP tiruan.
+
 Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
 [../TESTING.md](../TESTING.md), deploy di [Lampiran B](#lampiran-b-deploy-ke-google-cloud), sumber dan lisensi di [SOURCES.md](SOURCES.md).
 
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
-HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (21 Okt 2026): engine `adk`
-14/18 pass^3, ±41 detik per kasus; kegagalannya dicatat di `omnilead-agent/eval/results-adk.md`.
+HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (21 Okt 2026): evalset
+engine `adk` 14/18 pass^3, ±41 detik per kasus (kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
+check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 
 | Komponen | Prioritas | Status | Catatan |
 |---|---|---|---|
@@ -1283,7 +1296,6 @@ HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipa
 | Ide konten dari pertanyaan yang sering muncul | Could | Selesai (aturan) | Draf saja; tanpa data cukup hasilnya kosong; belum memakai LLM |
 | Pisah profil (undo merge) | Should | Selesai | Snapshot saat merge; riwayat dan identitas dikembalikan |
 | Autentikasi OIDC BE → agen | Should | Selesai (fake) | `OMNILEAD_AGENT_AUTH=oidc`; belum diuji di Cloud Run |
-| Verifikasi izin produk LinkedIn untuk komentar | - | Belum | Ditandai [A] |
 | Landing page dan logo | Could | Selesai | `/` landing, aplikasi di `/dashboard` |
 | Deck, video cadangan, wawancara UMKM | Must | Belum | Non-kode |
 
@@ -1578,6 +1590,18 @@ GOOGLE_CLOUD_LOCATION=global
 
 ### B.3 Deploy (setelah repo Artifact Registry dibuat panitia)
 
+Login dan OAuth per bisnis: ikuti [account-connections.md](account-connections.md) untuk
+membuat aplikasi provider, callback FE, dan key enkripsi. Kredensial akun pengguna diperoleh
+dari tombol **Hubungkan**, bukan dipasang sebagai env service.
+
+```bash
+for s in omnilead-agent-key meta-app-secret meta-verify-token oauth-encryption-key \
+         gmail-client-secret gmail-push-token scheduler-token instagram-client-secret; do
+  gcloud secrets create $s --replication-policy=automatic
+done
+printf '%s' "<nilai>" | gcloud secrets versions add omnilead-agent-key --data-file=-
+```
+
 ```bash
 export PROJECT=hackathon-primestep-03 REGION=asia-southeast2
 SA=hackathon-runtime@$PROJECT.iam.gserviceaccount.com
@@ -1592,13 +1616,21 @@ gcloud run deploy omnilead-agent --source omnilead-agent --region $REGION \
 AGENT_URL=$(gcloud run services describe omnilead-agent --region $REGION --format 'value(status.url)')
 gcloud run deploy omnilead-api --source omnilead-be --region $REGION \
   --service-account $SA --allow-unauthenticated --min-instances 0 \
-  --set-env-vars OMNILEAD_STORE=sqlite,OMNILEAD_AGENT_URL=$AGENT_URL \
-  --set-secrets OMNILEAD_API_KEY=omnilead-api-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest
+  --set-env-vars OMNILEAD_STORE=sqlite,OMNILEAD_AGENT_URL=$AGENT_URL,OMNILEAD_AUTH_ENABLED=true,\
+OMNILEAD_FRONTEND_URL=https://<url-fe>,OMNILEAD_CORS_ORIGINS='["https://<url-fe>"]' \
+  --set-secrets OMNILEAD_TOKEN_ENCRYPTION_KEY=oauth-encryption-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest,\
+OMNILEAD_META_APP_SECRET=meta-app-secret:latest,OMNILEAD_META_VERIFY_TOKEN=meta-verify-token:latest,\
+OMNILEAD_SCHEDULER_TOKEN=scheduler-token:latest,OMNILEAD_GMAIL_CLIENT_SECRET=gmail-client-secret:latest,\
+OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_CLIENT_SECRET=instagram-client-secret:latest
 ```
 
+Isi juga `OMNILEAD_META_APP_ID`, `OMNILEAD_WHATSAPP_SIGNUP_CONFIG_ID`, `OMNILEAD_INSTAGRAM_CLIENT_ID`,
+`OMNILEAD_GMAIL_CLIENT_ID`, dan `OMNILEAD_GMAIL_PUBSUB_TOPIC` (nilai non-rahasia, lewat `--set-env-vars`).
+Setelah URL FE tersedia, perbarui `OMNILEAD_FRONTEND_URL`, CORS, dan redirect URI di dashboard provider.
+
 `--allow-unauthenticated` diperlukan karena webhook Meta dan push Pub/Sub
-tidak membawa identitas Google. Perlindungan ada di aplikasi: API key untuk
-FE, signature `X-Hub-Signature-256` untuk Meta, token untuk push Gmail, dan
+tidak membawa identitas Google. Perlindungan ada di aplikasi: sesi pengguna
+untuk FE, signature `X-Hub-Signature-256` untuk Meta, token untuk push Gmail, dan
 token Bearer atau OIDC untuk Scheduler. Opsi lebih aman untuk agen:
 `--no-allow-unauthenticated`, beri SA BE peran `roles/run.invoker`, dan
 set `OMNILEAD_AGENT_AUTH=oidc` di BE (belum diuji di Cloud Run).
@@ -1607,22 +1639,21 @@ Setelah Firestore aktif: `OMNILEAD_STORE=firestore,OMNILEAD_FIRESTORE_PROJECT=$P
 
 ### B.4 FE
 
-`NEXT_PUBLIC_*` dibakar saat build, jadi URL API harus diberikan sebagai
-build-arg. `gcloud builds submit --tag` tidak meneruskan build-arg.
+FE meneruskan permintaan ke BE lewat proxy Next.js `/api/backend` (cookie sesi ikut
+diteruskan). URL backend dibaca server saat runtime, jadi tidak perlu build-arg dan
+tidak perlu `NEXT_PUBLIC_API_KEY`.
 
 ```bash
 API=$(gcloud run services describe omnilead-api --region $REGION --format 'value(status.url)')
 IMAGE=$REGION-docker.pkg.dev/$PROJECT/cloud-run-source-deploy/omnilead-fe
-docker build omnilead-fe --build-arg NEXT_PUBLIC_API_URL=$API -t $IMAGE
-docker push $IMAGE
-gcloud run deploy omnilead-fe --image $IMAGE --region $REGION --allow-unauthenticated
+gcloud builds submit omnilead-fe --tag $IMAGE
+gcloud run deploy omnilead-fe --image $IMAGE --region $REGION --allow-unauthenticated \
+  --set-env-vars OMNILEAD_BACKEND_URL=$API
 ```
 
-Build FE saat ini gagal di `npm ci` karena `package-lock.json` tidak
-sinkron (tim memakai bun). Perbaiki dulu: sinkronkan lockfile, atau ganti
-Dockerfile ke image `oven/bun` dengan `bun install --frozen-lockfile`.
-`NEXT_PUBLIC_API_KEY` ikut ke bundle browser; untuk produksi, lewatkan
-lewat proxy server-side.
+Build FE sempat gagal di `npm ci` karena `package-lock.json` tidak sinkron (tim memakai
+bun). Cek ulang; bila masih gagal, sinkronkan lockfile atau ganti Dockerfile ke image
+`oven/bun` dengan `bun install --frozen-lockfile`.
 
 ### B.5 Webhook, Gmail, dan Scheduler (butuh API yang diaktifkan panitia)
 

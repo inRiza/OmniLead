@@ -34,7 +34,7 @@ class StepLimitReached(Exception):
 class Tools:
     """Tools baca/hitung yang tercatat ke trace. Tidak ada tool kirim."""
 
-    req: AnalyzeRequest     
+    req: AnalyzeRequest
     tri: TriageResult
     catalog: Catalog
     trace: Trace
@@ -74,6 +74,8 @@ class Tools:
         found = [f"{p.name} {rupiah(p.unit_price)}/{p.unit}, min. {p.min_order}" for p in hits[:2]]
         if faq:
             found.append(f"FAQ: {faq}")
+        if self.req.business_context and self.req.business_context.documents:
+            found.append("Knowledge base: " + ", ".join(doc.name for doc in self.req.business_context.documents))
         self._record(
             "search_catalog_faq", {"query": query[:60]}, "; ".join(found) or "tidak ada yang cocok"
         )
@@ -251,7 +253,8 @@ class TemplateDrafter:
                     if isinstance(dl, int) and dl < lead_days:
                         parts.append(f"Karena pemesanan idealnya H-{lead_days}, kami cek dulu ketersediaannya ya kak.")
         else:
-            faq = ctx.catalog.faq_answer(ctx.req.event.text)
+            from omnilead_agent.knowledge import fallback_answer
+            faq = ctx.catalog.faq_answer(ctx.req.event.text) or fallback_answer(ctx.req.business_context, ctx.req.event.text)
             if faq:
                 parts.append(faq)
             elif not stock_text:
@@ -299,7 +302,7 @@ class TemplateDrafter:
         proposals: list[Proposal] = []
         reason_base = f"Intent: {', '.join(tri.intents)}. Urgensi {tri.urgency}: {tri.urgency_reason}"
 
-        is_public_comment = ev.kind == "comment" and ev.channel in ("instagram", "linkedin", "tiktok")
+        is_public_comment = ev.kind == "comment" and ev.channel == "instagram"
         if is_public_comment and wants_price:
             proposals.append(Proposal(
                 kind="reply_comment", channel=ev.channel, post_ref=ev.post_ref or "",

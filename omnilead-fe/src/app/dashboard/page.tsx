@@ -11,6 +11,7 @@ import { ChannelIcon, Dot, ScoreBadge } from "@/components/primitives";
 import { ArrowIcon } from "@/components/dashboard/icons";
 import { TimeAgo } from "@/components/TimeAgo";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
+import { useAccount } from "@/components/dashboard/AccountProvider";
 
 const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
@@ -34,6 +35,7 @@ function weeklyVolume(receivedAt: string[], now: number): Bar[] {
 }
 
 export default function HomePage() {
+  const { session } = useAccount();
   const {
     activities,
     channels: channelStatuses,
@@ -81,7 +83,7 @@ export default function HomePage() {
         <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-5 pb-10 md:p-7 md:pb-12">
           <div>
             <h2 className="text-xl font-medium text-rc-fg-muted">
-              Pagi, <span className="font-semibold text-rc-fg">Bu Rina</span>
+              Halo{session.user?.name ? <>, <span className="font-semibold text-rc-fg [overflow-wrap:anywhere]">{session.user.name}</span></> : "!"}
             </h2>
             <p className="mt-1 text-sm text-rc-fg-muted">
               {error

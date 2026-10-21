@@ -61,12 +61,12 @@ def test_execute_idempoten_tidak_kirim_ganda(queue, executor, ig):
     assert len(ig.posted) == 1
 
 
-def test_kanal_tanpa_api_jatuh_ke_handoff(queue, executor, li_handoff):
-    action = queue.propose(_proposal(channel=Channel.LINKEDIN))
+def test_aksi_tanpa_api_jatuh_ke_handoff(queue, handoff_executor, ig_no_write):
+    action = queue.propose(_proposal())
     approved = queue.approve(action.id)
-    result = executor.execute(approved)
+    result = handoff_executor.execute(approved)
     assert result.status == ActionStatus.AWAITING_MANUAL_SEND
-    assert li_handoff.posted == []  # tidak ada kirim paksa
+    assert ig_no_write.posted == []  # tidak ada kirim paksa
 
 
 def test_audit_mencatat_langkah(queue, executor, store):

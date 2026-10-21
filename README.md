@@ -25,7 +25,7 @@ uv sync
 cp .env.example .env
 ```
 
-Isi `.env` dengan token yang diperlukan, lalu:
+Isi `.env` dengan kredensial aplikasi yang disiapkan pengelola, lalu:
 
 ```bash
 uvicorn omnilead.main:app --reload
@@ -33,6 +33,10 @@ uvicorn omnilead.main:app --reload
 
 API: http://localhost:8000  
 Dokumentasi: http://localhost:8000/docs
+
+Login FE di `/login`, daftar bisnis, lalu hubungkan akun di **Akun & Integrasi**.
+Pengguna tidak perlu memasukkan token. Konfigurasi aplikasi Google/Meta
+sekali oleh pengelola dijelaskan di [panduan koneksi akun](docs/account-connections.md).
 
 Tes:
 

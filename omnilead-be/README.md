@@ -1,6 +1,6 @@
 # OmniLead Backend
 
-Backend OmniLead: menerima pesan dari WhatsApp, Instagram, email, dan kanal tanpa API; menyatukan identitas
+Backend OmniLead: menerima pesan dari WhatsApp, Instagram, dan email; menyatukan identitas
 pelanggan; memanggil **service agen** (`omnilead-agent`, terpisah) untuk menyusun usulan; dan menjalankan aksi
 keluar **hanya setelah disetujui manusia**.
 
@@ -36,12 +36,18 @@ webhook WA/IG, push Gmail, POST /events, tempel pesan
 | WhatsApp | webhook (signature) | Cloud API, teks bebas | Jendela 24 jam dicek executor |
 | Email | polling + push Pub/Sub | Gmail API, masuk thread | OAuth refresh token (mode Testing) |
 | Instagram | webhook komentar + DM | balasan publik, DM, private reply | DM maks 1.000 byte |
-| LinkedIn | tempel pesan | komentar via Share on LinkedIn; selain itu handoff | izin produk belum diverifikasi |
-| TikTok, lainnya | tempel teks/screenshot | handoff (Salin & buka) | tanpa API |
+
+Instagram memakai Instagram API with Instagram Login (`graph.instagram.com`, default `v26.0`),
+tanpa Facebook Page. Pengelola mengisi ID/secret aplikasi; pengguna menghubungkan akun lewat UI.
 
 Semua connector baru diuji dengan transport HTTP tiruan; belum pernah dipanggil ke platform sungguhan.
 
 ## Menjalankan
+
+Login pengguna aktif secara default. Buka FE `/login`, daftar akun pribadi, lalu
+hubungkan Instagram, Gmail, atau WhatsApp di **Akun & Integrasi**.
+Panduan konfigurasi aplikasi sekali oleh pengelola: [account-connections.md](../docs/account-connections.md).
+Token pengguna diperoleh lewat OAuth dan disimpan terenkripsi per bisnis.
 
 ```bash
 cd omnilead-be
@@ -71,22 +77,24 @@ src/omnilead/
 ├── windows.py                     # jendela balasan kanal
 ├── scheduler.py                   # follow-up jatuh tempo, ringkasan harian
 ├── seed.py
-├── connectors/                    # base, instagram, linkedin, whatsapp, gmail, handoff, registry
+├── connectors/                    # base, instagram, whatsapp, gmail, handoff, registry
 ├── approvals/                     # queue (status machine), executor, merge (pisah profil)
 └── api/                           # routes, webhooks, scheduler_routes, deps, schemas
 ```
 
 ## Keamanan
 
-- REST untuk FE: header `X-API-Key` bila `OMNILEAD_API_KEY` diisi (kosong = mati, hanya dev).
+- REST untuk FE: cookie sesi login. Hanya mode demo eksplisit (`OMNILEAD_AUTH_ENABLED=false`)
+  memakai API key opsional. Token/API key tidak dikirim ke browser.
 - Webhook Meta: `X-Hub-Signature-256` wajib; app secret kosong → ditolak. Push Gmail: token di query.
 - `/scheduler/*`: `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>` atau OIDC Google; keduanya kosong → 403.
-- Rahasia hanya dari env/Secret Manager; `.env` dan `.secrets/` ada di `.gitignore`.
+- Kredensial aplikasi dari env/Secret Manager; token kanal disimpan terenkripsi di store per bisnis.
+  `.env`, `.secrets/`, dan database lokal ada di `.gitignore`.
 
 ## Tes
 
 ```bash
-uv run pytest                          # 72 tes
+uv run pytest
 uv run python eval/identity_eval.py    # presisi/recall identitas pada 50 lead dummy
 ```
 

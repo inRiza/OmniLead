@@ -1,10 +1,14 @@
 import { Suspense, type ReactNode } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { DashboardProvider } from "@/components/dashboard/DashboardContext";
+import { AccountProvider } from "@/components/dashboard/AccountProvider";
+
+// Session-gated pages become available after checking the current account.
+export const instant = false;
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <DashboardProvider>
+    <AccountProvider><DashboardProvider>
       <div className="flex h-dvh overflow-hidden bg-rc-bg text-rc-fg">
         <Suspense fallback={<aside className="hidden h-full w-60 shrink-0 md:block" />}>
           <Sidebar />
@@ -13,6 +17,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
-    </DashboardProvider>
+    </DashboardProvider></AccountProvider>
   );
 }

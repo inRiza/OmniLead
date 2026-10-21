@@ -12,6 +12,7 @@ import {
 } from "react";
 import {
   api,
+  ApiError,
   type BeAction,
   type BeAgentHealth,
   type BeAudit,
@@ -121,6 +122,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setRaw({ events, actions, leads, channels, audit, settings, agent, summary });
       setError(null);
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && e.message.includes("Bisnis aktif berubah")) {
+        setRaw(EMPTY);
+        window.location.reload();
+      }
+      if (e instanceof ApiError && e.status === 401) {
+        setRaw(EMPTY);
+        window.location.replace("/login");
+      }
       setError(e instanceof Error ? e.message : "Gagal memuat data");
     } finally {
       inflight.current = false;

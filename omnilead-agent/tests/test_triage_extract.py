@@ -73,7 +73,7 @@ PNG = base64.b64encode(b"\x89PNG fake").decode()
 
 class FakeExtractor:
     def extract(self, image, mime_type, channel):
-        assert image.startswith(b"\x89PNG") and channel == "tiktok"
+        assert image.startswith(b"\x89PNG") and channel == "instagram"
         return ExtractResult(handle="@rina_tt", name="Rina", text="kak bisa kirim hampers ke Bandung?")
 
 
@@ -84,7 +84,7 @@ def client(extractor) -> TestClient:
 
 
 def test_extract_returns_sender_and_text():
-    r = client(FakeExtractor()).post("/v1/extract", json={"image_base64": PNG, "channel": "tiktok"})
+    r = client(FakeExtractor()).post("/v1/extract", json={"image_base64": PNG, "channel": "instagram"})
     assert r.status_code == 200 and r.json()["handle"] == "@rina_tt" and "Bandung" in r.json()["text"]
 
 
@@ -108,7 +108,7 @@ def test_gemini_extractor_reports_missing_credentials(monkeypatch):
     for k in ("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENAI_USE_VERTEXAI"):
         monkeypatch.delenv(k, raising=False)
     try:
-        GeminiExtractor().extract(b"x", "image/png", "tiktok")
+        GeminiExtractor().extract(b"x", "image/png", "instagram")
         raise AssertionError("harus gagal tanpa kredensial")
     except ExtractUnavailable as exc:
         assert "Kredensial" in str(exc)

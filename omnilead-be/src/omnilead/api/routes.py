@@ -454,4 +454,3 @@ def audit(
     store: Store = Depends(get_store),
 ) -> list[AuditEntry]:
     return store.list_audit(limit, channel=channel)
-

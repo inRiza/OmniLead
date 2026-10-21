@@ -7,9 +7,9 @@ tool untuk mengirim ke platform.
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-Channel = Literal["instagram", "linkedin", "whatsapp", "email", "tiktok"]
+Channel = Literal["instagram", "whatsapp", "email"]
 EventKind = Literal["comment", "dm", "email", "message"]
 ProposalKind = Literal[
     "comment_post", "reply_comment", "send_message", "crm_update", "followup"
@@ -50,6 +50,29 @@ class LeadContext(BaseModel):
     timeline: list[TimelineItem] = Field(default_factory=list)
 
 
+class KnowledgeDocument(BaseModel):
+    id: str = Field(max_length=100)
+    name: str = Field(max_length=100)
+    content: str = Field(max_length=12_000)
+
+
+class BusinessProduct(BaseModel):
+    id: str = Field(max_length=100)
+    name: str = Field(min_length=1, max_length=120)
+    unit_price: int = Field(ge=0, le=1_000_000_000)
+    unit: str = Field(default="pcs", min_length=1, max_length=30)
+    min_order: int = Field(default=1, ge=1, le=1_000_000)
+
+
+class BusinessContext(BaseModel):
+    business: str = Field(max_length=100)
+    channel: Channel
+    tone: Literal["friendly", "professional", "casual", "concise", "custom"] = "friendly"
+    tone_instruction: str = Field(default="", max_length=500)
+    documents: list[KnowledgeDocument] = Field(default_factory=list, max_length=10)
+    products: list[BusinessProduct] = Field(default_factory=list, max_length=300)
+
+
 class AnalyzeRequest(BaseModel):
     event: EventIn
     lead: LeadContext | None = None
@@ -58,6 +81,13 @@ class AnalyzeRequest(BaseModel):
     windows: dict[str, bool] = Field(default_factory=dict)
     # Nama/nomor pelanggan LAIN yang tidak boleh bocor ke draf.
     protected_terms: list[str] = Field(default_factory=list)
+    business_context: BusinessContext | None = None
+
+    @model_validator(mode="after")
+    def context_matches_channel(self):
+        if self.business_context and self.business_context.channel != self.event.channel:
+            raise ValueError("Konteks bisnis tidak sesuai kanal event")
+        return self
 
 
 class TriageResult(BaseModel):

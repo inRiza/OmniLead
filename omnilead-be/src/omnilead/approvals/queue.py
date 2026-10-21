@@ -23,10 +23,18 @@ class InvalidTransition(Exception):
 
 
 class ApprovalQueue:
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, actor: str = "owner", account_bindings: dict | None = None):
         self._store = store
+        self.actor = actor
+        self.account_bindings = account_bindings
 
     def propose(self, proposal: ProposedAction) -> Action:
+        if self.account_bindings is not None:
+            account = self.account_bindings.get(proposal.channel.value, "")
+            event = self._store.get_event(proposal.event_id) if proposal.event_id else None
+            if event and event.channel == proposal.channel and "business_account_id" in event.meta:
+                account = event.meta["business_account_id"]
+            proposal = proposal.model_copy(update={"payload": {**proposal.payload, "_connection_account": account}})
         action = Action(
             **proposal.model_dump(),
             id=str(uuid.uuid4()),
@@ -112,7 +120,7 @@ class ApprovalQueue:
             event,
             detail,
             action.id,
-            actor=actor,
+            actor=self.actor if actor == "owner" else actor,
             channel=action.channel.value,
             lead_id=action.lead_id,
         )

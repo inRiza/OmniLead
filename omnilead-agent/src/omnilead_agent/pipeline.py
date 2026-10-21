@@ -76,11 +76,19 @@ def analyze(
     catalog: Catalog | None = None,
     triager=None,
 ) -> AnalyzeResponse:
-    catalog = catalog or default_catalog()
+    if req.business_context:
+        from omnilead_agent.knowledge import business_catalog
+        catalog = business_catalog(req.business_context)
+        req = req.model_copy(update={"preferences": [*req.preferences, req.business_context.tone_instruction]})
+    else:
+        catalog = catalog or default_catalog()
     drafter = drafter or default_drafter()
     triager = triager or default_triager()
     tri = triager(req) if triager else triage(req)
     trace = Trace(goal=_goal(req, tri), plan=list(PLAN))
+    if req.business_context:
+        names = ", ".join(doc.name for doc in req.business_context.documents) or "belum ada sumber"
+        trace.plan.insert(0, f"Knowledge base {req.event.channel}: {names}; tone {req.business_context.tone}")
 
     def done(**kw) -> AnalyzeResponse:
         return AnalyzeResponse(event_id=req.event.id, triage=tri, trace=trace, **kw)

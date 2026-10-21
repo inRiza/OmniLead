@@ -16,8 +16,22 @@ class Settings(BaseSettings):
     db_path: Path = Path("data/omnilead.db")
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # Autentikasi REST untuk FE. Kosong = mati (hanya dev).
+    # API key mode demo lama (hanya berlaku jika auth_enabled=false).
     api_key: str = ""
+
+    # Login pengguna dan OAuth. Token kanal disimpan per bisnis, bukan di browser.
+    auth_enabled: bool = True
+    accounts_db_path: Path = Path("data/accounts.db")
+    frontend_url: str = "http://localhost:3000"
+    token_encryption_key: str = ""  # Fernet; lokal dibuat di .secrets/oauth.key
+    session_days: int = 7
+    registration_enabled: bool = True
+    meta_app_id: str = ""
+    whatsapp_signup_config_id: str = ""
+    whatsapp_signup_version: str = "v25.0"
+    instagram_client_id: str = ""
+    instagram_client_secret: str = ""
+    instagram_api_host: str = "https://graph.instagram.com"  # Instagram Login
 
     # Service agen (terpisah, dipanggil oleh BE)
     agent_url: str = "http://localhost:8100"
@@ -48,17 +62,7 @@ class Settings(BaseSettings):
     # Instagram Graph API (resmi)
     instagram_user_id: str = ""
     instagram_access_token: str = ""
-    instagram_graph_version: str = "v21.0"
-
-    # LinkedIn Share on LinkedIn (resmi)
-    linkedin_client_id: str = ""
-    linkedin_client_secret: str = ""
-    linkedin_redirect_uri: str = "http://localhost:8000/auth/linkedin/callback"
-    linkedin_api_version: str = "202609"
-
-    @property
-    def linkedin_token_path(self) -> Path:
-        return self.secrets_dir / "linkedin_token.json"
+    instagram_graph_version: str = "v26.0"
 
 
 @lru_cache

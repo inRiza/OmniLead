@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 
-from omnilead.api.deps import get_ingest, get_registry
+from omnilead.api.deps import get_ingest, get_registry, get_accounts, ingest_for_workspace, registry_for_workspace
 from omnilead.config import Settings, get_settings
 from omnilead.connectors.base import ConnectorError
 from omnilead.connectors.registry import Registry
@@ -117,7 +117,8 @@ def _ingest_all(ingest: IngestService, events: list[EventIn]) -> None:
 
 async def _signed_json(request: Request, settings: Settings) -> dict:
     raw = await request.body()
-    if not verify_signature(settings.meta_app_secret, raw, request.headers.get("x-hub-signature-256")):
+    secret = settings.instagram_client_secret if request.url.path.endswith("/instagram") and settings.instagram_client_secret else settings.meta_app_secret
+    if not verify_signature(secret, raw, request.headers.get("x-hub-signature-256")):
         raise HTTPException(status_code=403, detail="Signature tidak valid")
     try:
         return json.loads(raw)
@@ -145,7 +146,21 @@ async def whatsapp_receive(
     settings: Settings = Depends(get_settings),
     ingest: IngestService = Depends(get_ingest),
 ) -> dict:
-    events = parse_whatsapp(await _signed_json(request, settings))
+    payload = await _signed_json(request, settings)
+    if settings.auth_enabled:
+        accepted = 0
+        for entry in payload.get("entry", []):
+            for change in entry.get("changes", []):
+                phone = str(change.get("value", {}).get("metadata", {}).get("phone_number_id", ""))
+                workspace = get_accounts().asset_workspace("whatsapp", phone)
+                if workspace:
+                    events = parse_whatsapp({"entry": [{"changes": [change]}]})
+                    for event in events:
+                        event.meta["business_account_id"] = phone
+                    background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                    accepted += len(events)
+        return {"status": "ok", "accepted": accepted}
+    events = parse_whatsapp(payload)
     background.add_task(_ingest_all, ingest, events)
     return {"status": "ok", "accepted": len(events)}
 
@@ -170,7 +185,19 @@ async def instagram_receive(
     settings: Settings = Depends(get_settings),
     ingest: IngestService = Depends(get_ingest),
 ) -> dict:
-    events = parse_instagram(await _signed_json(request, settings))
+    payload = await _signed_json(request, settings)
+    if settings.auth_enabled:
+        accepted = 0
+        for entry in payload.get("entry", []):
+            workspace = get_accounts().asset_workspace("instagram", str(entry.get("id", "")))
+            if workspace:
+                events = parse_instagram({"entry": [entry]})
+                for event in events:
+                    event.meta["business_account_id"] = str(entry["id"])
+                background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                accepted += len(events)
+        return {"status": "ok", "accepted": accepted}
+    events = parse_instagram(payload)
     background.add_task(_ingest_all, ingest, events)
     return {"status": "ok", "accepted": len(events)}
 
@@ -187,6 +214,10 @@ def poll_gmail(registry: Registry, ingest: IngestService) -> int:
     except ConnectorError:
         log.exception("Polling Gmail gagal")
         return 0
+    bindings = getattr(registry, "account_ids", None)
+    if bindings is not None:
+        for event in events:
+            event.meta["business_account_id"] = bindings.get("email", "")
     _ingest_all(ingest, events)
     return len(events)
 
@@ -205,8 +236,13 @@ async def gmail_push(
         raise HTTPException(status_code=403, detail="Token push tidak valid")
     try:
         body = await request.json()
-        base64.b64decode((body.get("message") or {}).get("data", "") or "")
+        push = json.loads(base64.b64decode((body.get("message") or {}).get("data", "") or "").decode())
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Body push tidak valid")
-    background.add_task(poll_gmail, registry, ingest)
+    if settings.auth_enabled:
+        workspace = get_accounts().asset_workspace("gmail", str(push.get("emailAddress", "")).lower())
+        if workspace:
+            background.add_task(poll_gmail, registry_for_workspace(workspace), ingest_for_workspace(workspace))
+    else:
+        background.add_task(poll_gmail, registry, ingest)
     return {"status": "ok"}
