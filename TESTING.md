@@ -1,6 +1,6 @@
 # TESTING
 
-Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
+Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
 ## Aktivitas agen (22 Okt 2026)
@@ -16,6 +16,10 @@ kasus yang gagal tetap dicantumkan.
   dengan `comments` dan `messages`. Saat diperiksa belum ada POST webhook DM
   yang masuk ke backend. Status publikasi/konfigurasi aplikasi Meta masih
   membutuhkan pemeriksaan di dashboard provider.
+- Pembacaan Conversations API dengan token tersimpan merespons 200, tetapi
+  daftar percakapan kosong. Izin `instagram_business_manage_messages` tercatat
+  pada koneksi. Pengiriman pesan sungguhan belum dicoba; hasil ini belum
+  membuktikan bahwa DM masuk atau balasan dapat dikirim.
 - Sebelum perubahan streaming, satu pesan sintetis melalui pipeline nyata
   selesai dalam 42 detik, tanpa fallback, memakai konteks pengetahuan dan tone
   profesional. Namun draf menyebut tutup 18.00 sedangkan sumber menyebut 17.00.
