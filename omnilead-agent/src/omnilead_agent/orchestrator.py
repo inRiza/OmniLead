@@ -25,6 +25,11 @@ from omnilead_agent.scoring import score_lead
 
 MAX_STEPS = 8
 
+# Kanal dengan komentar publik + private reply (pesan atas komentar).
+PRIVATE_REPLY_CHANNELS = ("instagram", "facebook")
+# Batas panjang pesan pribadi per kanal (Instagram 1.000 byte, Messenger 2.000 karakter).
+MESSAGE_LIMITS = {"instagram": 1000, "facebook": 2000}
+
 
 class StepLimitReached(Exception):
     pass
@@ -100,7 +105,7 @@ class Tools:
             "comment_post": "propose_reply",
             "reply_comment": "propose_reply",
             "send_message": "propose_private_reply"
-            if p.comment_ref and p.channel == "instagram"
+            if p.comment_ref and p.channel in PRIVATE_REPLY_CHANNELS
             else "propose_reply",
             "crm_update": "propose_crm_update",
             "followup": "propose_followup",
@@ -302,7 +307,7 @@ class TemplateDrafter:
         proposals: list[Proposal] = []
         reason_base = f"Intent: {', '.join(tri.intents)}. Urgensi {tri.urgency}: {tri.urgency_reason}"
 
-        is_public_comment = ev.kind == "comment" and ev.channel == "instagram"
+        is_public_comment = ev.kind == "comment" and ev.channel in PRIVATE_REPLY_CHANNELS
         if is_public_comment and wants_price:
             proposals.append(Proposal(
                 kind="reply_comment", channel=ev.channel, post_ref=ev.post_ref or "",
@@ -378,7 +383,7 @@ class TemplateDrafter:
             new.text = self.quote_text(ctx, self._pick_package(ctx, hits), st)
         for n in issues:
             if n.check == "batas_panjang":
-                limit = 1000 if p.channel == "instagram" and p.kind == "send_message" else 2200
+                limit = MESSAGE_LIMITS.get(p.channel, 2200) if p.kind == "send_message" else 2200
                 raw = new.text.encode("utf-8")[: limit - 3].decode("utf-8", "ignore")
                 new.text = raw.rsplit(" ", 1)[0] + "…"
         return new

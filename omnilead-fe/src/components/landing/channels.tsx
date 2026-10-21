@@ -3,16 +3,12 @@ import type { Channel } from "@/lib/types";
 import { channelLabel } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
-// Kanal yang ditampilkan di landing = kanal MVP (PRD 4.0). Facebook belum ada di
-// backend, jadi tidak ditambahkan ke tipe `Channel` aplikasi; hanya dipakai di sini.
-export type LandingChannel = Channel | "facebook";
+// Kanal yang ditampilkan di landing = kanal MVP (PRD 4.0), sama dengan kanal aplikasi.
+export type LandingChannel = Channel;
 
-export const landingChannelLabel: Record<LandingChannel, string> = {
-  ...channelLabel,
-  facebook: "Facebook",
-};
+export const landingChannelLabel: Record<LandingChannel, string> = channelLabel;
 
-const slug: Record<LandingChannel, string> = { ...channelIconSlug, facebook: "facebook" };
+const slug: Record<LandingChannel, string> = channelIconSlug;
 
 /** Sama dengan `ChannelIcon` di dashboard, tetapi menerima kanal landing. */
 export function LandingChannelIcon({

@@ -72,3 +72,13 @@ def test_rejection_preference_changes_draft(ani_lead):
     t1 = next(p for p in base.proposals if p.kind == "send_message").text
     t2 = next(p for p in casual.proposals if p.kind == "send_message").text
     assert "🙏" not in t2 and "🙏" in t1
+
+
+def test_facebook_comment_gets_public_stub_and_messenger_private_reply(ani_lead):
+    r = analyze(make_req(GOLDEN, channel="facebook", lead=ani_lead))
+    public = next(p for p in r.proposals if p.public)
+    assert public.channel == "facebook" and public.kind == "reply_comment" and "Rp" not in public.text
+    private = next(p for p in r.proposals if p.kind == "send_message")
+    assert private.channel == "facebook" and private.comment_ref == "c1" and "Rp2.100.000" in private.text
+    assert all(n.status == "pass" for p in r.proposals for n in p.guard)
+    assert any(s.tool == "propose_private_reply" for s in r.trace.steps)

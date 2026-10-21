@@ -1,4 +1,4 @@
-"""Ekstraksi pesan dari screenshot Instagram, WhatsApp, atau email.
+"""Ekstraksi pesan dari screenshot Instagram, Facebook, WhatsApp, atau email.
 
 Gemini multimodal membaca gambar yang ditempel pengguna lalu mengembalikan
 pengirim dan isi pesan. Hasilnya menjadi event biasa (triage, identitas, dan

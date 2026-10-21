@@ -3,6 +3,7 @@ import type { Channel } from "./types";
 /** Slug untuk https://cdn.simpleicons.org/{slug}/{color} */
 export const channelIconSlug: Record<Channel, string> = {
   instagram: "instagram",
+  facebook: "facebook",
   whatsapp: "whatsapp",
   email: "gmail",
 };

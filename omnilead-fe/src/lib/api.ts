@@ -227,7 +227,7 @@ export interface AccountSession {
 }
 
 export interface Connection {
-  provider: "instagram" | "gmail" | "whatsapp";
+  provider: "instagram" | "facebook" | "gmail" | "whatsapp";
   channel: string;
   configured: boolean;
   status: "connected" | "disconnected" | "reconnect_required";
@@ -267,6 +267,10 @@ export interface WhatsAppAccounts {
   accounts: { id: string; waba_id: string; label: string; registered: boolean }[];
 }
 
+export interface FacebookPages {
+  pages: { id: string; label: string }[];
+}
+
 export const api = {
   base: BASE,
   session: () => request<AccountSession>("/auth/session"),
@@ -288,6 +292,8 @@ export const api = {
   disconnect: (provider: string) => request<{ ok: boolean }>(`/connections/${provider}`, { method: "DELETE" }),
   whatsappExchange: (state: string, code: string) => post<WhatsAppAccounts>("/connections/whatsapp/exchange", { state, code }),
   whatsappSelect: (selection: string, account_id: string, pin: string) => post<{ ok: boolean }>("/connections/whatsapp/select", { selection, account_id, pin }),
+  facebookPages: () => request<FacebookPages>("/connections/facebook/pages"),
+  facebookSelect: (page_id: string) => post<{ ok: boolean }>("/connections/facebook/select", { page_id }),
   events: () => request<BeEvent[]>("/events?limit=200"),
   actions: () => request<BeAction[]>("/actions"),
   leads: () => request<BeLead[]>("/leads"),

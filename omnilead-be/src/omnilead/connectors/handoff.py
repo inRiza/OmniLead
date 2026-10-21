@@ -17,6 +17,7 @@ from omnilead.models import Channel, Comment
 # Pola deep link per kanal. {text} diisi draf yang sudah di-URL-encode.
 DEEPLINK = {
     Channel.INSTAGRAM: "https://www.instagram.com/",
+    Channel.FACEBOOK: "https://www.facebook.com/",
     Channel.WHATSAPP: "https://wa.me/",
     Channel.EMAIL: "mailto:",
 }

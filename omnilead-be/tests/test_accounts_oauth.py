@@ -196,7 +196,7 @@ def test_removed_providers_do_not_offer_oauth(app):
         with pytest.raises(OAuthError, match="tidak didukung"):
             service.start(provider, "w", "s")
         assert client.post(f"/connections/{provider}/start").status_code == 404
-    assert {item["provider"] for item in client.get("/connections").json()} == {"instagram", "gmail", "whatsapp"}
+    assert {item["provider"] for item in client.get("/connections").json()} == {"instagram", "facebook", "gmail", "whatsapp"}
 
 
 def test_asset_cannot_be_shared_between_businesses(app):

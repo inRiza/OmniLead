@@ -28,7 +28,7 @@ from omnilead.identity import find_candidates
 from omnilead.store import Store
 
 WINDOW = timedelta(hours=24)
-WINDOWED_CHANNELS = {Channel.WHATSAPP, Channel.INSTAGRAM}
+WINDOWED_CHANNELS = {Channel.WHATSAPP, Channel.INSTAGRAM, Channel.FACEBOOK}
 TIMELINE_LIMIT = 10
 PROTECTED_LIMIT = 200
 

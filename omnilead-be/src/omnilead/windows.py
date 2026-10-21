@@ -2,9 +2,9 @@
 
 - WhatsApp: balasan teks bebas hanya dalam 24 jam sejak pesan masuk terakhir
   pelanggan. Di luar itu butuh template resmi.
-- Instagram DM: 24 jam sejak DM masuk terakhir.
-- Instagram private reply (DM atas komentar): maksimal 7 hari sejak komentar
-  dibuat dan hanya satu kali per komentar.
+- Instagram DM dan Facebook Messenger: 24 jam sejak pesan masuk terakhir.
+- Private reply Instagram dan Facebook (pesan atas komentar): maksimal 7 hari
+  sejak komentar dibuat dan hanya satu kali per komentar.
 - Email dan kanal lain: tidak dibatasi.
 
 Dicek oleh executor sebelum mengirim lewat API. Aksi di luar jendela tidak
@@ -19,6 +19,7 @@ from omnilead.store import Store
 
 SERVICE_WINDOW = timedelta(hours=24)
 PRIVATE_REPLY_WINDOW = timedelta(days=7)
+PRIVATE_REPLY_CHANNELS = (Channel.INSTAGRAM, Channel.FACEBOOK)
 
 SENT = (ActionStatus.EXECUTED, ActionStatus.EXECUTING)
 
@@ -53,13 +54,13 @@ def check_window(
     now = now or datetime.now(timezone.utc)
     if action.kind != ActionKind.SEND_MESSAGE or not action.lead_id:
         return WindowResult(True)
-    if action.channel not in (Channel.WHATSAPP, Channel.INSTAGRAM):
+    if action.channel not in (Channel.WHATSAPP, Channel.INSTAGRAM, Channel.FACEBOOK):
         return WindowResult(True)
 
     events = store.list_events(lead_id=action.lead_id, limit=500)
 
-    # Instagram private reply: dari komentar, 7 hari, sekali.
-    if action.channel == Channel.INSTAGRAM and action.comment_ref:
+    # Private reply Instagram/Facebook: dari komentar, 7 hari, sekali.
+    if action.channel in PRIVATE_REPLY_CHANNELS and action.comment_ref:
         comment = next(
             (e for e in events if e.comment_ref == action.comment_ref and e.ts), None
         )
@@ -70,7 +71,7 @@ def check_window(
         already = any(
             a.id != action.id
             and a.kind == ActionKind.SEND_MESSAGE
-            and a.channel == Channel.INSTAGRAM
+            and a.channel == action.channel
             and a.comment_ref == action.comment_ref
             and a.status in SENT
             for a in store.list_actions()

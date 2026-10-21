@@ -10,10 +10,12 @@ import httpx
 from omnilead.accounts import AccountStore, digest
 from omnilead.config import Settings
 
-PROVIDERS = ("instagram", "gmail", "whatsapp")
-CHANNELS = {"instagram": "instagram", "gmail": "email", "whatsapp": "whatsapp"}
+PROVIDERS = ("instagram", "facebook", "gmail", "whatsapp")
+CHANNELS = {"instagram": "instagram", "facebook": "facebook", "gmail": "email", "whatsapp": "whatsapp"}
 SCOPES = {
     "instagram": ["instagram_business_basic", "instagram_business_manage_comments", "instagram_business_manage_messages"],
+    "facebook": ["pages_show_list", "pages_messaging", "pages_read_engagement", "pages_read_user_content",
+                 "pages_manage_engagement", "pages_manage_metadata"],
     "gmail": ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
     "whatsapp": ["whatsapp_business_management", "whatsapp_business_messaging"],
 }
@@ -33,6 +35,7 @@ class OAuthService:
         return bool({
             "gmail": s.gmail_client_id and s.gmail_client_secret,
             "instagram": s.instagram_client_id and s.instagram_client_secret,
+            "facebook": s.meta_app_id and s.meta_app_secret,
             "whatsapp": s.meta_app_id and s.meta_app_secret and s.whatsapp_signup_config_id,
         }.get(provider))
 
@@ -72,15 +75,21 @@ class OAuthService:
             params.update(client_id=self.s.instagram_client_id, scope=",".join(SCOPES[provider]),
                           force_authentication="1", enable_fb_login="0")
             url = "https://www.instagram.com/oauth/authorize"
+        elif provider == "facebook":
+            params.update(client_id=self.s.meta_app_id, scope=",".join(SCOPES[provider]))
+            url = f"https://www.facebook.com/{self.s.facebook_graph_version}/dialog/oauth"
         else:
             raise OAuthError("Koneksi tidak didukung")
         return {"mode": "redirect", "url": url + "?" + urlencode(params)}
 
-    def complete(self, provider: str, code: str, state: str, session: str, workspace: str) -> None:
+    def complete(self, provider: str, code: str, state: str, session: str, workspace: str) -> str:
+        """Selesaikan OAuth. Mengembalikan "connected", atau "select" bila pengguna perlu memilih Page."""
         flow = self.accounts.consume_state(state, provider, session)
         if flow["workspace"] != workspace or not self.ready(provider):
             raise OAuthError("Bisnis atau konfigurasi koneksi berubah. Mulai kembali.")
         common = {"code": code, "grant_type": "authorization_code", "redirect_uri": self.redirect_uri(provider)}
+        if provider == "facebook":
+            return self._facebook_complete(code, session, workspace)
         if provider == "gmail":
             data = self.call("POST", "https://oauth2.googleapis.com/token", data={
                 **common, "client_id": self.s.gmail_client_id, "client_secret": self.s.gmail_client_secret,
@@ -127,6 +136,71 @@ class OAuthService:
         else:
             raise OAuthError("Koneksi tidak didukung")
         self.activate(workspace, provider, connection)
+        return "connected"
+
+    # --- Facebook Page ---
+
+    def _facebook_complete(self, code: str, session: str, workspace: str) -> str:
+        base = f"https://graph.facebook.com/{self.s.facebook_graph_version}"
+        app = {"client_id": self.s.meta_app_id, "client_secret": self.s.meta_app_secret}
+        short = self._required(self.call("GET", base + "/oauth/access_token", params={
+            **app, "redirect_uri": self.redirect_uri("facebook"), "code": code,
+        }), "access_token")
+        # Page token yang diambil dari user token jangka panjang tidak kedaluwarsa.
+        user_token = self._required(self.call("GET", base + "/oauth/access_token", params={
+            **app, "grant_type": "fb_exchange_token", "fb_exchange_token": short,
+        }), "access_token")
+        granted = {p.get("permission") for p in self.call("GET", base + "/me/permissions", params={
+            "access_token": user_token,
+        }).get("data", []) if p.get("status") == "granted"}
+        if not set(SCOPES["facebook"]).issubset(granted):
+            raise OAuthError("Izinkan akses Page, komentar, dan Messenger agar Facebook dapat digunakan.")
+        listing = self.call("GET", base + "/me/accounts", params={
+            "fields": "id,name,access_token,tasks", "limit": 100, "access_token": user_token,
+        })
+        choices = []
+        for page in listing.get("data", []):
+            tasks = page.get("tasks") or []
+            if not page.get("access_token") or (tasks and "MESSAGING" not in tasks):
+                continue
+            choices.append({"id": self._required(page, "id"), "label": page.get("name") or "Facebook Page",
+                            "access_token": page["access_token"]})
+        if not choices:
+            raise OAuthError("Belum ada Facebook Page yang bisa dikelola akun ini.")
+        if len(choices) == 1:
+            self._facebook_activate(workspace, choices[0])
+            return "connected"
+        self.accounts.save_connection(workspace, "pending-facebook", {
+            "session": digest(session), "choices": choices, "expires_at": time.time() + 600,
+        })
+        return "select"
+
+    def _facebook_pending(self, workspace: str, session: str) -> dict:
+        pending = self.accounts.connection(workspace, "pending-facebook")
+        if (not pending or pending.get("session") != digest(session)
+                or (pending.get("expires_at") or 0) < time.time()):
+            raise OAuthError("Pilihan Page telah berakhir. Hubungkan ulang Facebook.")
+        return pending
+
+    def facebook_pages(self, workspace: str, session: str) -> dict:
+        pending = self._facebook_pending(workspace, session)
+        return {"pages": [{"id": c["id"], "label": c["label"]} for c in pending["choices"]]}
+
+    def facebook_select(self, workspace: str, session: str, page_id: str) -> None:
+        pending = self._facebook_pending(workspace, session)
+        chosen = next((c for c in pending["choices"] if c["id"] == page_id), None)
+        if not chosen:
+            raise OAuthError("Page tidak sesuai akun yang diizinkan Facebook.")
+        if self.accounts.asset_workspace("facebook", page_id) not in (None, workspace):
+            raise OAuthError("Page ini sudah terhubung ke bisnis lain. Putuskan koneksi sebelumnya dahulu.")
+        self._facebook_activate(workspace, chosen)
+        self.accounts.delete(f"connection-{workspace}-pending-facebook")
+
+    def _facebook_activate(self, workspace: str, page: dict) -> None:
+        self.activate(workspace, "facebook", {
+            "access_token": page["access_token"], "account_id": page["id"], "label": page["label"],
+            "scopes": SCOPES["facebook"], "expires_at": None,
+        })
 
     @staticmethod
     def _required(data: dict, key: str) -> str:
@@ -144,6 +218,11 @@ class OAuthService:
                           data={"subscribed_fields": "comments,messages", "access_token": connection["access_token"]})
                 if subscribed.get("success") is not True:
                     raise OAuthError("Notifikasi Instagram belum aktif. Hubungkan kembali atau hubungi pengelola.")
+            elif provider == "facebook":
+                subscribed = self.call("POST", f"https://graph.facebook.com/{self.s.facebook_graph_version}/{connection['account_id']}/subscribed_apps",
+                          data={"subscribed_fields": "feed,messages", "access_token": connection["access_token"]})
+                if subscribed.get("success") is not True:
+                    raise OAuthError("Notifikasi Facebook belum aktif. Hubungkan kembali atau hubungi pengelola.")
             elif provider == "whatsapp":
                 subscribed = self.call("POST", f"https://graph.facebook.com/{self.s.whatsapp_graph_version}/{connection['waba_id']}/subscribed_apps",
                           headers={"Authorization": f"Bearer {connection['access_token']}"})
@@ -253,8 +332,8 @@ class OAuthService:
         data = self.accounts.connection(workspace, provider)
         # Local removal is authoritative even when provider is temporarily offline.
         self.accounts.delete(f"connection-{workspace}-{provider}")
-        if provider == "whatsapp":
-            self.accounts.delete(f"connection-{workspace}-pending-whatsapp")
+        if provider in ("whatsapp", "facebook"):
+            self.accounts.delete(f"connection-{workspace}-pending-{provider}")
         if data:
             self.accounts.release_asset(provider, data["account_id"], workspace)
 
@@ -278,6 +357,7 @@ class OAuthService:
     def connector_settings(self, workspace: str) -> Settings:
         # Never inherit another business's legacy .env/file credentials.
         patch = {"gmail_refresh_token": "", "gmail_user": "me", "instagram_access_token": "", "instagram_user_id": "",
+                 "facebook_page_id": "", "facebook_page_access_token": "",
                  "whatsapp_access_token": "", "whatsapp_phone_number_id": ""}
         for provider in PROVIDERS:
             data = self.connection(workspace, provider)
@@ -288,6 +368,8 @@ class OAuthService:
             elif provider == "instagram":
                 patch.update(instagram_user_id=data["account_id"], instagram_access_token=data["access_token"],
                              instagram_api_host="https://graph.instagram.com")
+            elif provider == "facebook":
+                patch.update(facebook_page_id=data["account_id"], facebook_page_access_token=data["access_token"])
             elif provider == "whatsapp":
                 patch.update(whatsapp_phone_number_id=data["account_id"], whatsapp_access_token=data["access_token"])
         return self.s.model_copy(update=patch)

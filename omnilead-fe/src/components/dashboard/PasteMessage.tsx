@@ -9,6 +9,7 @@ import { useDashboard } from "./DashboardContext";
 // Tempel pesan dari kanal aktif untuk menyiapkan draf balasan.
 const CHANNELS: { value: Channel; label: string }[] = [
   { value: "instagram", label: "Instagram" },
+  { value: "facebook", label: "Facebook" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "email", label: "Email" },
 ];
