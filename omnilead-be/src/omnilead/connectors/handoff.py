@@ -8,6 +8,7 @@ Keluar: executor TIDAK mengirim. Ia membuat deep link "Salin & buka", dan
 Dipakai untuk LinkedIn (baca komentar/DM) dan kanal lain yang API-nya tertutup.
 """
 
+import uuid
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -17,6 +18,9 @@ from omnilead.models import Channel, Comment
 DEEPLINK = {
     Channel.LINKEDIN: "https://www.linkedin.com/feed/",
     Channel.INSTAGRAM: "https://www.instagram.com/",
+    Channel.WHATSAPP: "https://wa.me/",
+    Channel.EMAIL: "mailto:",
+    Channel.TIKTOK: "https://www.tiktok.com/",
 }
 
 
@@ -30,7 +34,7 @@ def ingest_pasted_text(
     """Ubah teks yang ditempel menjadi Comment biasa."""
     ts = pasted_at or datetime.now(timezone.utc)
     return Comment(
-        id=f"handoff-{channel}-{int(ts.timestamp() * 1000)}",
+        id=f"handoff-{channel}-{uuid.uuid4().hex[:12]}",
         channel=channel,
         post_ref=post_ref,
         author_handle=author_handle or "tidak diketahui",

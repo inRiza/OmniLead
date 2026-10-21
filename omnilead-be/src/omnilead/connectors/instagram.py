@@ -21,6 +21,9 @@ from omnilead.connectors.base import ChannelConnector, ConnectorError, NotConnec
 from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 
 
+DM_MAX_BYTES = 1000
+
+
 class InstagramConnector(ChannelConnector):
     channel = Channel.INSTAGRAM
 
@@ -81,6 +84,12 @@ class InstagramConnector(ChannelConnector):
                 path=p,
                 note="Balasan publik atas komentar di media sendiri.",
             ),
+            Capability(
+                action="send_message",
+                available=bool(self._user_id and self._token),
+                path=p if (self._user_id and self._token) else "handoff",
+                note="DM (jendela 24 jam, maks 1.000 byte) atau private reply atas komentar (7 hari, sekali).",
+            ),
         ]
 
     def status(self) -> ChannelStatus:
@@ -139,6 +148,29 @@ class InstagramConnector(ChannelConnector):
     def post_comment(self, post_ref: str, text: str) -> str:
         body = self._post(f"{post_ref}/comments", {"message": text})
         return body["id"]
+
+    def send_message(
+        self,
+        recipient: str,
+        text: str,
+        comment_ref: str | None = None,
+        context: dict | None = None,
+    ) -> str:
+        """DM, atau private reply bila `comment_ref` diberikan."""
+        if len(text.encode("utf-8")) > DM_MAX_BYTES:
+            raise ConnectorError(f"Teks DM melebihi {DM_MAX_BYTES} byte")
+        self._require_token()
+        target = {"comment_id": comment_ref} if comment_ref else {"id": recipient}
+        resp = self._client.post(
+            f"{self._base}/{self._user_id}/messages",
+            params={"access_token": self._token},
+            json={"recipient": target, "message": {"text": text}},
+        )
+        body = self._unwrap(resp)
+        ref = body.get("message_id") or body.get("id")
+        if not ref:
+            raise ConnectorError(f"Respons Instagram tanpa ID pesan: {body}")
+        return ref
 
     def reply_comment(self, comment_ref: str, text: str) -> str:
         # Balasan ke komentar: POST ke /{comment-id}/replies

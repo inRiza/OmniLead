@@ -1,7 +1,10 @@
-import { leads } from "@/lib/mock";
+"use client";
+
+import Link from "next/link";
 import { channelLabel } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
+import { useDashboard } from "@/components/dashboard/DashboardContext";
 import { ChannelIcon, ScoreBadge } from "@/components/primitives";
 import {
   Table,
@@ -22,7 +25,8 @@ const stageLabel: Record<string, string> = {
 };
 
 export default function LeadsPage() {
-  const rows = Object.values(leads).sort((a, b) => b.scoreValue - a.scoreValue);
+  const { leads, loaded } = useDashboard();
+  const rows = [...leads].sort((a, b) => b.scoreValue - a.scoreValue);
 
   return (
     <>
@@ -32,6 +36,11 @@ export default function LeadsPage() {
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
         <div className="p-5 md:p-6">
+          {loaded && rows.length === 0 ? (
+            <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">
+              Belum ada lead. Lead dibuat otomatis saat pesan pertama masuk.
+            </p>
+          ) : null}
           <TableShell>
             <Table>
               <TableHeader>
@@ -46,9 +55,12 @@ export default function LeadsPage() {
                   <TableRow key={lead.id}>
                     <TableCell className="align-top">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="font-semibold text-rc-fg">
+                        <Link
+                          href={`/dashboard/leads/${lead.id}`}
+                          className="font-semibold text-rc-fg underline-offset-4 hover:underline"
+                        >
                           {lead.name}
-                        </span>
+                        </Link>
                         {lead.company ? (
                           <span className="text-sm text-rc-fg-muted">
                             {lead.company}
@@ -62,7 +74,7 @@ export default function LeadsPage() {
                         {lead.channels.map((c) => (
                           <span
                             key={c}
-                            className="inline-flex items-center gap-1 rounded-md bg-rc-surface-hover/70 px-1.5 py-0.5 text-xs text-rc-fg-muted"
+                            className="inline-flex items-center gap-1 rounded-md bg-rc-surface-hover/70 px-1.5 py-0.5 text-sm text-rc-fg-muted"
                           >
                             <ChannelIcon channel={c} />
                             {channelLabel[c]}
@@ -79,7 +91,7 @@ export default function LeadsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right align-top">
-                      <span className="rounded-md bg-rc-surface-hover/70 px-2 py-0.5 text-xs font-medium text-rc-fg-muted">
+                      <span className="rounded-md bg-rc-surface-hover/70 px-2 py-0.5 text-sm font-medium text-rc-fg-muted">
                         {stageLabel[lead.stage]}
                       </span>
                     </TableCell>

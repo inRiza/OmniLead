@@ -12,6 +12,8 @@
   --rc-primary: #09090b;
   --rc-primary-fg: #fafafa;
   --rc-card-border: #e4e4e7;
+  --rc-danger: #b91c1c;
+  --rc-danger-fg: #fef2f2;
 }
 
 .dark {
@@ -26,6 +28,8 @@
   --rc-primary: #fafafa;
   --rc-primary-fg: #09090b;
   --rc-card-border: #27272a;
+  --rc-danger: #ef4444;
+  --rc-danger-fg: #1f0707;
 }
 
 @theme inline {
@@ -40,6 +44,8 @@
   --color-rc-primary: var(--rc-primary);
   --color-rc-primary-fg: var(--rc-primary-fg);
   --color-rc-card-border: var(--rc-card-border);
+  --color-rc-danger: var(--rc-danger);
+  --color-rc-danger-fg: var(--rc-danger-fg);
   --font-sans: var(--font-geist-sans);
   --animate-in: enter 0.2s ease-out;
   --animate-out: exit 0.2s ease-in;

@@ -29,6 +29,11 @@ class FakeConnector(ChannelConnector):
                 available=self._can_write,
                 path="official_api" if self._can_write else "handoff",
             ),
+            Capability(
+                action="send_message",
+                available=self._can_write,
+                path="official_api" if self._can_write else "handoff",
+            ),
         ]
 
     def status(self) -> ChannelStatus:
@@ -59,6 +64,10 @@ class FakeConnector(ChannelConnector):
     def reply_comment(self, comment_ref: str, text: str) -> str:
         self.posted.append((comment_ref, text))
         return "reply-id-1"
+
+    def send_message(self, recipient, text, comment_ref=None, context=None):
+        self.posted.append((comment_ref or recipient, text))
+        return "msg-id-1"
 
 
 class FakeRegistry(Registry):

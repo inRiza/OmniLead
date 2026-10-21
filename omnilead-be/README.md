@@ -1,114 +1,93 @@
 # OmniLead Backend
 
-Backend untuk OmniLead: menghubungkan **Instagram** dan **LinkedIn** lewat
-**API resmi**, dengan **handoff manual** untuk aksi yang tidak punya API.
-Semua aksi keluar melewati **antrean persetujuan manusia** sebelum dikirim.
+Backend OmniLead: menerima pesan dari WhatsApp, Instagram, email, dan kanal tanpa API; menyatukan identitas
+pelanggan; memanggil **service agen** (`omnilead-agent`, terpisah) untuk menyusun usulan; dan menjalankan aksi
+keluar **hanya setelah disetujui manusia**.
 
 ## Prinsip
 
-- **Satu kontrak connector** (`connectors/base.py`) untuk semua kanal. Agen dan
-  executor tidak tahu detail tiap platform.
-- **Hanya dua jalur:** `official_api` atau `handoff`. Connector tidak pernah
-  mengklaim akses yang tidak ada (lihat `capabilities()`).
-- **Agen tidak memegang tool kirim.** Pengiriman hanya dilakukan `Executor`
-  setelah tombol Setujui ditekan.
-- **Audit log** mencatat setiap langkah: proposed, approved, executed, handoff.
+- **Executor adalah satu-satunya yang memegang token dan mengirim ke platform.** Agen hanya mengusulkan; token
+  tidak pernah dikirim ke agen atau FE.
+- **Satu kontrak connector** (`connectors/base.py`). Jalur hanya `official_api` atau `handoff`; connector tidak
+  mengklaim akses yang tidak ada (`capabilities()`).
+- **Persetujuan per aksi.** Status dijaga (`pending → approved/edited/rejected → executing → executed/failed`,
+  handoff: `awaiting_manual_send → sent_manually`). Aksi yang ditolak atau gagal tidak bisa dikirim lewat `/approve`.
+- **Kendali:** Pause global (menahan eksekusi dan event), saklar per kanal, dry-run, batas kirim per jam,
+  jendela balasan kanal (WhatsApp/Instagram 24 jam, private reply 7 hari sekali), audit log.
+- **Identitas:** HP/email/handle sama persis digabung otomatis dan dicatat; kemiripan nama/perusahaan hanya menjadi
+  **usulan merge** dengan bukti dan keyakinan (`identity.py`).
 
-## Kanal & kemampuan
-
-| Aksi | Instagram | LinkedIn |
-|---|---|---|
-| Daftar post | ✅ Graph API | ❌ (tidak ada API) |
-| Baca komentar | ✅ Graph API | ↪️ handoff (tempel teks) |
-| Tulis komentar | ✅ Graph API | ✅ Share on LinkedIn |
-| Balas komentar | ✅ Graph API | ✅ socialActions |
-
-- **Instagram:** akun Professional milik tim, Standard Access, tanpa App Review.
-  Izin `instagram_business_manage_comments`.
-- **LinkedIn tulis:** produk **Share on LinkedIn** (self-serve, scope
-  `w_member_social`). Tidak perlu partner approval.
-- **LinkedIn baca:** tidak ada API publik untuk komentar/DM pribadi
-  (`r_member_social` tertutup), jadi dipakai handoff manual.
-
-## Struktur
+## Alur
 
 ```
-omnilead-be/
-├── pyproject.toml
-├── .env.example
-└── src/omnilead/
-    ├── config.py              # setting dari env
-    ├── models.py              # Channel, Post, Comment, Action, dll
-    ├── store.py               # SQLite: actions + audit
-    ├── main.py                # FastAPI app
-    ├── connectors/
-    │   ├── base.py            # kontrak ChannelConnector
-    │   ├── instagram.py       # Graph API resmi
-    │   ├── linkedin.py        # Share on LinkedIn + tandai baca=handoff
-    │   ├── handoff.py         # tempel pesan masuk + paket Salin & buka
-    │   └── registry.py        # ambil connector per kanal
-    ├── approvals/
-    │   ├── queue.py           # propose / approve / reject
-    │   └── executor.py        # satu-satunya yang mengirim ke platform
-    └── api/
-        ├── deps.py            # singleton store/registry/queue/executor
-        ├── schemas.py         # request bodies
-        └── routes.py          # endpoint HTTP
+webhook WA/IG, push Gmail, POST /events, tempel pesan
+        │  dedup (kanal, ID pesan) → identitas → [Pause? tahan]
+        ▼
+   POST {AGENT_URL}/v1/analyze  ──►  triage → orchestrator → guard
+        │  hanya usulan + trace
+        ▼
+   antrean persetujuan ──► Setujui/Edit/Tolak ──► Executor ──► Gmail / WhatsApp / Instagram / handoff
 ```
+
+## Kanal
+
+| Kanal | Masuk | Keluar | Catatan |
+|---|---|---|---|
+| WhatsApp | webhook (signature) | Cloud API, teks bebas | Jendela 24 jam dicek executor |
+| Email | polling + push Pub/Sub | Gmail API, masuk thread | OAuth refresh token (mode Testing) |
+| Instagram | webhook komentar + DM | balasan publik, DM, private reply | DM maks 1.000 byte |
+| LinkedIn | tempel pesan | komentar via Share on LinkedIn; selain itu handoff | izin produk belum diverifikasi |
+| TikTok, lainnya | tempel teks/screenshot | handoff (Salin & buka) | tanpa API |
+
+Semua connector baru diuji dengan transport HTTP tiruan; belum pernah dipanggil ke platform sungguhan.
 
 ## Menjalankan
 
 ```bash
 cd omnilead-be
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"      # atau: uv sync
-cp .env.example .env            # isi token
-uvicorn omnilead.main:app --reload
+uv sync                       # tambah --extra firestore untuk Firestore
+cp .env.example .env
+uv run uvicorn omnilead.main:app --reload
 ```
 
-Dokumentasi API otomatis di `http://localhost:8000/docs`.
+Dokumentasi API: http://localhost:8000/docs. Service agen harus jalan di `OMNILEAD_AGENT_URL` (default
+`http://localhost:8100`); jika mati, event ditandai `agent_error` dan bisa dianalisis ulang
+(`POST /events/{id}/analyze`).
+
+Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
+
+Penyimpanan: `OMNILEAD_STORE=sqlite` (default, dev/tes) atau `firestore` (`store_firestore.py`, belum diuji ke
+Firestore sungguhan).
+
+## Struktur
+
+```
+src/omnilead/
+├── config.py, models.py, main.py
+├── store.py, store_firestore.py   # SQLite dan Firestore, antarmuka sama
+├── agent_client.py                # klien HTTP ke service agen
+├── ingest.py                      # dedup, identitas, panggil agen, antrean
+├── identity.py                    # kemiripan → usulan merge
+├── windows.py                     # jendela balasan kanal
+├── scheduler.py                   # follow-up jatuh tempo, ringkasan harian
+├── seed.py
+├── connectors/                    # base, instagram, linkedin, whatsapp, gmail, handoff, registry
+├── approvals/                     # queue (status machine), executor, merge (pisah profil)
+└── api/                           # routes, webhooks, scheduler_routes, deps, schemas
+```
+
+## Keamanan
+
+- REST untuk FE: header `X-API-Key` bila `OMNILEAD_API_KEY` diisi (kosong = mati, hanya dev).
+- Webhook Meta: `X-Hub-Signature-256` wajib; app secret kosong → ditolak. Push Gmail: token di query.
+- `/scheduler/*`: `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>` atau OIDC Google; keduanya kosong → 403.
+- Rahasia hanya dari env/Secret Manager; `.env` dan `.secrets/` ada di `.gitignore`.
 
 ## Tes
 
 ```bash
-uv run pytest
+uv run pytest                          # 72 tes
+uv run python eval/identity_eval.py    # presisi/recall identitas pada 50 lead dummy
 ```
 
-Tes memakai connector palsu (tanpa jaringan), memverifikasi: propose → approve
-→ execute, blokir aksi tanpa persetujuan, idempotensi (tidak kirim ganda),
-edit/tolak, jatuh ke handoff untuk kanal tanpa API, dan audit log.
-
-## Alur endpoint
-
-```
-tempel/komentar masuk → GET /channels/{ch}/comments  atau  POST /handoff/paste
-agen menyusun draf    → POST /actions/propose         (status: pending)
-pemilik memutuskan    → POST /actions/{id}/approve | reject
-                        approve → Executor:
-                          - kanal ber-API  → kirim, status executed
-                          - kanal handoff  → status awaiting_manual_send
-                                             GET /actions/{id}/handoff (Salin & buka)
-                                             POST /actions/{id}/sent (sudah dikirim)
-semua langkah         → GET /audit
-```
-
-## Yang perlu diverifikasi saat setup (spike jam pertama)
-
-- **Instagram:** buat token Standard Access untuk akun Professional tim, isi
-  `OMNILEAD_INSTAGRAM_USER_ID` dan `..._ACCESS_TOKEN`, lalu tes
-  `GET /channels/instagram/posts`.
-- **LinkedIn:** di Developer Portal tambahkan produk "Share on LinkedIn" +
-  "Sign In with LinkedIn using OpenID Connect". Jalankan OAuth untuk mendapat
-  `access_token` + person URN, simpan ke `.secrets/linkedin_token.json`:
-  `{"access_token": "...", "person_urn": "urn:li:person:XXXX"}`.
-  Lalu tes satu `post_comment` ke post milik akun kalian. **Verifikasi bodi
-  request `/rest/socialActions` di versi API yang dipakai**, karena skema bisa
-  berbeda antar `LinkedIn-Version`.
-
-## Catatan sumber (untuk luaran ITB)
-
-- Instagram Graph API — https://developers.facebook.com/docs/instagram-platform
-- Share on LinkedIn — https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin
-- LinkedIn Comments API — https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/comments-api
-- FastAPI, httpx, pydantic — lihat `pyproject.toml`. Lisensi masing-masing
-  permissive (MIT/BSD/Apache).
+Hasil dan batas pengujian ada di `../TESTING.md`.

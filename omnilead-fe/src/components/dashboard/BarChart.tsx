@@ -45,7 +45,7 @@ export function BarChart({
                     : "var(--rc-border-strong)",
                 }}
               />
-              <span className="mt-1.5 truncate text-xs text-rc-fg-subtle">
+              <span className="mt-1.5 truncate text-sm text-rc-fg-subtle">
                 {d.label}
               </span>
             </button>
@@ -55,7 +55,7 @@ export function BarChart({
 
       {hover !== null ? (
         <div
-          className="pointer-events-none absolute -top-1 rounded-md border border-rc-border bg-rc-surface px-2 py-1 text-xs font-medium text-rc-fg"
+          className="pointer-events-none absolute -top-1 rounded-md border border-rc-border bg-rc-surface px-2 py-1 text-sm font-medium text-rc-fg"
           style={{
             left: `calc(${((hover + 0.5) / n) * 100}% )`,
             transform: "translateX(-50%)",
