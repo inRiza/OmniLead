@@ -13,7 +13,9 @@ Belum diuji terhadap Firestore sungguhan atau emulator.
 """
 
 import json
+import threading
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from omnilead.models import (
@@ -29,6 +31,18 @@ from omnilead.models import (
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+_seq_lock = threading.Lock()
+_last_seq = 0
+
+
+def _next_seq() -> int:
+    """Mikrodetik yang selalu naik di proses ini (jam Windows bisa kasar ~1-15 ms)."""
+    global _last_seq
+    with _seq_lock:
+        _last_seq = max(time.time_ns() // 1000, _last_seq + 1)
+        return _last_seq
 
 
 class FirestoreStore:
@@ -93,8 +107,9 @@ class FirestoreStore:
         channel: str | None = None,
         lead_id: str | None = None,
     ) -> None:
-        seq = time.time_ns() // 1000  # id urut naik (mikrodetik)
-        self._db.collection("audit").document(str(seq)).set({
+        seq = _next_seq()
+        # sufiks acak: dua instance Cloud Run bisa mendapat seq yang sama
+        self._db.collection("audit").document(f"{seq}-{uuid.uuid4().hex[:8]}").set({
             "seq": seq,
             "ts": _now().isoformat(),
             "action_id": action_id,

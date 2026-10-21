@@ -13,7 +13,7 @@ from typing import Protocol
 from pydantic import BaseModel
 
 MAX_BYTES = 5 * 1024 * 1024
-DEFAULT_MODEL = "gemini-flash-latest"
+DEFAULT_MODEL = "gemini-3.8-flash"  # terverifikasi di Vertex (location global)
 PROMPT = (
     "Ini screenshot pesan masuk dari pelanggan di aplikasi chat. Ekstrak: handle/username "
     "pengirim (jika terlihat), nama tampilan, dan isi pesan terakhir dari pelanggan (bukan "

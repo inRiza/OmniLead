@@ -26,7 +26,7 @@ from omnilead_agent.schemas import GuardNote, Proposal
 from omnilead_agent.knowledge import sources
 
 APP_NAME = "omnilead_agent"
-DEFAULT_MODEL = "gemini-flash-latest"  # alias terdokumentasi di ADK docs; PRD menyebut gemini-3.8-flash (belum terverifikasi)
+DEFAULT_MODEL = "gemini-3.8-flash"  # terverifikasi di Vertex (location global), 21 Okt 2026
 
 INSTRUCTION = """\
 Kamu asisten OmniLead untuk {business}, bisnis UMKM Indonesia. Tugasmu menyiapkan USULAN

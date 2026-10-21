@@ -22,7 +22,7 @@ from omnilead_agent.schemas import AnalyzeRequest, TriageResult
 from omnilead_agent.triage import triage as rule_triage
 
 APP_NAME = "omnilead_triage"
-DEFAULT_MODEL = "gemini-flash-lite-latest"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"  # terverifikasi di Vertex (location global)
 URGENCY_RANK = {"rendah": 0, "sedang": 1, "tinggi": 2}
 
 INSTRUCTION = """\
