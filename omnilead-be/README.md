@@ -69,6 +69,10 @@ Dokumentasi API: http://localhost:8000/docs. Service agen harus jalan di `OMNILE
 
 Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
 
+Akun demo untuk juri: isi `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD`. Saat server menyala, akun itu
+dibuat (bila belum ada) dan bisnisnya diisi data demo (`demo.py`). Dipakai untuk deploy publik di Cloud Run;
+lihat PRD bagian *Deploy Publik untuk Juri*.
+
 Penyimpanan: `OMNILEAD_STORE=sqlite` (default; cukup untuk dev, tes, dan demo lokal) atau `firestore`
 (`store_firestore.py`, untuk deploy Cloud Run; belum diuji ke Firestore sungguhan).
 

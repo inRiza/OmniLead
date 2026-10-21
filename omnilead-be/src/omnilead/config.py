@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     token_encryption_key: str = ""  # Fernet; lokal dibuat di .secrets/oauth.key
     session_days: int = 7
     registration_enabled: bool = True
+    # Akun demo untuk juri: dibuat dan diisi data demo saat server menyala (lihat demo.py).
+    demo_email: str = ""
+    demo_password: str = ""
+    demo_name: str = "Bu Rina"
+    demo_business: str = "Usaha Bu Rina (demo)"
     meta_app_id: str = ""
     whatsapp_signup_config_id: str = ""
     whatsapp_signup_version: str = "v25.0"
