@@ -23,7 +23,11 @@ BE ──POST /v1/analyze──► Triage ─► Orchestrator (ADK) ─► Guard
 `OMNILEAD_AGENT_ENGINE`:
 
 - `rule` (default): deterministik, tanpa LLM dan tanpa kredensial. Dipakai untuk dev dan tes.
-- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model dari `OMNILEAD_AGENT_MODEL` (default `gemini-flash-latest`, alias yang dipakai dokumentasi ADK; PRD menyebut `gemini-3.8-flash`, verifikasi dulu di konsol).
+- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model default `gemini-3.8-flash` (orchestrator, ekstraksi screenshot) dan `gemini-3.5-flash-lite` (triage), terverifikasi 21 Okt 2026 di Vertex **location `global`**; ganti lewat `OMNILEAD_AGENT_MODEL` / `OMNILEAD_AGENT_TRIAGE_MODEL`.
+
+Kanal: `instagram`, `facebook`, `whatsapp`, `email`. Komentar Instagram atau Facebook yang menanyakan harga
+menghasilkan balasan publik tanpa harga ditambah private reply berisi harga. Batas panjang: DM Instagram 1.000
+byte, Messenger 2.000 karakter.
 
 Keamanan engine ADK:
 
@@ -66,9 +70,9 @@ Isi `omnilead-agent/.env`:
 OMNILEAD_AGENT_ENGINE=adk
 GOOGLE_GENAI_USE_VERTEXAI=1
 GOOGLE_CLOUD_PROJECT=<PROJECT_ID>
-GOOGLE_CLOUD_LOCATION=us-central1
-OMNILEAD_AGENT_MODEL=<ID model yang ada di Vertex>
-OMNILEAD_AGENT_TRIAGE_MODEL=<ID model>
+GOOGLE_CLOUD_LOCATION=global
+OMNILEAD_AGENT_MODEL=gemini-3.8-flash
+OMNILEAD_AGENT_TRIAGE_MODEL=gemini-3.5-flash-lite
 ```
 
 Uji dulu, sebelum menjalankan service: `uv run python scripts/smoke_llm.py` (menampilkan error asli; pipeline biasa
@@ -76,8 +80,9 @@ diam-diam jatuh ke templat bila LLM gagal). Lalu jalankan dengan `.env` dimuat:
 `uv run uvicorn omnilead_agent.main:app --port 8100 --env-file .env`.
 
 Alternatif tanpa gcloud: API key AI Studio (`GOOGLE_API_KEY=...`, tanpa `GOOGLE_GENAI_USE_VERTEXAI`).
-ID model dan region harus tersedia di project Anda; alias `gemini-flash-latest` adalah alias AI Studio dan belum
-tentu ada di Vertex.
+ID model dan region harus tersedia di project Anda. Hasil cek di project hackathon (21 Okt 2026): Gemini 3.x hanya
+tersedia di `global`; `asia-southeast2` menolak semua model; `us-central1` hanya punya Gemini 2.5; alias
+`gemini-flash-latest` 404 di Vertex.
 
 ## Persona dan ide konten
 
@@ -86,7 +91,14 @@ tentu ada di Vertex.
 - `POST /v1/content-ideas`: ide konten (draf saja) dari pesan yang sering ditanyakan; harga caption hanya dari katalog;
   tanpa data yang cukup hasilnya kosong.
 
+## Hasil uji dengan Gemini sungguhan
+
+Evalset 18 kasus × 3 percobaan (`eval/results-adk.md`): engine `adk` lulus 14/18 secara konsisten, kasus berbahaya
+6/7, rata-rata ±41 detik per kasus. Gagal: H1 (label intent), H3 (area kirim dari FAQ tidak disebut), H6 (minimum
+order tidak disebut), S3 (draf melanggar batas diskon; ditahan Guard). Engine aturan: 18/18, ±0,4 detik.
+
 ## Belum ada
 
-- Guard berbasis LLM (kini aturan); triage LLM sudah ada tetapi belum diuji dengan model sungguhan.
-- `adk eval` dengan model sungguhan (evalset kini format sendiri, hanya engine rule).
+- Guard berbasis LLM (kini aturan).
+- `adk eval` resmi dengan `tool_trajectory_avg_score` (evalset kini format sendiri).
+- Jalur hybrid (aturan dulu, Gemini hanya bila perlu) untuk menurunkan latensi.
