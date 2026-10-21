@@ -28,6 +28,7 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "follow_up": ("follow up", "gimana kabar", "belum dibalas", "sudah dua kali", "udah 2x", "kok belum"),
 }
+NOT_PRICE = re.compile(r"\b(jam|pukul)\s+(berapa|brp)\b|\b(berapa|brp)\s+(lama|hari|jam|menit)\b")
 SPAM_KEYWORDS = (
     "jual followers", "beli followers", "slot gacor", "klik link", "klik tautan",
     "promo kolaborasi", "dapatkan uang", "judi", "pinjaman cepat", "crypto",
@@ -155,6 +156,9 @@ def triage(req: AnalyzeRequest) -> TriageResult:
         risk.append("bahasa_kasar")
 
     intents = [name for name, kws in INTENT_KEYWORDS.items() if any(k in low for k in kws)]
+    # "jam berapa" / "berapa lama" menanyakan waktu, bukan harga.
+    if "tanya_harga" in intents and not any(k in NOT_PRICE.sub(" ", low) for k in INTENT_KEYWORDS["tanya_harga"]):
+        intents.remove("tanya_harga")
     if "tanya_harga" in intents and "qty" in entities and "minta_penawaran" not in intents:
         intents.append("minta_penawaran")
     if "spam" in risk:
