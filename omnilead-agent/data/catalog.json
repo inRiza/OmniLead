@@ -1,0 +1,88 @@
+{
+  "business": "Dapur Bu Rina",
+  "persona": "katering-hampers",
+  "packages": [
+    {
+      "id": "paket-a",
+      "name": "Paket A (nasi box ayam)",
+      "keywords": [
+        "paket a",
+        "nasi box",
+        "ayam",
+        "katering"
+      ],
+      "unit_price": 25000,
+      "unit": "pax",
+      "min_order": 30,
+      "notes": "Nasi, ayam goreng, sayur, kerupuk."
+    },
+    {
+      "id": "paket-b",
+      "name": "Paket B (nasi box komplit)",
+      "keywords": [
+        "paket b",
+        "nasi box",
+        "komplit",
+        "katering",
+        "kantor",
+        "acara"
+      ],
+      "unit_price": 35000,
+      "unit": "pax",
+      "min_order": 30,
+      "notes": "Nasi, ayam/ikan, 2 lauk, sayur, buah, air mineral."
+    },
+    {
+      "id": "hampers-premium",
+      "name": "Hampers Premium",
+      "keywords": [
+        "hampers",
+        "parsel",
+        "hadiah"
+      ],
+      "unit_price": 150000,
+      "unit": "box",
+      "min_order": 5,
+      "notes": "Isi kue kering, sirup, dan kartu ucapan."
+    }
+  ],
+  "policies": {
+    "max_discount_percent": 5,
+    "delivery_area": [
+      "Bandung",
+      "Cimahi"
+    ],
+    "lead_time_days": 3,
+    "payment": "DP 50% saat konfirmasi, pelunasan sebelum pengiriman."
+  },
+  "faq": [
+    {
+      "keywords": [
+        "kirim",
+        "ongkir",
+        "antar",
+        "area"
+      ],
+      "answer": "Kami melayani pengantaran di area Bandung dan Cimahi."
+    },
+    {
+      "keywords": [
+        "bayar",
+        "dp",
+        "pembayaran",
+        "transfer"
+      ],
+      "answer": "DP 50% saat konfirmasi, pelunasan sebelum pengiriman."
+    },
+    {
+      "keywords": [
+        "lama",
+        "jauh hari",
+        "h-",
+        "pesan sebelum"
+      ],
+      "answer": "Pemesanan paling lambat 3 hari sebelum acara."
+    }
+  ],
+  "default_package": "paket-b"
+}

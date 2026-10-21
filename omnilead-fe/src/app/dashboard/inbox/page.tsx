@@ -1,18 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  activities as seedActivities,
-  leads,
-  proposedActions as seedActions,
-  traces,
-} from "@/lib/mock";
-import type { ProposedAction } from "@/lib/types";
+import type { Channel } from "@/lib/types";
+import { channelLabel, cn } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ActivityTable } from "@/components/dashboard/ActivityTable";
 import { ActivityDetail } from "@/components/dashboard/ActivityDetail";
 import { ApprovalQueue } from "@/components/dashboard/ApprovalQueue";
+import { PasteMessage } from "@/components/dashboard/PasteMessage";
+import { Button } from "@/components/action/button";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
 import {
   Sheet,
@@ -21,27 +18,41 @@ import {
   SheetHeader,
 } from "@/components/ui/sheet";
 
+const OPEN = new Set(["pending", "awaiting_manual_send", "failed"]);
+
+const KIND_LABEL = { komentar: "Komentar", dm: "DM / pesan", email: "Email" } as const;
+type KindFilter = keyof typeof KIND_LABEL | "all";
+
 export default function InboxPage() {
-  const { paused } = useDashboard();
+  const d = useDashboard();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [actions, setActions] = useState<ProposedAction[]>(seedActions);
+  const [channel, setChannel] = useState<Channel | "all">("all");
+  const [kind, setKind] = useState<KindFilter>("all");
+  const [pasting, setPasting] = useState(false);
 
-  const selected = useMemo(
-    () => (selectedId ? seedActivities.find((a) => a.id === selectedId) : null),
-    [selectedId],
+  const rows = useMemo(
+    () =>
+      d.activities.filter(
+        (a) =>
+          (channel === "all" || a.channel === channel) &&
+          (kind === "all" || a.kind === kind),
+      ),
+    [d.activities, channel, kind],
   );
-  const lead = selected ? leads[selected.leadId] : null;
-  const trace = selected ? traces[selected.id] : undefined;
-  const activityActions = selectedId
-    ? actions.filter((a) => a.activityId === selectedId)
-    : [];
-  const queueCount = activityActions.filter(
-    (a) => a.status === "pending" || a.status === "awaiting_manual_send",
-  ).length;
+  const channelsInUse = useMemo(
+    () => [...new Set(d.activities.map((a) => a.channel))],
+    [d.activities],
+  );
 
-  function update(id: string, patch: Partial<ProposedAction>) {
-    setActions((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-  }
+  const selected = selectedId
+    ? (d.activities.find((a) => a.id === selectedId) ?? null)
+    : null;
+  const lead = selected ? (d.leadsById[selected.leadId] ?? null) : null;
+  const trace = selected ? d.traces[selected.id] : undefined;
+  const activityActions = selectedId
+    ? d.actions.filter((a) => a.activityId === selectedId)
+    : [];
+  const queueCount = activityActions.filter((a) => OPEN.has(a.status)).length;
 
   return (
     <>
@@ -50,23 +61,90 @@ export default function InboxPage() {
         subtitle="Pesan masuk dari semua kanal. Anda yang putuskan balasannya."
       />
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="p-5 md:p-6">
-          <ActivityTable
-            activities={seedActivities}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
+        <div className="flex flex-col gap-3 p-5 md:p-6">
+          <div className="flex justify-end">
+            <Button
+              purpose="action"
+              style={pasting ? "primary" : "secondary"}
+              onClick={() => setPasting((v) => !v)}
+            >
+              {pasting ? "Tutup" : "Tempel pesan"}
+            </Button>
+          </div>
+          {pasting ? (
+            <PasteMessage
+              onCreated={(id) => {
+                setPasting(false);
+                setChannel("all");
+                setKind("all");
+                setSelectedId(id);
+              }}
+            />
+          ) : null}
+
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter jenis aktivitas">
+            {(["all", "komentar", "dm", "email"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKind(k)}
+                aria-pressed={kind === k}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                  kind === k
+                    ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                    : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
+                )}
+              >
+                {k === "all" ? "Semua jenis" : KIND_LABEL[k]}
+              </button>
+            ))}
+          </div>
+
+          {channelsInUse.length > 1 ? (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter kanal">
+              {(["all", ...channelsInUse] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setChannel(c)}
+                  aria-pressed={channel === c}
+                  className={cn(
+                    "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                    channel === c
+                      ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                      : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
+                  )}
+                >
+                  {c === "all" ? "Semua" : channelLabel[c]}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {d.loaded && rows.length === 0 ? (
+            <p className="rounded-lg border border-rc-border bg-rc-surface px-4 py-8 text-center text-sm text-rc-fg-muted">
+              Belum ada aktivitas. Hubungkan kanal komunikasi atau media sosial
+              untuk mulai.
+            </p>
+          ) : (
+            <ActivityTable
+              activities={rows}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          )}
         </div>
       </ContentInset>
 
       <Sheet
-        open={selectedId !== null && selected !== null && lead !== null}
+        open={selected !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
       >
-        <SheetContent className="gap-0 p-0 sm:max-w-lg">
-          {selected && lead ? (
+        <SheetContent className="gap-0 p-0 sm:max-w-3xl">
+          {selected ? (
             <>
               <SheetHeader>
                 <p className="text-base font-semibold text-rc-fg">
@@ -74,28 +152,26 @@ export default function InboxPage() {
                 </p>
                 <p className="text-sm text-rc-fg-muted">
                   {queueCount > 0
-                    ? `${queueCount} balasan menunggu persetujuan`
+                    ? `${queueCount} aksi menunggu keputusan Anda`
                     : "Tinjau percakapan"}
                 </p>
               </SheetHeader>
               <SheetBody className="flex flex-col gap-5">
-                <ActivityDetail
-                  activity={selected}
-                  lead={lead}
-                  trace={trace}
-                />
+                {lead ? (
+                  <ActivityDetail activity={selected} lead={lead} trace={trace} />
+                ) : null}
                 <div>
                   <h2 className="mb-2 text-sm font-semibold text-rc-fg">
                     Balasan siap kirim
                   </h2>
                   <ApprovalQueue
                     actions={activityActions}
-                    paused={paused}
-                    onApprove={(id, text) =>
-                      update(id, { status: "executed", text })
-                    }
-                    onReject={(id) => update(id, { status: "rejected" })}
-                    onSent={(id) => update(id, { status: "sent_manually" })}
+                    paused={d.paused}
+                    leadsById={d.leadsById}
+                    onApprove={d.approve}
+                    onReject={d.reject}
+                    onRetry={d.retry}
+                    onSent={d.markSent}
                   />
                 </div>
               </SheetBody>

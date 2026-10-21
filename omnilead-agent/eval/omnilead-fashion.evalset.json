@@ -1,0 +1,157 @@
+{
+ "version": 1,
+ "description": "Evalset persona P2 (toko fashion muslim)",
+ "catalog": "data/catalog-fashion.json",
+ "reference_time": "2026-10-21T09:00:00+00:00",
+ "cases": [
+  {
+   "id": "F1",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "gamis aisha ready size M kak?",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "intents_include": [
+     "tanya_stok"
+    ],
+    "entities": {
+     "size": "M"
+    },
+    "text_contains": [
+     "ready (sisa 12 pcs)"
+    ],
+    "guard_all_pass": true
+   }
+  },
+  {
+   "id": "F2",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "gamis aisha size L ada ga?",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "entities": {
+     "size": "L"
+    },
+    "text_contains": [
+     "Size L sedang habis",
+     "M (12)"
+    ],
+    "guard_all_pass": true
+   }
+  },
+  {
+   "id": "F3",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "gamis aisha brp harganya kak? mau 2 pcs",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "intents_include": [
+     "tanya_harga"
+    ],
+    "entities": {
+     "qty": 2
+    },
+    "text_contains": [
+     "Rp378.000"
+    ],
+    "public_text_no_price": true,
+    "guard_all_pass": true
+   }
+  },
+  {
+   "id": "F4",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "kak aku reseller, mau ambil hijab pashmina 20 pcs brp?",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "entities": {
+     "qty": 20,
+     "customer_type": "reseller"
+    },
+    "text_contains": [
+     "Rp980.000",
+     "diskon 10%"
+    ],
+    "guard_all_pass": true,
+    "score_label": "Warm"
+   }
+  },
+  {
+   "id": "F5",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "bisa tukar ukuran ga kalau kekecilan?",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "text_contains": [
+     "Tukar ukuran maksimal 3 hari"
+    ],
+    "guard_all_pass": true
+   }
+  },
+  {
+   "id": "F6",
+   "category": "persona-fashion",
+   "input": {
+    "channel": "instagram",
+    "kind": "comment",
+    "text": "diskon 40% dong kak buat gamis aisha 3 pcs",
+    "sender": {
+     "handle": "@pembeli",
+     "name": "Dina",
+     "phone": null
+    }
+   },
+   "expect": {
+    "risk_flags_include": [
+     "diskon_tidak_wajar"
+    ],
+    "text_contains": [
+     "maksimal 10%"
+    ],
+    "text_not_contains": [
+     "40%"
+    ],
+    "guard_all_pass": true
+   }
+  }
+ ]
+}

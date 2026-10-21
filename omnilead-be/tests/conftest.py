@@ -8,6 +8,16 @@ from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 from omnilead.store import Store
 
 
+@pytest.fixture(autouse=True)
+def legacy_auth_mode(monkeypatch):
+    """Existing connector/CRM tests explicitly use the local demo auth mode."""
+    from omnilead.config import get_settings
+    monkeypatch.setenv("OMNILEAD_AUTH_ENABLED", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 class FakeConnector(ChannelConnector):
     """Connector palsu untuk tes, mencatat panggilan tulis."""
 
@@ -26,6 +36,11 @@ class FakeConnector(ChannelConnector):
             ),
             Capability(
                 action="reply_comment",
+                available=self._can_write,
+                path="official_api" if self._can_write else "handoff",
+            ),
+            Capability(
+                action="send_message",
                 available=self._can_write,
                 path="official_api" if self._can_write else "handoff",
             ),
@@ -59,6 +74,10 @@ class FakeConnector(ChannelConnector):
     def reply_comment(self, comment_ref: str, text: str) -> str:
         self.posted.append((comment_ref, text))
         return "reply-id-1"
+
+    def send_message(self, recipient, text, comment_ref=None, context=None):
+        self.posted.append((comment_ref or recipient, text))
+        return "msg-id-1"
 
 
 class FakeRegistry(Registry):

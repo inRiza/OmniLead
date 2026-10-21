@@ -8,6 +8,7 @@ Keluar: executor TIDAK mengirim. Ia membuat deep link "Salin & buka", dan
 Dipakai untuk aksi yang tidak diekspos API kanal aktif.
 """
 
+import uuid
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -16,6 +17,8 @@ from omnilead.models import Channel, Comment
 # Pola deep link per kanal. {text} diisi draf yang sudah di-URL-encode.
 DEEPLINK = {
     Channel.INSTAGRAM: "https://www.instagram.com/",
+    Channel.WHATSAPP: "https://wa.me/",
+    Channel.EMAIL: "mailto:",
 }
 
 
@@ -29,7 +32,7 @@ def ingest_pasted_text(
     """Ubah teks yang ditempel menjadi Comment biasa."""
     ts = pasted_at or datetime.now(timezone.utc)
     return Comment(
-        id=f"handoff-{channel}-{int(ts.timestamp() * 1000)}",
+        id=f"handoff-{channel}-{uuid.uuid4().hex[:12]}",
         channel=channel,
         post_ref=post_ref,
         author_handle=author_handle or "tidak diketahui",

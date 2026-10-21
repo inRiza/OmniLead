@@ -44,7 +44,7 @@ export function ScoreBadge({ score }: { score: LeadScore }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-sm font-medium",
         tone,
       )}
     >
@@ -55,7 +55,7 @@ export function ScoreBadge({ score }: { score: LeadScore }) {
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="text-xs font-medium text-rc-fg-subtle">{children}</span>
+    <span className="text-sm font-medium text-rc-fg-subtle">{children}</span>
   );
 }
 
@@ -80,7 +80,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium",
         tone === "default" && "bg-rc-fg text-rc-primary-fg",
         tone === "outline" && "border border-rc-border text-rc-fg-muted",
         tone === "muted" && "bg-rc-surface-hover text-rc-fg-muted",

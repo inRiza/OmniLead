@@ -15,9 +15,13 @@ export function TimeAgo({ iso }: { iso: string }) {
   const [label, setLabel] = useState(() => clock(iso));
 
   useEffect(() => {
-    setLabel(timeAgo(iso));
-    const t = setInterval(() => setLabel(timeAgo(iso)), 60000);
-    return () => clearInterval(t);
+    const tick = () => setLabel(timeAgo(iso));
+    const first = setTimeout(tick, 0); // bukan sinkron di body effect
+    const t = setInterval(tick, 60000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
   }, [iso]);
 
   return <span suppressHydrationWarning>{label}</span>;

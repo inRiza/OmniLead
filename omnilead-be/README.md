@@ -1,112 +1,101 @@
 # OmniLead Backend
 
-Backend untuk OmniLead: menghubungkan kanal lewat **API resmi**, dengan
-**handoff manual** untuk aksi yang tidak punya API. Semua aksi keluar melewati
-**antrean persetujuan manusia** sebelum dikirim.
-
-Kanal target: **Instagram**, **WhatsApp**, **Gmail**. Saat ini yang sudah
-dibangun baru **Instagram**. WhatsApp dan Gmail belum dikerjakan.
+Backend OmniLead: menerima pesan dari WhatsApp, Instagram, dan email; menyatukan identitas
+pelanggan; memanggil **service agen** (`omnilead-agent`, terpisah) untuk menyusun usulan; dan menjalankan aksi
+keluar **hanya setelah disetujui manusia**.
 
 ## Prinsip
 
-- **Satu kontrak connector** (`connectors/base.py`) untuk semua kanal. Agen dan
-  executor tidak tahu detail tiap platform.
-- **Hanya dua jalur:** `official_api` atau `handoff`. Connector tidak pernah
-  mengklaim akses yang tidak ada (lihat `capabilities()`).
-- **Agen tidak memegang tool kirim.** Pengiriman hanya dilakukan `Executor`
-  setelah tombol Setujui ditekan.
-- **Audit log** mencatat setiap langkah: proposed, approved, executed, handoff.
+- **Executor adalah satu-satunya yang memegang token dan mengirim ke platform.** Agen hanya mengusulkan; token
+  tidak pernah dikirim ke agen atau FE.
+- **Satu kontrak connector** (`connectors/base.py`). Jalur hanya `official_api` atau `handoff`; connector tidak
+  mengklaim akses yang tidak ada (`capabilities()`).
+- **Persetujuan per aksi.** Status dijaga (`pending → approved/edited/rejected → executing → executed/failed`,
+  handoff: `awaiting_manual_send → sent_manually`). Aksi yang ditolak atau gagal tidak bisa dikirim lewat `/approve`.
+- **Kendali:** Pause global (menahan eksekusi dan event), saklar per kanal, dry-run, batas kirim per jam,
+  jendela balasan kanal (WhatsApp/Instagram 24 jam, private reply 7 hari sekali), audit log.
+- **Identitas:** HP/email/handle sama persis digabung otomatis dan dicatat; kemiripan nama/perusahaan hanya menjadi
+  **usulan merge** dengan bukti dan keyakinan (`identity.py`).
 
-## Kanal & kemampuan
+## Alur
 
-| Aksi | Instagram | WhatsApp | Gmail |
+```
+webhook WA/IG, push Gmail, POST /events, tempel pesan
+        │  dedup (kanal, ID pesan) → identitas → [Pause? tahan]
+        ▼
+   POST {AGENT_URL}/v1/analyze  ──►  triage → orchestrator → guard
+        │  hanya usulan + trace
+        ▼
+   antrean persetujuan ──► Setujui/Edit/Tolak ──► Executor ──► Gmail / WhatsApp / Instagram / handoff
+```
+
+## Kanal
+
+| Kanal | Masuk | Keluar | Catatan |
 |---|---|---|---|
-| Daftar post | ✅ API | n/a | n/a |
-| Baca komentar | ✅ API | n/a | n/a |
-| Tulis / balas komentar | ✅ API | n/a | n/a |
-| Pesan | belum | belum | belum |
+| WhatsApp | webhook (signature) | Cloud API, teks bebas | Jendela 24 jam dicek executor |
+| Email | polling + push Pub/Sub | Gmail API, masuk thread | OAuth refresh token (mode Testing) |
+| Instagram | webhook komentar + DM | balasan publik, DM, private reply | DM maks 1.000 byte |
 
-**Instagram** memakai *Instagram API with Instagram Login*: host
-`graph.instagram.com`, akun Professional milik tim, Standard Access (tanpa App
-Review). Izin: `instagram_business_basic`, `instagram_business_manage_comments`.
+Instagram memakai Instagram API with Instagram Login (`graph.instagram.com`, default `v26.0`),
+tanpa Facebook Page. Pengelola mengisi ID/secret aplikasi; pengguna menghubungkan akun lewat UI.
+
+Semua connector baru diuji dengan transport HTTP tiruan; belum pernah dipanggil ke platform sungguhan.
+
+## Menjalankan
+
+Login pengguna aktif secara default. Buka FE `/login`, daftar akun pribadi, lalu
+hubungkan Instagram, Gmail, atau WhatsApp di **Akun & Integrasi**.
+Panduan konfigurasi aplikasi sekali oleh pengelola: [account-connections.md](../docs/account-connections.md).
+Token pengguna diperoleh lewat OAuth dan disimpan terenkripsi per bisnis.
+
+```bash
+cd omnilead-be
+uv sync                       # tambah --extra firestore untuk Firestore
+cp .env.example .env
+uv run uvicorn omnilead.main:app --reload
+```
+
+Dokumentasi API: http://localhost:8000/docs. Service agen harus jalan di `OMNILEAD_AGENT_URL` (default
+`http://localhost:8100`); jika mati, event ditandai `agent_error` dan bisa dianalisis ulang
+(`POST /events/{id}/analyze`).
+
+Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
+
+Penyimpanan: `OMNILEAD_STORE=sqlite` (default, dev/tes) atau `firestore` (`store_firestore.py`, belum diuji ke
+Firestore sungguhan).
 
 ## Struktur
 
 ```
-omnilead-be/
-├── pyproject.toml
-├── .env.example
-└── src/omnilead/
-    ├── config.py              # setting dari env
-    ├── models.py              # Channel, Post, Comment, Action, dll
-    ├── store.py               # SQLite: actions + audit
-    ├── main.py                # FastAPI app
-    ├── connectors/
-    │   ├── base.py            # kontrak ChannelConnector
-    │   ├── instagram.py       # Instagram API (graph.instagram.com)
-    │   ├── handoff.py         # tempel pesan masuk + paket Salin & buka
-    │   └── registry.py        # ambil connector per kanal
-    ├── approvals/
-    │   ├── queue.py           # propose / approve / reject
-    │   └── executor.py        # satu-satunya yang mengirim ke platform
-    └── api/
-        ├── deps.py            # singleton store/registry/queue/executor
-        ├── schemas.py         # request bodies
-        └── routes.py          # endpoint HTTP
+src/omnilead/
+├── config.py, models.py, main.py
+├── store.py, store_firestore.py   # SQLite dan Firestore, antarmuka sama
+├── agent_client.py                # klien HTTP ke service agen
+├── ingest.py                      # dedup, identitas, panggil agen, antrean
+├── identity.py                    # kemiripan → usulan merge
+├── windows.py                     # jendela balasan kanal
+├── scheduler.py                   # follow-up jatuh tempo, ringkasan harian
+├── seed.py
+├── connectors/                    # base, instagram, whatsapp, gmail, handoff, registry
+├── approvals/                     # queue (status machine), executor, merge (pisah profil)
+└── api/                           # routes, webhooks, scheduler_routes, deps, schemas
 ```
 
-## Menjalankan
+## Keamanan
 
-```bash
-cd omnilead-be
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
-cp .env.example .env            # isi token Instagram
-uvicorn omnilead.main:app --reload
-```
-
-Dokumentasi API otomatis di `http://localhost:8000/docs`.
+- REST untuk FE: cookie sesi login. Hanya mode demo eksplisit (`OMNILEAD_AUTH_ENABLED=false`)
+  memakai API key opsional. Token/API key tidak dikirim ke browser.
+- Webhook Meta: `X-Hub-Signature-256` wajib; app secret kosong → ditolak. Push Gmail: token di query.
+- `/scheduler/*`: `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>` atau OIDC Google; keduanya kosong → 403.
+- Kredensial aplikasi dari env/Secret Manager; token kanal disimpan terenkripsi di store per bisnis.
+  `.env`, `.secrets/`, dan database lokal ada di `.gitignore`.
 
 ## Tes
 
 ```bash
 uv run pytest
+uv run python eval/identity_eval.py    # presisi/recall identitas pada 50 lead dummy
 ```
 
-Tes memakai connector palsu (tanpa jaringan), memverifikasi: propose → approve
-→ execute, blokir aksi tanpa persetujuan, idempotensi (tidak kirim ganda),
-edit/tolak, jatuh ke handoff untuk aksi tanpa API, dan audit log.
-
-## Alur endpoint
-
-```
-komentar masuk        → GET /channels/{ch}/comments  atau  POST /handoff/paste
-agen menyusun draf    → POST /actions/propose         (status: pending)
-pemilik memutuskan    → POST /actions/{id}/approve | reject
-                        approve → Executor:
-                          - aksi ber-API   → kirim, status executed
-                          - aksi tanpa API → status awaiting_manual_send
-                                             GET /actions/{id}/handoff (Salin & buka)
-                                             POST /actions/{id}/sent (sudah dikirim)
-semua langkah         → GET /audit
-```
-
-## Setup token Instagram
-
-1. Akun Instagram diubah ke **Professional** (Business/Creator).
-2. Di developers.facebook.com buat app tipe **Business**, tambahkan produk
-   **Instagram**, buka **API setup with Instagram business login**.
-3. **Add account**, terima undangan tester di
-   `instagram.com/accounts/manage_access/` (tab Tester Invites), lalu
-   **Generate token** (berlaku 60 hari).
-4. Ambil user ID:
-   `GET https://graph.instagram.com/v26.0/me?fields=user_id,username&access_token=...`
-5. Isi `OMNILEAD_INSTAGRAM_USER_ID` dan `OMNILEAD_INSTAGRAM_ACCESS_TOKEN` di
-   `.env`, lalu tes `GET /channels/instagram/posts`.
-
-## Catatan sumber (untuk luaran ITB)
-
-- Instagram Platform — https://developers.facebook.com/docs/instagram-platform
-- Get started (Instagram Login) — https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started
-- FastAPI, httpx, pydantic — lihat `pyproject.toml`. Lisensi masing-masing
-  permissive (MIT/BSD/Apache).
+Hasil dan batas pengujian ada di `../TESTING.md`.

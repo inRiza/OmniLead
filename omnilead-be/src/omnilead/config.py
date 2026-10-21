@@ -9,9 +9,55 @@ class Settings(BaseSettings):
         env_file=".env", env_prefix="OMNILEAD_", extra="ignore"
     )
 
+    # sqlite (dev/tes) atau firestore (produksi)
+    store: str = "sqlite"
+    firestore_project: str = ""
     secrets_dir: Path = Path(".secrets")
     db_path: Path = Path("data/omnilead.db")
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    # API key mode demo lama (hanya berlaku jika auth_enabled=false).
+    api_key: str = ""
+
+    # Login pengguna dan OAuth. Token kanal disimpan per bisnis, bukan di browser.
+    auth_enabled: bool = True
+    accounts_db_path: Path = Path("data/accounts.db")
+    frontend_url: str = "http://localhost:3000"
+    token_encryption_key: str = ""  # Fernet; lokal dibuat di .secrets/oauth.key
+    session_days: int = 7
+    registration_enabled: bool = True
+    meta_app_id: str = ""
+    whatsapp_signup_config_id: str = ""
+    whatsapp_signup_version: str = "v25.0"
+    instagram_client_id: str = ""
+    instagram_client_secret: str = ""
+    instagram_api_host: str = "https://graph.instagram.com"  # Instagram Login
+
+    # Service agen (terpisah, dipanggil oleh BE)
+    agent_url: str = "http://localhost:8100"
+    agent_api_key: str = ""
+    agent_timeout_s: float = 60.0
+    # key = X-API-Key saja; oidc = tambah token identitas Google (agen tidak publik di Cloud Run)
+    agent_auth: str = "key"
+
+    # Cloud Scheduler: token bersama (Authorization: Bearer) atau OIDC bila audience diisi.
+    scheduler_token: str = ""
+    scheduler_oidc_audience: str = ""
+
+    # Meta (WhatsApp Cloud API + Instagram webhook)
+    meta_app_secret: str = ""
+    meta_verify_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_access_token: str = ""
+    whatsapp_graph_version: str = "v21.0"
+
+    # Gmail API (OAuth refresh token dari mode Testing)
+    gmail_client_id: str = ""
+    gmail_client_secret: str = ""
+    gmail_refresh_token: str = ""
+    gmail_user: str = "me"
+    gmail_pubsub_topic: str = ""
+    gmail_push_token: str = ""
 
     # Instagram Graph API (resmi)
     instagram_user_id: str = ""

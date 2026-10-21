@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
+import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
+import { useDashboard } from "./DashboardContext";
+import { useAccount } from "./AccountProvider";
+import { LogoutButton } from "./LogoutButton";
 import {
   HomeIcon,
   InboxIcon,
@@ -22,18 +26,26 @@ type NavItem = {
 
 const main: NavItem[] = [
   { href: "/dashboard", label: "Beranda", icon: HomeIcon },
-  { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon, badge: 3 },
+  { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
   { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
 ];
 
 const secondary: NavItem[] = [
+  { href: "/dashboard/knowledge", label: "Pengetahuan & Tone", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
   { href: "/dashboard/audit", label: "Audit", icon: ListIcon },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { pendingCount } = useDashboard();
+  const { session } = useAccount();
+  const user = session.user;
+  const withBadge = (items: NavItem[]): NavItem[] =>
+    items.map((i) =>
+      i.href === "/dashboard/inbox" ? { ...i, badge: pendingCount } : i,
+    );
 
   function isActive(href: string): boolean {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -42,19 +54,14 @@ export function Sidebar() {
 
   return (
     <aside className="rc-scrollbar hidden h-full w-60 shrink-0 flex-col bg-rc-bg md:flex">
-      <div className="flex min-h-14 shrink-0 items-center gap-2.5 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-rc-primary text-xs font-semibold text-rc-primary-fg">
-          O
-        </div>
-        <span className="text-base font-semibold tracking-tight text-rc-fg">
-          OmniLead
-        </span>
-      </div>
+      <Link href="/" className="flex min-h-14 shrink-0 items-center px-4 py-3">
+        <Logo />
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-5 px-2 py-1">
-        <NavGroup items={main} isActive={isActive} />
+        <NavGroup items={withBadge(main)} isActive={isActive} />
         <div>
-          <p className="px-2.5 pb-1 text-xs font-medium text-rc-fg-subtle">
+          <p className="px-2.5 pb-1 text-sm font-medium text-rc-fg-subtle">
             Pengaturan
           </p>
           <NavGroup items={secondary} isActive={isActive} />
@@ -63,18 +70,19 @@ export function Sidebar() {
 
       <div className="p-3 pt-0">
         <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-rc-border bg-rc-primary text-xs font-semibold text-rc-primary-fg">
-            BR
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-rc-border bg-rc-primary text-sm font-semibold text-rc-primary-fg">
+            {user ? user.name.slice(0, 2).toUpperCase() : "OL"}
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-medium text-rc-fg">
-              Bu Rina
+              {user?.name ?? "Demo OmniLead"}
             </div>
-            <div className="truncate text-xs text-rc-fg-muted">
-              Katering &amp; hampers
+            <div className="truncate text-sm text-rc-fg-muted">
+              {user?.business ?? "Lingkungan lokal"}
             </div>
           </div>
         </div>
+        <LogoutButton className="mt-2" />
       </div>
     </aside>
   );
@@ -108,7 +116,7 @@ function NavGroup({
               {item.badge ? (
                 <span
                   className={cn(
-                    "rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums",
+                    "rounded-md px-1.5 py-0.5 text-sm font-medium tabular-nums",
                     active
                       ? "bg-rc-border/60 text-rc-fg"
                       : "bg-rc-surface-hover text-rc-fg-muted",

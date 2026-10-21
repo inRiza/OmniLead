@@ -1,0 +1,9 @@
+.venv
+__pycache__
+.pytest_cache
+.env
+.secrets
+data/*.db
+.omc
+.e2e-tmp
+tests

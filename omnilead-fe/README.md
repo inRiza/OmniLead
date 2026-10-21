@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OmniLead Frontend
 
-## Getting Started
+UI OmniLead (Next.js 16, React 19, Tailwind 4). Satu workspace untuk pesan dari semua kanal, antrean
+persetujuan, profil lead, dan kendali agen. Data berasal dari `omnilead-be`; tidak ada data mock.
 
-First, run the development server:
+## Menjalankan
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd omnilead-fe
+cp .env.example .env.local     # OMNILEAD_BACKEND_URL, hanya dibaca server
+bun install                    # atau npm install
+bun run dev                    # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Urutan menjalankan seluruh sistem: agen (8100) → BE (8000) → FE (3000); lihat `../README.md`.
+Jika BE mati, FE menampilkan banner dan data bisa usang.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Browser memakai proxy Next.js `/api/backend` dan cookie sesi. API key tidak masuk
+bundle browser. Mulai dari `/login`, daftar bisnis, lalu hubungkan akun melalui
+halaman Integrasi. Panduan pengelola: [account-connections.md](../docs/account-connections.md).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Halaman
 
-## Learn More
+| Rute | Isi |
+|---|---|
+| `/login` | Masuk atau daftar bisnis; sesi pengguna dan pemisahan data per bisnis |
+| `/dashboard` | Beranda: hal yang perlu ditangani hari ini, statistik, volume pesan 7 hari, kanal |
+| `/dashboard/inbox` | Workspace: aktivitas berprioritas, filter kanal dan jenis, **Tempel pesan** (teks/screenshot), panel detail dengan rencana, langkah agen, hasil Guard, dan antrean persetujuan |
+| `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan, tombol **Pisahkan** untuk merge yang salah |
+| `/dashboard/integrasi` | Hubungkan/ganti/putuskan akun, pilih nomor WhatsApp, profil bisnis, keluar, jeda kanal, mode latihan |
+| `/dashboard/knowledge` | Editor/impor Markdown, produk dan harga, pemilihan sumber pengetahuan serta tone per kanal |
+| `/dashboard/audit` | Jejak aksi: pelaksana, kanal, hasil |
+| `/dashboard/konten` | Ide konten dari pertanyaan yang sering muncul (draf caption, salin; tidak ada publikasi) |
 
-To learn more about Next.js, take a look at the following resources:
+Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul dan aksi ditahan.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Pendaftaran cukup nama/email/kata sandi. Bisnis ditambah dari dashboard dan dapat
+diganti lewat dropdown header. Panduan: [knowledge-base.md](../docs/knowledge-base.md).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Struktur data
 
-## Deploy on Vercel
+- `src/lib/api.ts`: klien REST dan tipe respons BE (`Be*`).
+- `src/lib/adapt.ts`: satu-satunya tempat yang mengubah bentuk JSON BE ke tipe FE (`types.ts`).
+- `src/components/dashboard/DashboardContext.tsx`: provider data, polling 3 detik, mutasi (setujui, tolak,
+  coba ulang, Pause, saklar kanal).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Pemeriksaan
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+bun run lint
+npx tsc --noEmit
+bun run test        # vitest: adapter dan klien API (22 tes)
+```
+
+Komponen UI belum punya tes otomatis; diverifikasi manual di browser (lihat `../TESTING.md`).

@@ -45,6 +45,7 @@ export function Button(props: NavProps | ActionProps) {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { purpose: _, style: __, className: ___, children, ...rest } = props;
   return (
     <button type="button" className={className} {...rest}>
