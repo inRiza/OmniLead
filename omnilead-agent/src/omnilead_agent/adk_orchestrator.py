@@ -22,6 +22,7 @@ from omnilead_agent.orchestrator import (
     TemplateDrafter,
 )
 from omnilead_agent.schemas import GuardNote, Proposal
+from omnilead_agent.adk_triage import generation_config
 from omnilead_agent.knowledge import sources
 from omnilead_agent.progress import run_async
 
@@ -239,6 +240,7 @@ def build_agent(ctx: DraftContext, sink: list[Proposal], model=None) -> LlmAgent
             preferences=_preferences_text(ctx.req.preferences),
         ),
         tools=tools,
+        generate_content_config=generation_config(),
         **extra,
     )
 
@@ -260,10 +262,16 @@ async def _run(agent: LlmAgent, message: str) -> None:
         app_name=APP_NAME, user_id=user_id, session_id=session_id
     )
     content = types.Content(role="user", parts=[types.Part(text=message)])
-    async for _ in runner.run_async(
-        user_id=user_id, session_id=session_id, new_message=content
-    ):
-        pass
+    events = runner.run_async(user_id=user_id, session_id=session_id, new_message=content)
+    proposed: set[str] = set()
+    async for event in events:
+        # Berhenti setelah balasan dan update CRM diusulkan; giliran ringkasan penutup tidak dipakai.
+        responses = event.get_function_responses()
+        proposed |= {r.name for r in responses if "error" not in (r.response or {})}
+        if responses and all(r.name.startswith("propose_") for r in responses) \
+                and "propose_crm_update" in proposed and "propose_reply" in proposed:
+            break
+    await events.aclose()
 
 
 class AdkDrafter:

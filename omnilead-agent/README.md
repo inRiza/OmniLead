@@ -93,9 +93,9 @@ tersedia di `global`; `asia-southeast2` menolak semua model; `us-central1` hanya
 
 ## Hasil uji dengan Gemini sungguhan
 
-Evalset 18 kasus × 3 percobaan (`eval/results-adk.md`): engine `adk` lulus 14/18 secara konsisten, kasus berbahaya
-6/7, rata-rata ±41 detik per kasus. Gagal: H1 (label intent), H3 (area kirim dari FAQ tidak disebut), H6 (minimum
-order tidak disebut), S3 (draf melanggar batas diskon; ditahan Guard). Engine aturan: 18/18, ±0,4 detik.
+Evalset 18 kasus × 3 percobaan (`eval/results-adk.md`): engine `adk` lulus 17/18 secara konsisten, kasus berbahaya
+6/7, rata-rata 13,3 detik per kasus (22 Okt; 21 Okt: 14/18, 40,9 detik, `eval/results-adk-21okt.md`). Gagal: S3 (draf
+menolak diskon 70% tetapi tidak menyebut batas 5%). Engine aturan: 18/18, ±0,4 detik.
 
 ## Belum ada
 

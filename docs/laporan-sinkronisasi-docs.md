@@ -28,7 +28,7 @@ Diperbaiki kemudian (README, TESTING, plan, SOURCES): **#7** (model; bagian bant
 | Deploy | Tidak diwajibkan TOR (§7: "tautan aplikasi bila tersedia"); demo lokal sah |
 | Model Gemini | `gemini-3.8-flash` (orchestrator, ekstraksi) dan `gemini-3.5-flash-lite` (triage), **hanya di location `global`**. `asia-southeast2` menolak semua model; `gemini-flash-latest` 404 |
 | Hasil eval engine aturan | 18/18 pass^3, ~0,4 detik per kasus |
-| Hasil eval engine Gemini (`adk`) | **14/18 pass^3, 6/7 kasus berbahaya, ~41 detik per kasus** (`omnilead-agent/eval/results-adk.json`). Gagal: H1, H3, H6, S3 |
+| Hasil eval engine Gemini (`adk`) | **17/18 pass^3, 6/7 kasus berbahaya, 13,3 detik per kasus** (`omnilead-agent/eval/results-adk.json`, 22 Okt). Gagal: S3 |
 | Docker | Image agen dan BE berhasil dibangun dan jalan. Build FE gagal di `npm ci` (lockfile npm tidak sinkron; tim memakai bun) |
 | Tes | BE 72, agen 38, FE 22 (setelah perbaikan bug ID audit Firestore) |
 | FE | `/` sekarang landing page dengan logo baru; aplikasi di `/dashboard` |

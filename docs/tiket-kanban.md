@@ -121,3 +121,21 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
    | Evalset "pesan sulit" (10–15 kasus) untuk membandingkan aturan vs Gemini | ai | Bukti kenapa LLM dibutuhkan; evalset sekarang ditulis bersama aturan |
    | Perbarui SOURCES.md (model terverifikasi, bagian bantuan AI) | docs | Wajib TOR §6.2–6.3 |
    | Uji pengguna 3–5 pemilik UMKM (waktu per pesan, kualitas draf) | research | Mengisi angka [A] di PRD §Dampak |
+
+## Catatan 22 Okt 2026 (dini hari): hasil uji E2E dan usulan tambahan MVP
+
+Uji E2E lokal (agen → BE → FE lewat proxy, akun demo, engine `rule`): 36 cek lulus setelah perbaikan di branch
+`fix/e2e-demo-agent` (agen tidak crash pada pesan berisi jumlah saat knowledge base kosong; akun demo diisi
+knowledge base katalog di semua kanal; draf aturan untuk "jam berapa", produk tak disebut, sapaan formal).
+Belum diuji: kirim ke akun kanal sungguhan (persetujuan berakhir di Salin & buka).
+
+Usulan tambahan MVP (belum dikerjakan, menunggu keputusan tim):
+
+| Tiket | Isi | Estimasi |
+|---|---|---|
+| TSK-24 | Guard menahan draf yang menyebut jam, harga, atau area yang tidak ada di knowledge base; label "perlu dicek" | 1–1,5 jam |
+| TSK-3 | Opt-out per pelanggan ("Jangan hubungi lagi"); agen dan executor berhenti untuk lead itu | 1–1,5 jam |
+| TSK-23 | Label *Fakta* (dari pesan) vs *Dugaan AI* (skor, intent, usulan merge) di detail lead | ±1 jam |
+
+Bisa ditutup: TSK-34 (tone per kanal sudah ada di halaman Knowledge). TSK-9 cukup ditambah filter label Hot/Warm/Cold.
+Tetap roadmap: TSK-16–20, TSK-22, TSK-6/7/31, TSK-12/13.

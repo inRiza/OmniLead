@@ -262,6 +262,7 @@ export interface Connection {
   provider: "instagram" | "facebook" | "gmail" | "whatsapp";
   channel: string;
   configured: boolean;
+  manual: boolean;
   status: "connected" | "disconnected" | "reconnect_required";
   label: string;
   expires_at: number | null;
@@ -324,6 +325,8 @@ export const api = {
   disconnect: (provider: string) => request<{ ok: boolean }>(`/connections/${provider}`, { method: "DELETE" }),
   whatsappExchange: (state: string, code: string) => post<WhatsAppAccounts>("/connections/whatsapp/exchange", { state, code }),
   whatsappSelect: (selection: string, account_id: string, pin: string) => post<{ ok: boolean }>("/connections/whatsapp/select", { selection, account_id, pin }),
+  whatsappManual: (phone_number_id: string, waba_id: string, access_token: string) =>
+    post<{ ok: boolean }>("/connections/whatsapp/manual", { phone_number_id, waba_id, access_token }),
   facebookPages: () => request<FacebookPages>("/connections/facebook/pages"),
   facebookSelect: (page_id: string) => post<{ ok: boolean }>("/connections/facebook/select", { page_id }),
   events: () => request<BeEvent[]>("/events?limit=200"),

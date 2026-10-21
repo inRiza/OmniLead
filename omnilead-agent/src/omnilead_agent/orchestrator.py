@@ -30,6 +30,7 @@ MAX_STEPS = 8
 PRIVATE_REPLY_CHANNELS = ("instagram", "facebook")
 # Batas panjang pesan pribadi per kanal (Instagram 1.000 byte, Messenger 2.000 karakter).
 MESSAGE_LIMITS = {"instagram": 1000, "facebook": 2000}
+HONORIFICS = {"pak", "bapak", "bu", "ibu", "kak", "mas", "mbak", "bpk", "sdr", "sdri"}
 
 
 class StepLimitReached(Exception):
@@ -165,7 +166,9 @@ class TemplateDrafter:
     @staticmethod
     def _name(req: AnalyzeRequest) -> str:
         n = req.event.sender.name or (req.lead.name if req.lead else None) or ""
-        return n.split()[0] if n else ""
+        # Buang sapaan seperti Pak atau Bu dari nama.
+        words = [w for w in n.split() if w.lower().rstrip(".") not in HONORIFICS]
+        return words[0] if words else ""
 
     def _greet(self, ctx: DraftContext, st: Style) -> str:
         n = self._name(ctx.req)
@@ -232,9 +235,19 @@ class TemplateDrafter:
 
         wants_price = bool({"tanya_harga", "minta_penawaran", "order"} & set(ctx.tri.intents))
         stock_text = self._stock_text(ctx, pkg)
+        from omnilead_agent.knowledge import fallback_answer
+        faq = ctx.catalog.faq_answer(ctx.req.event.text) or fallback_answer(ctx.req.business_context, ctx.req.event.text)
         if wants_price:
-            if pkg is None:
-                parts.append("Untuk harga paket tersebut kami cek dulu ya kak, nanti kami kabari.")
+            if pkg is None and ctx.catalog.packages and not stock_text:
+                # Produk tidak disebut: tawarkan pilihan dari katalog.
+                options = "; ".join(f"{p.name} {rupiah(p.unit_price)}/{p.unit} (min. {p.min_order} {p.unit})"
+                                    for p in ctx.catalog.packages[:4])
+                ask = ("Mohon informasikan pilihan, jumlah, dan tanggal acara agar kami hitungkan totalnya."
+                       if st.formal else "Mau yang mana kak? Boleh info jumlah dan tanggalnya ya.")
+                parts.append(f"Pilihan kami: {options}. {ask}")
+            elif pkg is None:
+                parts.append("Untuk harga item tersebut kami cek dulu dan segera kami kabari." if st.formal
+                             else "Untuk harga paket tersebut kami cek dulu ya kak, nanti kami kabari.")
                 ctx.notes.append("Info belum tersedia: harga item yang ditanyakan tidak ada di katalog")
             elif qty is None:
                 parts.append(
@@ -261,9 +274,10 @@ class TemplateDrafter:
                     dl = e.get("days_left")
                     if isinstance(dl, int) and dl < lead_days:
                         parts.append(f"Karena pemesanan idealnya H-{lead_days}, kami cek dulu ketersediaannya ya kak.")
+            # Pertanyaan lain di pesan yang sama tetap dijawab dari FAQ.
+            if faq and faq not in "\n".join(parts):
+                parts.append(faq)
         else:
-            from omnilead_agent.knowledge import fallback_answer
-            faq = ctx.catalog.faq_answer(ctx.req.event.text) or fallback_answer(ctx.req.business_context, ctx.req.event.text)
             if faq:
                 parts.append(faq)
             elif not stock_text:

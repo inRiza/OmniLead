@@ -37,6 +37,7 @@ export default function IntegrasiPage() {
   const [pin, setPin] = useState("");
   const [facebook, setFacebook] = useState<FacebookPages | null>(null);
   const [pageId, setPageId] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
 
   const loadConnections = useCallback(async () => {
     if (!session.enabled) return;
@@ -95,6 +96,17 @@ export default function IntegrasiPage() {
     await perform("profile", async () => {
       await api.updateProfile(String(values.get("name")), String(values.get("business")));
       await refreshAccount(); setNotice("Informasi bisnis disimpan.");
+    });
+  }
+
+  async function connectManual(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    await perform("whatsapp-manual", async () => {
+      await api.whatsappManual(String(values.get("phone_number_id")).trim(), String(values.get("waba_id")).trim(),
+        String(values.get("access_token")).trim());
+      setManualOpen(false);
+      await Promise.all([loadConnections(), d.refresh()]); setNotice("WhatsApp berhasil terhubung.");
     });
   }
 
@@ -161,8 +173,16 @@ export default function IntegrasiPage() {
               {provider && <Button purpose="action" style={connected ? "secondary" : "primary"} disabled={busy !== null || !connection.configured} onClick={() => void connect(provider)}>{busy === provider ? "Menghubungkan…" : connected || connection.status === "reconnect_required" ? "Hubungkan ulang / ganti akun" : `Hubungkan ${channelLabel[channel.channel]}`}</Button>}
               {provider && connection.status !== "disconnected" && <Button purpose="action" disabled={busy !== null} onClick={() => setConfirm(confirm === provider ? null : provider)}>Putuskan koneksi</Button>}
               <Button purpose="action" disabled={busy !== null} onClick={() => void perform(channel.channel, () => d.setChannelEnabled(channel.channel, !enabled))}>{enabled ? "Jeda kanal" : "Aktifkan kanal"}</Button>
+              {provider === "whatsapp" && connection?.manual &&<Button purpose="action" disabled={busy !== null} onClick={() => setManualOpen(!manualOpen)}>Hubungkan nomor uji</Button>}
               {!connected && <Button purpose="nav" href="/dashboard/inbox">Tempel pesan</Button>}
             </div>
+            {provider === "whatsapp" && manualOpen && <form className="mt-4 grid gap-4 rounded-lg border border-rc-border bg-rc-bg p-4" onSubmit={connectManual}>
+              <p className="text-sm text-rc-fg-muted">Salin dari dashboard Meta, menu WhatsApp, API Setup. Token disimpan terenkripsi dan tidak ditampilkan lagi.</p>
+              <label className="text-sm font-medium">Phone Number ID<input name="phone_number_id" inputMode="numeric" pattern="[0-9]{5,64}" required autoComplete="off" className={field} /></label>
+              <label className="text-sm font-medium">WhatsApp Business Account ID<input name="waba_id" inputMode="numeric" pattern="[0-9]{5,64}" required autoComplete="off" className={field} /></label>
+              <label className="text-sm font-medium">Access token<input name="access_token" type="password" required minLength={20} autoComplete="off" className={field} /></label>
+              <div className="flex gap-2"><Button purpose="action" type="submit" style="primary" disabled={busy !== null}>{busy === "whatsapp-manual" ? "Memeriksa ke Meta…" : "Hubungkan"}</Button><Button purpose="action" disabled={busy !== null} onClick={() => setManualOpen(false)}>Batal</Button></div>
+            </form>}
             {!enabled && <p className="mt-3 text-sm font-medium">Kanal dijeda. Pengiriman ditahan sampai Anda mengaktifkannya kembali.</p>}
             {confirm === provider && provider && <div className="mt-4 rounded-lg border border-rc-border bg-rc-bg p-4"><p className="text-sm">Putuskan {connection.label || channelLabel[channel.channel]} dari bisnis ini? Pengiriman melalui akun ini akan berhenti.</p><div className="mt-3 flex gap-2"><Button purpose="action" disabled={busy !== null} onClick={() => void disconnect(provider)}>Ya, putuskan</Button><Button purpose="action" onClick={() => setConfirm(null)}>Batal</Button></div></div>}
             <div className="mt-4 flex flex-wrap gap-2">{channel.capabilities.filter((cap) => cap.available).map((cap) => <Pill key={cap.action} tone="muted">{actionLabel[cap.action] ?? cap.action}</Pill>)}</div>

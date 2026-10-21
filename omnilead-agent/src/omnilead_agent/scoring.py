@@ -12,7 +12,10 @@ def estimate_value(tri: TriageResult, catalog: Catalog, text: str = "") -> int:
     hits = catalog.search(text) if text else []
     default = catalog.default_package()
     # Sama dengan pemilihan draf: kata kunci umum -> paket default bisnis.
-    pkg = default if default in hits else (hits[0] if hits else (default or catalog.packages[0]))
+    pkg = default if default in hits else (hits[0] if hits else (default or next(iter(catalog.packages), None)))
+    if pkg is None:
+        # Katalog kosong: nilai order tidak bisa ditaksir.
+        return int(tri.entities.get("budget", 0) or 0)  # type: ignore[arg-type]
     return pkg.unit_price * qty
 
 

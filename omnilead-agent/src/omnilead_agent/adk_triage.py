@@ -61,6 +61,14 @@ class TriageOut(BaseModel):
     language: str = "id-informal"
 
 
+def generation_config() -> types.GenerateContentConfig | None:
+    """Level thinking Gemini. Default low agar tiap giliran sekitar 1 detik; isi default untuk bawaan model."""
+    level = os.environ.get("OMNILEAD_AGENT_THINKING", "low")
+    if level == "default":
+        return None
+    return types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_level=level))
+
+
 def build_triage_agent(model=None) -> LlmAgent:
     return LlmAgent(
         name="omnilead_triage",
@@ -69,6 +77,7 @@ def build_triage_agent(model=None) -> LlmAgent:
         instruction=INSTRUCTION,
         output_schema=TriageOut,
         output_key="triage",
+        generate_content_config=generation_config(),
     )
 
 
@@ -92,13 +101,22 @@ async def _run(agent: LlmAgent, message: str) -> dict:
     return out
 
 
+def _merge_intents(rule: list[str], llm: list[str]) -> list[str]:
+    if "spam" in rule or "spam" in llm:
+        return ["spam"]
+    merged = list(dict.fromkeys([*llm, *rule]))
+    specific = [i for i in merged if i != "pertanyaan_umum"]
+    return specific or merged
+
+
 def merge(rule: TriageResult, llm: TriageOut) -> TriageResult:
     llm_entities = {k: v for k, v in llm.entities.model_dump().items() if v is not None}
     urgency = max(rule.urgency, llm.urgency if llm.urgency in URGENCY_RANK else "rendah",
                   key=lambda u: URGENCY_RANK[u])
     reasons = [r for r in (rule.urgency_reason, llm.urgency_reason) if r]
     return TriageResult(
-        intents=llm.intents or rule.intents,
+        # Intent dari aturan tetap dipakai walau LLM memberi label lain; spam selalu menang.
+        intents=_merge_intents(rule.intents, llm.intents),
         urgency=urgency,  # type: ignore[arg-type]
         urgency_reason="; ".join(dict.fromkeys(reasons)),
         sentiment=llm.sentiment if llm.sentiment in ("positif", "netral", "negatif") else rule.sentiment,  # type: ignore[arg-type]
