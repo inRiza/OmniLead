@@ -39,6 +39,8 @@ Untuk penawaran harga, isi juga daftar **Produk & harga** pada editor. Harga di 
 tersebut menjadi katalog yang dipakai menghitung dan memeriksa nominal; agen tidak
 mengasumsikan harga dari katalog demo atau menebak dari teks bebas.
 
+Kanal aktif: Instagram, WhatsApp, dan email.
+
 ## Tone per kanal
 
 - Ramah & hangat

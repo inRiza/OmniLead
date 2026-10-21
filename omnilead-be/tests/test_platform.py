@@ -40,10 +40,10 @@ def agent():
 
 
 @pytest.fixture
-def client(store, queue, ig, wa, li_handoff, agent):
+def client(store, queue, ig, wa, agent):
     from omnilead.approvals.executor import Executor
 
-    registry = FakeRegistry({Channel.INSTAGRAM: ig, Channel.LINKEDIN: li_handoff, Channel.WHATSAPP: wa})
+    registry = FakeRegistry({Channel.INSTAGRAM: ig, Channel.WHATSAPP: wa})
     executor = Executor(registry, store)
     ac = AgentClient("http://agent", transport=httpx.MockTransport(agent.handler))
     ing = IngestService(store, queue, ac)
@@ -288,17 +288,17 @@ def test_daily_summary_prioritises_failures_and_hot_leads(client, store, queue):
 # --- tempel pesan (kanal tanpa API) ---
 
 
-def test_paste_tiktok_message_then_manual_handoff(client, store, agent):
+def test_paste_email_message_then_manual_handoff(client, store, agent):
     agent.response = {**CANNED, "proposals": [
-        {"kind": "send_message", "channel": "tiktok", "recipient": "@sari", "text": "Bisa kak, kami kirim ke Bandung."}]}
-    r = client.post("/events/paste", json={"channel": "tiktok", "handle": "@sari", "name": "Sari",
+        {"kind": "send_message", "channel": "email", "recipient": "@sari", "text": "Bisa kak, kami kirim ke Bandung."}]}
+    r = client.post("/events/paste", json={"channel": "email", "handle": "@sari", "name": "Sari",
                                            "text": "kak bisa kirim hampers ke Bandung?"})
-    assert r.status_code == 200 and r.json()["channel"] == "tiktok" and r.json()["status"] == "analyzed"
-    (tik,) = [a for a in client.get("/actions").json() if a["channel"] == "tiktok"]
-    # kanal tiktok tidak punya API: disetujui -> menunggu dikirim manual, tidak dikirim otomatis
-    done = client.post(f"/actions/{tik['id']}/approve", json={}).json()
+    assert r.status_code == 200 and r.json()["channel"] == "email" and r.json()["status"] == "analyzed"
+    (manual,) = [a for a in client.get("/actions").json() if a["channel"] == "email"]
+    # fixture email tidak menyediakan API: disetujui -> menunggu dikirim manual, tidak dikirim otomatis
+    done = client.post(f"/actions/{manual['id']}/approve", json={}).json()
     assert done["status"] == "awaiting_manual_send"
-    assert client.post(f"/actions/{tik['id']}/sent", json={}).json()["status"] == "sent_manually"
+    assert client.post(f"/actions/{manual['id']}/sent", json={}).json()["status"] == "sent_manually"
 
 
 def test_paste_image_extracts_via_agent(client, agent, monkeypatch):
@@ -309,5 +309,5 @@ def test_paste_image_extracts_via_agent(client, agent, monkeypatch):
 
     ac = AgentClient("http://agent", transport=httpx.MockTransport(handler))
     client.app.dependency_overrides[deps.get_agent_client] = lambda: ac
-    r = client.post("/events/paste-image", json={"channel": "tiktok", "image_base64": "aGk=", "mime_type": "image/png"})
+    r = client.post("/events/paste-image", json={"channel": "email", "image_base64": "aGk=", "mime_type": "image/png"})
     assert r.status_code == 200 and r.json()["text"] == "ready size M kak?" and r.json()["sender"]["handle"] == "@rina_tt"

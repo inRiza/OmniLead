@@ -40,7 +40,7 @@ Token tidak pernah masuk repo, deck, atau rekaman. Buat satu secret per nilai:
 
 ```bash
 for s in omnilead-agent-key meta-app-secret meta-verify-token oauth-encryption-key \
-         gmail-client-secret gmail-push-token scheduler-token instagram-client-secret linkedin-client-secret; do
+         gmail-client-secret gmail-push-token scheduler-token instagram-client-secret; do
   gcloud secrets create $s --replication-policy=automatic
 done
 printf '%s' "<nilai>" | gcloud secrets versions add omnilead-agent-key --data-file=-
@@ -82,8 +82,7 @@ OMNILEAD_FRONTEND_URL=https://<url-fe>,OMNILEAD_CORS_ORIGINS='["https://<url-fe>
   --set-secrets OMNILEAD_TOKEN_ENCRYPTION_KEY=oauth-encryption-key:latest,OMNILEAD_AGENT_API_KEY=omnilead-agent-key:latest,\
 OMNILEAD_META_APP_SECRET=meta-app-secret:latest,OMNILEAD_META_VERIFY_TOKEN=meta-verify-token:latest,\
 OMNILEAD_SCHEDULER_TOKEN=scheduler-token:latest,OMNILEAD_GMAIL_CLIENT_SECRET=gmail-client-secret:latest,\
-OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_CLIENT_SECRET=instagram-client-secret:latest,\
-OMNILEAD_LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest
+OMNILEAD_GMAIL_PUSH_TOKEN=gmail-push-token:latest,OMNILEAD_INSTAGRAM_CLIENT_SECRET=instagram-client-secret:latest
 ```
 
 `--allow-unauthenticated` diperlukan karena webhook Meta dan push Pub/Sub tidak membawa identitas Google.
@@ -92,7 +91,7 @@ untuk push Gmail, dan token Bearer untuk Scheduler. Peningkatan produksi: tutup 
 token OIDC antar-service (`OMNILEAD_AGENT_AUTH=oidc`, lihat bagian agen).
 
 Isi juga `OMNILEAD_META_APP_ID`, `OMNILEAD_WHATSAPP_SIGNUP_CONFIG_ID`,
-`OMNILEAD_INSTAGRAM_CLIENT_ID`, `OMNILEAD_GMAIL_CLIENT_ID`, `OMNILEAD_LINKEDIN_CLIENT_ID`,
+`OMNILEAD_INSTAGRAM_CLIENT_ID`, `OMNILEAD_GMAIL_CLIENT_ID`,
 dan `OMNILEAD_GMAIL_PUBSUB_TOPIC` (nilai non-rahasia, lewat `--set-env-vars`).
 Setelah URL FE tersedia, perbarui `FRONTEND_URL`, CORS, serta redirect URI pada dashboard provider.
 

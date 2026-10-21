@@ -6,10 +6,8 @@ import type { Channel } from "@/lib/types";
 import { Button } from "@/components/action/button";
 import { useDashboard } from "./DashboardContext";
 
-// Kanal yang API-nya tertutup: pesan masuk ditempel, balasan dikirim manual.
+// Tempel pesan dari kanal aktif untuk menyiapkan draf balasan.
 const CHANNELS: { value: Channel; label: string }[] = [
-  { value: "tiktok", label: "TikTok" },
-  { value: "linkedin", label: "LinkedIn" },
   { value: "instagram", label: "Instagram" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "email", label: "Email" },
@@ -27,7 +25,7 @@ function readBase64(file: File): Promise<string> {
 
 export function PasteMessage({ onCreated }: { onCreated: (eventId: string) => void }) {
   const { refresh } = useDashboard();
-  const [channel, setChannel] = useState<Channel>("tiktok");
+  const [channel, setChannel] = useState<Channel>("instagram");
   const [handle, setHandle] = useState("");
   const [name, setName] = useState("");
   const [text, setText] = useState("");

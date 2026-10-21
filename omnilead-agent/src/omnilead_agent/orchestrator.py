@@ -34,7 +34,7 @@ class StepLimitReached(Exception):
 class Tools:
     """Tools baca/hitung yang tercatat ke trace. Tidak ada tool kirim."""
 
-    req: AnalyzeRequest     
+    req: AnalyzeRequest
     tri: TriageResult
     catalog: Catalog
     trace: Trace
@@ -302,7 +302,7 @@ class TemplateDrafter:
         proposals: list[Proposal] = []
         reason_base = f"Intent: {', '.join(tri.intents)}. Urgensi {tri.urgency}: {tri.urgency_reason}"
 
-        is_public_comment = ev.kind == "comment" and ev.channel in ("instagram", "linkedin", "tiktok")
+        is_public_comment = ev.kind == "comment" and ev.channel == "instagram"
         if is_public_comment and wants_price:
             proposals.append(Proposal(
                 kind="reply_comment", channel=ev.channel, post_ref=ev.post_ref or "",

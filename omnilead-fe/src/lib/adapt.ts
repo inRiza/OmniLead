@@ -26,7 +26,7 @@ import type {
   SummaryItem,
 } from "./types";
 
-const CHANNELS: Channel[] = ["instagram", "linkedin", "whatsapp", "email", "tiktok"];
+const CHANNELS: Channel[] = ["instagram", "whatsapp", "email"];
 
 function asChannel(c: string): Channel {
   return (CHANNELS as string[]).includes(c) ? (c as Channel) : "email";

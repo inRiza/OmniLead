@@ -30,6 +30,8 @@ class InstagramConnector(ChannelConnector):
     def __init__(self, settings: Settings, client: httpx.Client | None = None):
         self._user_id = settings.instagram_user_id
         self._token = settings.instagram_access_token
+        # Instagram API with Instagram Login: host graph.instagram.com,
+        # izin instagram_business_*, tidak perlu Facebook Page.
         self._base = (
             f"{settings.instagram_api_host}/{settings.instagram_graph_version}"
         )

@@ -227,7 +227,7 @@ export interface AccountSession {
 }
 
 export interface Connection {
-  provider: "instagram" | "gmail" | "whatsapp" | "linkedin";
+  provider: "instagram" | "gmail" | "whatsapp";
   channel: string;
   configured: boolean;
   status: "connected" | "disconnected" | "reconnect_required";

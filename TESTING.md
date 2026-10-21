@@ -3,6 +3,21 @@
 Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Penyelesaian konflik PR #3 dan penyempitan kanal (21 Okt 2026)
+
+- `refactor/canal-entry` diselaraskan dengan `develop` setelah penggabungan PR #4.
+  Konflik pada konfigurasi, model, registry, connector Instagram, executor, dokumentasi,
+  dan fixture diselesaikan. Mock FE lama tetap dihapus sesuai arsitektur data live.
+- Kanal backend, kontrak agen, frontend, OAuth, Tempel pesan, dan pengetahuan hanya
+  memakai Instagram, WhatsApp, dan email. Fixture lama disesuaikan dengan kanal aktif;
+  pemeriksaan OAuth yang dulu untuk LinkedIn kini memeriksa penolakan provider yang dihapus.
+- Pemeriksaan baru: lint frontend lulus, generasi tipe rute Next.js lulus, TypeScript lulus,
+  serta kompilasi sintaks sumber/fixture Python backend dan agen lulus.
+- Percobaan TypeScript pertama pada worktree baru gagal karena tipe `LayoutProps` belum
+  dihasilkan. Setelah `npx next typegen`, `npx tsc --noEmit` lulus tanpa perubahan kode untuk tipe itu.
+- Suite pytest, Vitest, Playwright, build Docker, dan panggilan provider tidak dijalankan ulang
+  pada penyelesaian konflik ini. Angka tes pada bagian berikut merupakan hasil sebelumnya.
+
 ## Pembaruan login dan koneksi akun (21 Okt 2026)
 
 **Perapihan UI bisnis dan pengetahuan:** TypeScript, lint, dan **22 tes frontend lulus**.

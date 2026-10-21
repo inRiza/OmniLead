@@ -19,8 +19,6 @@ const explanation: Record<string, string> = {
   instagram: "Hubungkan akun Business atau Creator untuk mengelola komentar dan pesan pelanggan.",
   email: "Izinkan OmniLead membaca dan membalas email bisnis melalui Gmail.",
   whatsapp: "Pilih akun bisnis dan nomor WhatsApp melalui jendela resmi Meta.",
-  linkedin: "Hubungkan profil untuk komentar sesuai izin LinkedIn. Pesan pribadi tetap dikirim manual.",
-  tiktok: "Tempel teks atau screenshot pesan. OmniLead menyiapkan balasan untuk Anda salin dan kirim.",
 };
 const field = "mt-1 block w-full rounded-lg border border-rc-border bg-rc-bg px-3 py-2 text-base text-rc-fg";
 
@@ -132,7 +130,7 @@ export default function IntegrasiPage() {
             <div className="flex flex-wrap items-start gap-3">
               <ChannelIcon channel={channel.channel} size="md" />
               <div className="min-w-0 flex-1"><h2 className="text-base font-semibold">{channelLabel[channel.channel]}</h2><p className="mt-1 text-sm text-rc-fg-muted">{explanation[channel.channel]}</p></div>
-              <span className="flex items-center gap-2 rounded-md bg-rc-surface-hover px-2 py-1 text-sm"><Dot ok={Boolean(connected)} />{connected ? "Terhubung" : connection?.status === "reconnect_required" ? "Perlu dihubungkan ulang" : channel.channel === "tiktok" ? "Kirim manual" : "Belum terhubung"}</span>
+              <span className="flex items-center gap-2 rounded-md bg-rc-surface-hover px-2 py-1 text-sm"><Dot ok={Boolean(connected)} />{connected ? "Terhubung" : connection?.status === "reconnect_required" ? "Perlu dihubungkan ulang" : "Belum terhubung"}</span>
             </div>
             {connection?.label && <p className="mt-3 text-base font-medium">{connection.label}</p>}
             {connection?.error && <p className="mt-2 text-sm text-rc-danger">{connection.error}</p>}

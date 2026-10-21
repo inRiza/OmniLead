@@ -77,11 +77,11 @@ def test_tenant_reads_mutations_and_connection_metadata_are_isolated(app):
     a.post("/settings/pause", json={"paused": True})
     assert not b.get("/settings").json()["paused"]
     accounts = deps.get_accounts()
-    accounts.save_connection(alice["workspace_id"], "linkedin", {
+    accounts.save_connection(alice["workspace_id"], "instagram", {
         "access_token": "super-secret-token", "account_id": "a1", "label": "Alice", "status": "connected", "scopes": [],
     })
     assert "super-secret-token" not in a.get("/connections").text
-    assert next(x for x in b.get("/connections").json() if x["provider"] == "linkedin")["status"] == "disconnected"
+    assert next(x for x in b.get("/connections").json() if x["provider"] == "instagram")["status"] == "disconnected"
     assert bob["workspace_id"] != alice["workspace_id"]
 
 
@@ -126,7 +126,6 @@ def oauth(app, handler, **kwargs):
     settings = get_settings().model_copy(update={
         "gmail_client_id": "google-id", "gmail_client_secret": "google-secret",
         "instagram_client_id": "ig-id", "instagram_client_secret": "ig-secret",
-        "linkedin_client_id": "li-id", "linkedin_client_secret": "li-secret",
         "meta_app_id": "meta-id", "meta_app_secret": "meta-secret", "whatsapp_signup_config_id": "signup-id", **kwargs,
     })
     service = OAuthService(settings, deps.get_accounts(), httpx.Client(transport=httpx.MockTransport(handler)))
@@ -188,20 +187,16 @@ def test_gmail_pkce_permissions_refresh_and_no_cross_account_refresh_reuse(app):
     assert service.connector_settings("w").gmail_refresh_token == ""
 
 
-def test_linkedin_oidc_actor_and_expiry(app):
-    def handler(req):
-        if req.url.host == "www.linkedin.com":
-            return httpx.Response(200, json={"access_token": "li-token", "scope": "openid profile w_member_social", "expires_in": 5000})
-        return httpx.Response(200, json={"sub": "person123", "name": "Rina"})
-    service = oauth(app, handler)
-    state = parse_qs(urlparse(service.start("linkedin", "w", "s")["url"]).query)["state"][0]
-    service.complete("linkedin", "code", state, "s", "w")
-    cfg = service.connector_settings("w")
-    assert cfg.linkedin_person_urn == "urn:li:person:person123" and not cfg.linkedin_use_legacy_token
-    data = service.accounts.connection("w", "linkedin")
-    data["expires_at"] = time.time() - 1
-    service.accounts.save_connection("w", "linkedin", data)
-    assert service.connection("w", "linkedin")["status"] == "reconnect_required"
+def test_removed_providers_do_not_offer_oauth(app):
+    service = oauth(app, lambda r: httpx.Response(500))
+    client = TestClient(app)
+    signup(client)
+    for provider in ("linkedin", "tiktok"):
+        assert not service.ready(provider)
+        with pytest.raises(OAuthError, match="tidak didukung"):
+            service.start(provider, "w", "s")
+        assert client.post(f"/connections/{provider}/start").status_code == 404
+    assert {item["provider"] for item in client.get("/connections").json()} == {"instagram", "gmail", "whatsapp"}
 
 
 def test_asset_cannot_be_shared_between_businesses(app):
@@ -280,7 +275,6 @@ def test_no_legacy_credentials_inherit_into_new_workspace(app):
     service = oauth(app, lambda r: httpx.Response(500), instagram_access_token="legacy-secret", gmail_refresh_token="legacy-refresh", whatsapp_access_token="legacy-wa")
     cfg = service.connector_settings("new-workspace")
     assert not cfg.instagram_access_token and not cfg.gmail_refresh_token and not cfg.whatsapp_access_token
-    assert not cfg.linkedin_use_legacy_token
 
 
 def test_denied_callback_and_wrong_state_never_replace_existing_connection(app, monkeypatch):

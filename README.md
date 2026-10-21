@@ -35,7 +35,7 @@ API: http://localhost:8000
 Dokumentasi: http://localhost:8000/docs
 
 Login FE di `/login`, daftar bisnis, lalu hubungkan akun di **Akun & Integrasi**.
-Pengguna tidak perlu memasukkan token. Konfigurasi aplikasi Google/Meta/LinkedIn
+Pengguna tidak perlu memasukkan token. Konfigurasi aplikasi Google/Meta
 sekali oleh pengelola dijelaskan di [panduan koneksi akun](docs/account-connections.md).
 
 Tes:

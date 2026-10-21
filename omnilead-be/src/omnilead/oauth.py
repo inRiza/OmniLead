@@ -10,12 +10,11 @@ import httpx
 from omnilead.accounts import AccountStore, digest
 from omnilead.config import Settings
 
-PROVIDERS = ("instagram", "gmail", "whatsapp", "linkedin")
-CHANNELS = {"instagram": "instagram", "gmail": "email", "whatsapp": "whatsapp", "linkedin": "linkedin"}
+PROVIDERS = ("instagram", "gmail", "whatsapp")
+CHANNELS = {"instagram": "instagram", "gmail": "email", "whatsapp": "whatsapp"}
 SCOPES = {
     "instagram": ["instagram_business_basic", "instagram_business_manage_comments", "instagram_business_manage_messages"],
     "gmail": ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"],
-    "linkedin": ["openid", "profile", "w_member_social"],
     "whatsapp": ["whatsapp_business_management", "whatsapp_business_messaging"],
 }
 
@@ -34,7 +33,6 @@ class OAuthService:
         return bool({
             "gmail": s.gmail_client_id and s.gmail_client_secret,
             "instagram": s.instagram_client_id and s.instagram_client_secret,
-            "linkedin": s.linkedin_client_id and s.linkedin_client_secret,
             "whatsapp": s.meta_app_id and s.meta_app_secret and s.whatsapp_signup_config_id,
         }.get(provider))
 
@@ -53,6 +51,8 @@ class OAuthService:
         return data
 
     def start(self, provider: str, workspace: str, session: str) -> dict:
+        if provider not in PROVIDERS:
+            raise OAuthError("Koneksi tidak didukung")
         if not self.ready(provider):
             raise OAuthError("Pengelola OmniLead belum mengaktifkan koneksi ini. Hubungi pengelola.")
         verifier = secrets.token_urlsafe(48)
@@ -73,8 +73,7 @@ class OAuthService:
                           force_authentication="1", enable_fb_login="0")
             url = "https://www.instagram.com/oauth/authorize"
         else:
-            params.update(client_id=self.s.linkedin_client_id, scope=" ".join(SCOPES[provider]))
-            url = "https://www.linkedin.com/oauth/v2/authorization"
+            raise OAuthError("Koneksi tidak didukung")
         return {"mode": "redirect", "url": url + "?" + urlencode(params)}
 
     def complete(self, provider: str, code: str, state: str, session: str, workspace: str) -> None:
@@ -125,19 +124,6 @@ class OAuthService:
             connection = {"access_token": token, "account_id": account, "label": "@" + self._required(profile, "username"),
                           "scopes": permissions or SCOPES[provider], "expires_at": time.time() + int(long.get("expires_in", 5184000)),
                           "issued_at": time.time()}
-        elif provider == "linkedin":
-            data = self.call("POST", "https://www.linkedin.com/oauth/v2/accessToken", data={
-                **common, "client_id": self.s.linkedin_client_id, "client_secret": self.s.linkedin_client_secret,
-            })
-            token = self._required(data, "access_token")
-            scopes = data.get("scope", " ".join(SCOPES[provider])).replace(",", " ").split()
-            if not set(SCOPES[provider]).issubset(scopes):
-                raise OAuthError("Izin profil dan Share on LinkedIn belum lengkap.")
-            profile = self.call("GET", "https://api.linkedin.com/v2/userinfo", headers={"Authorization": f"Bearer {token}"})
-            account = self._required(profile, "sub")
-            connection = {"access_token": token, "account_id": account, "person_urn": "urn:li:person:" + account,
-                          "label": profile.get("name") or "Akun LinkedIn", "scopes": scopes,
-                          "expires_at": time.time() + int(data.get("expires_in", 5184000))}
         else:
             raise OAuthError("Koneksi tidak didukung")
         self.activate(workspace, provider, connection)
@@ -292,8 +278,7 @@ class OAuthService:
     def connector_settings(self, workspace: str) -> Settings:
         # Never inherit another business's legacy .env/file credentials.
         patch = {"gmail_refresh_token": "", "gmail_user": "me", "instagram_access_token": "", "instagram_user_id": "",
-                 "whatsapp_access_token": "", "whatsapp_phone_number_id": "", "linkedin_access_token": "",
-                 "linkedin_person_urn": "", "linkedin_use_legacy_token": False}
+                 "whatsapp_access_token": "", "whatsapp_phone_number_id": ""}
         for provider in PROVIDERS:
             data = self.connection(workspace, provider)
             if not data or data.get("status") != "connected":
@@ -305,6 +290,4 @@ class OAuthService:
                              instagram_api_host="https://graph.instagram.com")
             elif provider == "whatsapp":
                 patch.update(whatsapp_phone_number_id=data["account_id"], whatsapp_access_token=data["access_token"])
-            elif provider == "linkedin":
-                patch.update(linkedin_access_token=data["access_token"], linkedin_person_urn=data["person_urn"])
         return self.s.model_copy(update=patch)

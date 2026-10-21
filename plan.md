@@ -9,7 +9,7 @@ Pembaruan login/koneksi akun 21 Okt 2026:
 - [x] Satu pesan nyata ke Gemini memakai knowledge base Instagram dan tone profesional, tanpa fallback; BE 91, agen 42, FE 22 tes lulus.
 
 - [x] Daftar/masuk/keluar pengguna, cookie sesi, profil bisnis, pemisahan store CRM per bisnis.
-- [x] Token kanal terenkripsi per bisnis; OAuth Instagram/Gmail/LinkedIn dan WhatsApp Embedded Signup.
+- [x] Token kanal terenkripsi per bisnis; OAuth Instagram/Gmail dan WhatsApp Embedded Signup.
 - [x] UI Hubungkan/Hubungkan ulang/ganti/putuskan akun; pilih nomor WhatsApp; status izin berakhir.
 - [x] Proxy Next.js agar kredensial tidak masuk bundle browser; webhook dan scheduler per bisnis.
 - [x] Tes offline: BE 87, FE 22; TypeScript dan lint lulus. Lihat `TESTING.md`.
@@ -57,7 +57,7 @@ agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau ora
 - [x] Tempel pesan (teks/screenshot); filter kanal dan jenis; empty state sesuai PRD; font minimal 14px
 - [x] Integrasi: saklar kanal, dry-run, status agen; Beranda dengan ringkasan harian dan data nyata
 - [x] Halaman Konten membaca ide dari agen (label SIMULASI dihapus); tombol Pisahkan di profil lead
-- [x] Tes otomatis FE (vitest, 22 tes: adapter dan klien API); lint bersih; ikon LinkedIn lokal (CDN 404)
+- [x] Tes otomatis FE (vitest, 22 tes: adapter dan klien API); lint bersih; ikon untuk tiga kanal aktif
 
 **Dokumen**
 - [x] PRD v2.4, `TESTING.md`, `docs/SOURCES.md`, `docs/deploy.md`, README per bagian, Dockerfile
@@ -67,7 +67,6 @@ agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau ora
 - [ ] Uji **Gemini sungguhan**: engine `adk`, triage LLM, `/v1/extract`; lalu `adk eval` + pass^3 untuk model
 - [ ] Uji **WhatsApp Cloud API**, **Instagram Graph API**, **Gmail API** pada akun uji; konfirmasi format yang diterima
   platform (kini hanya diuji dengan transport tiruan). WA pesan bebas dari nomor uji: berhasil atau perlu metode bayar?
-- [ ] Verifikasi izin produk LinkedIn untuk komentar (ditandai [A] di PRD)
 - [ ] Uji adapter Firestore terhadap Firestore/emulator
 - [ ] Bangun image Docker, deploy Cloud Run, buat job Cloud Scheduler dan Pub/Sub Gmail (`docs/deploy.md`)
 - [ ] Cek ID model Gemini di konsol Vertex (PRD menyebut `gemini-3.5-flash-lite`/`gemini-3.8-flash`; tidak ada di dokumentasi ADK)

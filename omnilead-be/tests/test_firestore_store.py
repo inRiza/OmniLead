@@ -126,9 +126,9 @@ def test_leads_settings_and_merge_reassign(fs, monkeypatch):
     fs.reassign_lead("a", "b")
     fs.delete_lead("a")
     assert fs.get_event("e1").lead_id == "b" and fs.get_lead("a") is None
-    s = AppSettings(paused=True, disabled_channels=[Channel.TIKTOK])
+    s = AppSettings(paused=True, disabled_channels=[Channel.EMAIL])
     fs.save_settings(s)
-    assert fs.get_settings().paused and fs.get_settings().disabled_channels == [Channel.TIKTOK]
+    assert fs.get_settings().paused and fs.get_settings().disabled_channels == [Channel.EMAIL]
 
 
 def test_audit_order_filter_and_rate_count(fs):

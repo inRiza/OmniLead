@@ -12,10 +12,8 @@ from pydantic import BaseModel, Field, model_validator
 
 class Channel(StrEnum):
     INSTAGRAM = "instagram"
-    LINKEDIN = "linkedin"
     WHATSAPP = "whatsapp"
     EMAIL = "email"
-    TIKTOK = "tiktok"
 
 
 # Jalur akses yang diakui. Hanya resmi atau handoff manual.

@@ -103,7 +103,7 @@ def build_tools(ctx: DraftContext, sink: list[Proposal]):
         """Cek apakah balasan bebas masih boleh di kanal ini (jendela 24 jam).
 
         Args:
-            channel: instagram, whatsapp, email, linkedin, atau tiktok.
+            channel: instagram, whatsapp, atau email.
         """
         try:
             return {"open": tools.check_channel_window(channel)}

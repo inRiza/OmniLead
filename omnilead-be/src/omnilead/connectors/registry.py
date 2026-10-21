@@ -5,13 +5,12 @@ from omnilead.connectors.base import ActionNotSupported, ChannelConnector, NotCo
 import httpx
 from omnilead.connectors.gmail import GmailConnector
 from omnilead.connectors.instagram import InstagramConnector
-from omnilead.connectors.linkedin import LinkedInConnector
 from omnilead.connectors.whatsapp import WhatsAppConnector
 from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 
 
 class NullConnector(ChannelConnector):
-    """Kanal tanpa integrasi API (WhatsApp, email, TikTok saat ini).
+    """Kanal aktif yang belum memiliki connector API.
 
     Semua aksi ditandai tidak tersedia, sehingga executor memakai handoff dan
     tidak berpura-pura terhubung.
@@ -56,7 +55,6 @@ class Registry:
     def __init__(self, settings: Settings, client: httpx.Client | None = None, on_auth_error=None):
         self._connectors: dict[Channel, ChannelConnector] = {
             Channel.INSTAGRAM: InstagramConnector(settings, client),
-            Channel.LINKEDIN: LinkedInConnector(settings, client),
             Channel.WHATSAPP: WhatsAppConnector(settings, client),
             Channel.EMAIL: GmailConnector(settings, client),
         }

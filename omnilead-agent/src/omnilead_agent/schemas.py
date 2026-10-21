@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-Channel = Literal["instagram", "linkedin", "whatsapp", "email", "tiktok"]
+Channel = Literal["instagram", "whatsapp", "email"]
 EventKind = Literal["comment", "dm", "email", "message"]
 ProposalKind = Literal[
     "comment_post", "reply_comment", "send_message", "crm_update", "followup"

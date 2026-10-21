@@ -111,7 +111,7 @@ describe("adaptAction", () => {
   it("jalur API bila kapabilitas tersedia, handoff bila tidak", () => {
     expect(adaptAction(action(), channels).path).toBe("official_api");
     expect(adaptAction(action({ kind: "send_message", comment_ref: null }), channels).path).toBe("handoff");
-    expect(adaptAction(action({ channel: "tiktok" }), channels).path).toBe("handoff");
+    expect(adaptAction(action({ channel: "email" }), channels).path).toBe("handoff");
   });
 
   it("aksi yang sudah dialihkan ke handoff tetap handoff", () => {
@@ -120,7 +120,7 @@ describe("adaptAction", () => {
 
   it("aksi internal tidak butuh kanal", () => {
     for (const kind of ["crm_update", "followup", "merge"] as const) {
-      const a = adaptAction(action({ kind, channel: "tiktok" }), channels);
+      const a = adaptAction(action({ kind, channel: "email" }), channels);
       expect(a.internal).toBe(true);
       expect(a.path).toBe("official_api");
     }
@@ -216,8 +216,8 @@ describe("lead dan audit", () => {
 });
 
 describe("ikon kanal", () => {
-  it("LinkedIn memakai glyph lokal (CDN Simple Icons 404)", () => {
-    expect(channelIconUrl("linkedin")).toBe("/icons/linkedin.svg");
+  it("kanal aktif memakai glyph Simple Icons", () => {
+    expect(channelIconUrl("email")).toContain("cdn.simpleicons.org/gmail");
     expect(channelIconUrl("instagram")).toContain("cdn.simpleicons.org/instagram");
   });
 });

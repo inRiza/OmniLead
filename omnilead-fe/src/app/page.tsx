@@ -14,8 +14,6 @@ const CHANNELS: { channel: Channel; name: string; path: string }[] = [
   { channel: "whatsapp", name: "WhatsApp", path: "Terhubung langsung" },
   { channel: "instagram", name: "Instagram", path: "Komentar dan DM" },
   { channel: "email", name: "Gmail", path: "Terhubung langsung" },
-  { channel: "linkedin", name: "LinkedIn", path: "Komentar, sisanya salin balasan" },
-  { channel: "tiktok", name: "TikTok", path: "Tempel pesan, salin balasan" },
 ];
 
 const FAQ: { q: string; a: ReactNode }[] = [
@@ -33,7 +31,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Kanal apa saja yang bisa dipakai?",
-    a: "WhatsApp, Gmail, dan Instagram (komentar dan DM) terhubung langsung. Untuk TikTok dan kanal lain, tempel pesan atau screenshot-nya, lalu salin balasan yang sudah disiapkan.",
+    a: "Instagram, WhatsApp, dan Gmail tersedia. Hubungkan akun bisnis melalui halaman Integrasi, atau tempel pesan dari kanal tersebut untuk menyiapkan draf balasan.",
   },
   {
     q: "Apakah AI paham bahasa chat sehari-hari?",
@@ -160,7 +158,7 @@ export default function Landing() {
                 className="rc-enter mx-auto mt-6 max-w-2xl text-base text-rc-fg-muted sm:text-lg"
                 style={{ animationDelay: "160ms" }}
               >
-                Pesan pelanggan dari WhatsApp, Instagram, email, dan TikTok terkumpul di satu tempat. AI menyiapkan
+                Pesan pelanggan dari WhatsApp, Instagram, dan email terkumpul di satu tempat. AI menyiapkan
                 balasan, mencatat data pelanggan, dan mengingatkan Anda untuk menindaklanjuti. Tidak ada pesan yang
                 terkirim sebelum Anda setujui.
               </p>

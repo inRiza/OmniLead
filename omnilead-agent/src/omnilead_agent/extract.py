@@ -1,4 +1,4 @@
-"""Ekstraksi pesan dari screenshot (kanal tanpa API: TikTok DM, LinkedIn DM).
+"""Ekstraksi pesan dari screenshot Instagram, WhatsApp, atau email.
 
 Gemini multimodal membaca gambar yang ditempel pengguna lalu mengembalikan
 pengirim dan isi pesan. Hasilnya menjadi event biasa (triage, identitas, dan

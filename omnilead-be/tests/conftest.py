@@ -96,14 +96,19 @@ def ig():
 
 
 @pytest.fixture
-def li_handoff():
-    # LinkedIn tanpa kemampuan tulis via API -> harus jatuh ke handoff
-    return FakeConnector(Channel.LINKEDIN, can_write=False)
+def registry(ig):
+    return FakeRegistry({Channel.INSTAGRAM: ig})
 
 
 @pytest.fixture
-def registry(ig, li_handoff):
-    return FakeRegistry({Channel.INSTAGRAM: ig, Channel.LINKEDIN: li_handoff})
+def ig_no_write():
+    # Kanal tanpa kemampuan tulis via API -> executor harus jatuh ke handoff
+    return FakeConnector(Channel.INSTAGRAM, can_write=False)
+
+
+@pytest.fixture
+def handoff_executor(ig_no_write, store):
+    return Executor(FakeRegistry({Channel.INSTAGRAM: ig_no_write}), store)
 
 
 @pytest.fixture

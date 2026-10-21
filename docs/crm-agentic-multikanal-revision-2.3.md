@@ -1030,9 +1030,14 @@ Integrasi ujung ke ujung dilakukan jam 16–19.
 
 ## Status Implementasi
 
+**Penyempitan kanal (21 Okt 2026):** kanal aktif hanya Instagram, WhatsApp, dan email.
+LinkedIn dan TikTok dihapus dari entry API, OAuth, agen, UI, dan pengaturan pengetahuan.
+Pembahasan kedua kanal pada bagian riset/rencana sebelumnya merupakan konteks historis,
+bukan fitur yang tersedia. Instagram memakai Instagram Login di `graph.instagram.com` (default `v26.0`).
+
 **Pembaruan login bisnis (21 Okt 2026):** tersedia daftar/masuk/keluar, pemisahan data per bisnis,
 penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/ganti/putuskan
-akun untuk Instagram, Gmail, WhatsApp, dan LinkedIn. Aktivasi aplikasi provider sekali oleh
+akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
 pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
 dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
 Hasil pengujian terbaru: BE 87, FE 22; alur provider diuji dengan HTTP tiruan.
@@ -1041,7 +1046,8 @@ Snapshot repo per 21 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bu
 [../TESTING.md](../TESTING.md), deploy di [deploy.md](deploy.md), sumber dan lisensi di [SOURCES.md](SOURCES.md).
 
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
-HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipanggil sama sekali.
+HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah diuji pada smoke check
+dan satu pesan knowledge base; rincian serta batasnya ada di `TESTING.md`.
 
 | Komponen | Prioritas | Status | Catatan |
 |---|---|---|---|
@@ -1065,7 +1071,6 @@ HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini belum dipa
 | Ide konten dari pertanyaan yang sering muncul | Could | Selesai (aturan) | Draf saja; tanpa data cukup hasilnya kosong; belum memakai LLM |
 | Pisah profil (undo merge) | Should | Selesai | Snapshot saat merge; riwayat dan identitas dikembalikan |
 | Autentikasi OIDC BE → agen | Should | Selesai (fake) | `OMNILEAD_AGENT_AUTH=oidc`; belum diuji di Cloud Run |
-| Verifikasi izin produk LinkedIn untuk komentar | - | Belum | Ditandai [A] |
 | Deck, video cadangan, wawancara UMKM | Must | Belum | Non-kode |
 
 ## Strategi Penilaian

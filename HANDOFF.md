@@ -2,7 +2,17 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
-## Pembaruan terbaru (21 Okt 2026, setelah pengembangan dashboard)
+## Penyelesaian konflik PR #3 (21 Okt 2026)
+
+- PR `refactor/canal-entry` diselaraskan dengan `develop` setelah PR #4 digabungkan.
+- Sesuai permintaan pengguna, kanal aktif hanya Instagram, WhatsApp, dan email. LinkedIn/TikTok
+  dihapus dari model kanal, OAuth, connector, pilihan UI, knowledge base, dan materi landing page.
+- Instagram memakai host `graph.instagram.com` dengan default versi `v26.0` sesuai refactor.
+- Login, multi-bisnis, token terenkripsi, approval, knowledge base, tone, dan logout dari PR #4 dipertahankan.
+- Catatan pengujian di bawah merupakan hasil sebelum penyelesaian konflik; hasil pemeriksaan baru
+  dicatat terpisah di `TESTING.md`.
+
+## Pembaruan sebelumnya (21 Okt 2026, setelah pengembangan dashboard)
 
 Bagian bernomor di bawah menyimpan konteks awal. Status berikut menggantikan catatan lama yang bertentangan:
 

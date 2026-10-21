@@ -5,13 +5,13 @@ lalu membuka **Akun & Integrasi**. Tombol **Hubungkan** membuka halaman resmi
 platform. Token diperoleh dan disimpan backend; pengguna tidak perlu mengisi token.
 Satu akun pengguna dapat mengelola beberapa bisnis; tambah bisnis di dashboard dan
 pilih bisnis aktif dari header. Satu akun platform aktif per kanal untuk setiap bisnis. Tombol **Hubungkan ulang / ganti akun**
-mengganti akun tersebut. TikTok dan DM LinkedIn tetap memakai tempel pesan dan kirim manual.
+mengganti akun tersebut. Kanal aktif hanya Instagram, WhatsApp, dan email. LinkedIn dan TikTok sudah dihapus dari pilihan kanal serta OAuth.
 
 ## Menjalankan lokal
 
 1. BE: `uv sync`, lalu jalankan `uv run uvicorn omnilead.main:app --reload` dari `omnilead-be`.
 2. FE: salin `.env.example` menjadi `.env.local`, isi `OMNILEAD_BACKEND_URL=http://localhost:8000`, lalu `npm run dev`.
-3. Buka `http://localhost:3000/login`, pilih **Daftar bisnis**, lalu hubungkan kanal di halaman Integrasi.
+3. Buka `http://localhost:3000/login`, pilih **Daftar akun**, lalu hubungkan kanal di halaman Integrasi.
 
 `OMNILEAD_AUTH_ENABLED=true` adalah default. Data demo lama tetap berada di database
 lama dan tidak otomatis diberikan kepada akun baru. `OMNILEAD_AUTH_ENABLED=false`
@@ -29,7 +29,6 @@ Daftarkan redirect URI **persis** berikut pada aplikasi masing-masing:
 |---|---|
 | Instagram | `http://localhost:3000/api/backend/auth/oauth/instagram/callback` |
 | Google Gmail | `http://localhost:3000/api/backend/auth/oauth/gmail/callback` |
-| LinkedIn | `http://localhost:3000/api/backend/auth/oauth/linkedin/callback` |
 
 Untuk deployment ganti `http://localhost:3000` dengan origin HTTPS FE, bukan URL BE.
 Jika platform mensyaratkan HTTPS untuk pengujian, gunakan domain pengujian HTTPS
@@ -95,19 +94,6 @@ sebelum seluruh langkah backend berhasil.
 
 Rujukan: [Embedded Signup resmi Meta](https://www.postman.com/meta/whatsapp-business-platform/documentation/du6gzjv/embedded-signup).
 
-### LinkedIn
-
-- Buat aplikasi dengan produk **Sign In with LinkedIn using OpenID Connect** dan **Share on LinkedIn**.
-- Isi `OMNILEAD_LINKEDIN_CLIENT_ID` dan `OMNILEAD_LINKEDIN_CLIENT_SECRET`.
-- Scope: `openid profile w_member_social`. ID penulis diambil dari profil LinkedIn,
-  lalu dipakai connector sebagai person URN.
-- Koneksi akun tidak membuktikan semua endpoint komentar diizinkan untuk aplikasi.
-  Izin produk dan pengiriman tetap perlu dibuktikan dengan akun uji.
-- Token yang berakhir meminta login ulang. Membaca inbox/DM LinkedIn tetap manual.
-
-Rujukan: [Authorization Code Flow](https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow),
-[LinkedIn OIDC](https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2).
-
 ## Penyimpanan dan perilaku koneksi
 
 - Login memakai cookie sesi HttpOnly, SameSite=Lax, Secure untuk HTTPS; API key
@@ -138,4 +124,4 @@ Rujukan: [Authorization Code Flow](https://learn.microsoft.com/en-us/linkedin/sh
 Alur akun dan provider diuji offline dengan transport HTTP tiruan. Login/consent,
 webhook, serta kirim pesan ke akun sungguhan harus diperiksa setelah kredensial
 aplikasi dan izin dashboard tersedia. Tidak ada token aplikasi baru yang dibuat
-di dashboard Google/Meta/LinkedIn oleh perubahan kode ini.
+di dashboard Google/Meta oleh perubahan kode ini.
