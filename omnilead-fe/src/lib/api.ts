@@ -142,6 +142,35 @@ export interface BeCapability {
   note: string;
 }
 
+export interface BePost {
+  id: string;
+  channel: string;
+  url: string | null;
+  caption: string | null;
+  created_at: string | null;
+  comment_count: number | null;
+}
+
+export interface BeComment {
+  id: string;
+  channel: string;
+  post_ref: string;
+  author_handle: string;
+  author_name: string | null;
+  text: string;
+  created_at: string | null;
+  parent_id: string | null;
+}
+
+export interface ProposeBody {
+  channel: string;
+  kind: BeAction["kind"];
+  post_ref?: string;
+  comment_ref?: string | null;
+  text: string;
+  reason?: string;
+}
+
 export interface BeChannel {
   channel: string;
   connected: boolean;
@@ -298,6 +327,13 @@ export const api = {
   actions: () => request<BeAction[]>("/actions"),
   leads: () => request<BeLead[]>("/leads"),
   channels: () => request<BeChannel[]>("/channels"),
+  posts: (channel: string, limit = 12) =>
+    request<BePost[]>(`/channels/${channel}/posts?limit=${limit}`),
+  comments: (channel: string, postRef: string, limit = 50) =>
+    request<BeComment[]>(
+      `/channels/${channel}/comments?post_ref=${encodeURIComponent(postRef)}&limit=${limit}`,
+    ),
+  propose: (body: ProposeBody) => post<BeAction>("/actions/propose", body),
   audit: () => request<BeAudit[]>("/audit?limit=200"),
   settings: () => request<BeSettings>("/settings"),
   agentHealth: () => request<BeAgentHealth>("/agent/health"),
