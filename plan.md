@@ -25,8 +25,8 @@ Pembaruan login/koneksi akun 21 Okt 2026:
 - [ ] Aktivasi aplikasi dan kredensial provider oleh pengelola sekali, kemudian uji login/izin dengan akun nyata.
   Petunjuk: [docs/account-connections.md](docs/account-connections.md).
 
-Acuan: [PRD](docs/crm-agentic-multikanal-4.0.md) (bagian *Status Implementasi*), tiket di
-[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-4.0.md#lampiran-b-deploy-ke-google-cloud).
+Acuan: [PRD](docs/crm-agentic-multikanal-5.0.md) (bagian *Status Implementasi*), tiket di
+[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud).
 
 Per 21 Okt 2026 semua yang bisa dikerjakan tanpa kredensial platform **sudah ada di kode dan lulus tes** (BE 72,
 agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: tercatat di bawah.

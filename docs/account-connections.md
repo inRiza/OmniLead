@@ -89,7 +89,7 @@ Rujukan: [Private Replies](https://developers.facebook.com/docs/messenger-platfo
 - Refresh token diperoleh otomatis melalui offline access; tidak perlu mengisi
   `OMNILEAD_GMAIL_REFRESH_TOKEN` dalam mode login bisnis.
 - Untuk pembaruan inbox, aktifkan job `/scheduler/gmail-poll`. Jika memakai push,
-  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-4.0.md#lampiran-b-deploy-ke-google-cloud).
+  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud).
 - Mode Testing dan penggunaan publik memiliki ketentuan masa berlaku serta verifikasi
   scope Google. Koneksi menampilkan **Hubungkan ulang** bila grant tidak lagi dapat dipakai.
 

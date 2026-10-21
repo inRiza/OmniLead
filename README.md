@@ -12,8 +12,8 @@ Tiga bagian, masing-masing dijalankan di terminal terpisah:
 | `omnilead-be` | webhook, identitas, antrean persetujuan, executor (satu-satunya yang mengirim) |
 | `omnilead-fe` | UI |
 
-Dokumen: [PRD](docs/crm-agentic-multikanal-4.0.md) · [plan.md](plan.md) (yang sudah dan belum) ·
-[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-4.0.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
+Dokumen: [PRD](docs/crm-agentic-multikanal-5.0.md) · [plan.md](plan.md) (yang sudah dan belum) ·
+[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
 
 Urutan menjalankan: **agen → BE → FE**.
 
