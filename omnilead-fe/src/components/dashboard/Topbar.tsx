@@ -8,7 +8,6 @@ import { ChannelIcon, Dot } from "@/components/primitives";
 import { useDashboard } from "./DashboardContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useAccount } from "./AccountProvider";
-import { LogoutButton } from "./LogoutButton";
 
 export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
   const { paused, togglePause, channels, error, agent, loaded } = useDashboard();
@@ -71,7 +70,6 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
             />
             {paused ? "Lanjutkan agen" : "Jeda agen"}
           </Button>
-          <LogoutButton className="md:hidden" />
         </div>
       </div>
 

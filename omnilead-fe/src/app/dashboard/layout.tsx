@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
+import { MobileNav, Sidebar } from "@/components/dashboard/Sidebar";
 import { DashboardProvider } from "@/components/dashboard/DashboardContext";
 import { AccountProvider } from "@/components/dashboard/AccountProvider";
 
@@ -9,13 +9,14 @@ export const instant = false;
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AccountProvider><DashboardProvider>
-      <div className="flex h-dvh overflow-hidden bg-rc-bg text-rc-fg">
+      <div className="rc-brand flex h-dvh overflow-hidden bg-rc-bg text-rc-fg">
         <Suspense fallback={<aside className="hidden h-full w-60 shrink-0 md:block" />}>
           <Sidebar />
         </Suspense>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 bg-rc-bg pr-4 pb-4 pt-0 [&>*:last-child]:min-h-0 [&>*:last-child]:flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 bg-rc-bg px-3 pt-0 pb-20 md:pr-4 md:pb-4 md:pl-0 [&>*:last-child]:min-h-0 [&>*:last-child]:flex-1">
           {children}
         </div>
+        <MobileNav />
       </div>
     </DashboardProvider></AccountProvider>
   );

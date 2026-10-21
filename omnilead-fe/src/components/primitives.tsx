@@ -37,9 +37,9 @@ export function ChannelIcon({
 export function ScoreBadge({ score }: { score: LeadScore }) {
   const tone =
     score === "hot"
-      ? "bg-rc-fg text-rc-primary-fg"
+      ? "bg-rc-highlight-soft text-[#8a5300]"
       : score === "warm"
-        ? "border border-rc-border bg-rc-surface-hover text-rc-fg"
+        ? "bg-rc-accent-soft text-rc-accent"
         : "bg-rc-surface-hover text-rc-fg-muted";
   return (
     <span
@@ -81,7 +81,7 @@ export function Pill({
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium",
-        tone === "default" && "bg-rc-fg text-rc-primary-fg",
+        tone === "default" && "bg-rc-accent-soft text-rc-accent",
         tone === "outline" && "border border-rc-border text-rc-fg-muted",
         tone === "muted" && "bg-rc-surface-hover text-rc-fg-muted",
       )}

@@ -197,7 +197,7 @@ function LeadProfile() {
                                 "rounded-md px-1.5 py-0.5 font-medium",
                                 t.direction === "in"
                                   ? "bg-rc-surface-hover text-rc-fg"
-                                  : "bg-rc-fg text-rc-primary-fg",
+                                  : "bg-rc-accent-soft text-rc-accent",
                               )}
                             >
                               {t.direction === "in" ? "Masuk" : "Terkirim"}

@@ -94,7 +94,7 @@ export default function InboxPage() {
                 className={cn(
                   "rounded-md border px-2.5 py-1 text-sm transition-colors",
                   kind === k
-                    ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                    ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                     : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
                 )}
               >
@@ -114,7 +114,7 @@ export default function InboxPage() {
                   className={cn(
                     "rounded-md border px-2.5 py-1 text-sm transition-colors",
                     channel === c
-                      ? "border-rc-fg bg-rc-fg text-rc-primary-fg"
+                      ? "border-rc-accent bg-rc-accent-soft text-rc-accent"
                       : "border-rc-border bg-rc-surface text-rc-fg-muted hover:bg-rc-surface-hover",
                   )}
                 >
