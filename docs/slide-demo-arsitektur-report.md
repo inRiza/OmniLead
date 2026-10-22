@@ -21,6 +21,13 @@ Jaya**. Seluruh teks slide berbahasa Indonesia.
 Alur Pengguna menceritakan prosesnya dari sisi orang (Ani, agen, Bu Rina). Arsitektur Agen membuka isi "kotak agen"
 di tengahnya. Keempat slide ada di bagian **Solution** pada footbar.
 
+Sistem sekarang punya **dua jalur masuk pesan**:
+
+| Jalur | Cara kerja | Status |
+|---|---|---|
+| **API resmi** | Webhook WhatsApp, Instagram, Facebook; Gmail dibaca berkala; atau Tempel pesan | Jalur utama; berjalan di link juri (Cloud Run) |
+| **Agen browser (OpenClaw)** | Agen membuka Instagram, Messenger, WhatsApp Web, atau Gmail di browser sungguhan, membaca layar dengan Gemini, dan mengusulkan klik atau ketikan yang harus disetujui pemilik satu per satu. Pesan yang dibaca dikonfirmasi pemilik lalu masuk ke alur CRM dan Guard yang sama | Jalan di laptop (opsional, mati secara default); belum ada di Cloud Run; akun demo juri tidak punya akses. Balas DM lewat browser belum berhasil diuji (lihat Slide 4) |
+
 ## Template yang sama di setiap halaman
 
 | Bagian | Isi | Gaya |
@@ -33,8 +40,36 @@ di tengahnya. Keempat slide ada di bagian **Solution** pada footbar.
 | Kotak bawah (opsional) | Satu kalimat kunci atau keterangan | Kotak abu-abu bertepi bulat selebar halaman |
 | **Footbar** (paling bawah) | Label sama dengan slide lain: Problem Definition, Solution, Marketing Opportunity, Business Model, Future Outlook | Pita biru tua selebar halaman, teks putih; tab aktif berupa pil putih yang menonjol ke atas dengan teks biru. Tab aktif di bagian ini: **Solution** |
 
-Warna: biru sekitar `#1636C9`, oranye sekitar `#F7931E`, abu kartu `#C9D1DC`, teks `#111111`. Font sans-serif bersih
-(Inter atau Poppins). Rasio 16:9.
+Warna: biru sekitar `#1636C9`, oranye sekitar `#F7931E`, abu kartu `#C9D1DC`, teks `#111111`. Font **Canva Sans** untuk
+semua teks. Rasio 16:9.
+
+## Komponen yang dipakai ulang di semua slide
+
+Setiap slide hanya memakai komponen di tabel ini, dengan ukuran dan gaya yang sama. Ini yang membuat deck terlihat
+konsisten dan tidak terlihat buatan AI.
+
+| Komponen | Spesifikasi |
+|---|---|
+| Label halaman | Canva Sans 12 pt, biru `#1636C9` |
+| Judul utama | Canva Sans Bold 22 pt, hitam `#111111`, rata kiri |
+| Pil judul blok | Latar biru `#1636C9`, teks putih Canva Sans Bold 12 pt, sudut bulat penuh, tinggi seragam |
+| Kartu isi | Latar putih, garis tepi abu `#C9D1DC` 1 px, sudut 12 px, tanpa bayangan tebal |
+| Kartu bernomor | Latar oranye `#F7931E`, lingkaran nomor putih dengan angka oranye, teks putih; ukuran semua kartu sama |
+| Panah | Oranye `#F7931E`, garis 2 px, kepala panah sederhana |
+| Ikon | Ikon garis (outline) 2 px, satu warna, satu gaya untuk seluruh deck; ikon aplikasi (WhatsApp, Instagram, Facebook, Gmail) memakai logo resmi berwarna |
+| Kotak bawah | Latar abu `#C9D1DC`, sudut 16 px, teks Canva Sans 13 pt hitam, satu atau dua kalimat |
+| Tabel | Kepala tabel biru `#1636C9` teks putih; baris putih dan abu sangat muda bergantian; tanpa garis vertikal tebal |
+| Placeholder screenshot | Kotak abu muda dengan garis putus-putus dan tulisan "SCREENSHOT: ..." |
+| Footbar | Pita biru tua `#1636C9`, label putih Canva Sans 11 pt; tab aktif pil putih menonjol ke atas, teks biru |
+
+## Panduan visual agar tidak terlihat buatan AI
+
+- Gaya datar (flat). Tanpa efek 3D, kilau, gradien neon, atau cahaya.
+- Tanpa ilustrasi orang, robot, otak, tangan, atau gambar stok. Cukup ikon garis dan screenshot asli aplikasi.
+- Tanpa teks palsu di dalam gambar: semua tampilan aplikasi berupa placeholder SCREENSHOT yang nanti diganti screenshot asli.
+- Ruang kosong cukup; jarak antar komponen seragam (kelipatan 8 px). Rata kiri dan sejajar pada satu grid.
+- Paling banyak tiga warna utama (biru, oranye, abu) ditambah hitam dan putih; hijau dan merah hanya untuk status kecil.
+- Teks persis seperti di prompt. Tidak ada ejaan aneh, tidak ada huruf yang terpotong, tidak ada tambahan slogan.
 
 ## Panduan bahasa
 
@@ -57,7 +92,9 @@ Hanya angka di tabel ini yang boleh muncul di slide. Jangan biarkan GPT menambah
 | Mesin aturan (cadangan) | 18 dari 18, sekitar 0,4 detik | TESTING.md |
 | Salah harga yang sampai ke pelanggan | 0 | TESTING.md |
 | Percepatan | dari 40,9 menjadi 13,3 detik per pesan | TESTING.md |
-| Tes otomatis | backend 171, agen 60, frontend 23; uji ujung ke ujung 23 skenario | TESTING.md |
+| Tes otomatis | backend 230, agen 60, frontend 23 (develop 22 Okt siang, setelah PR #14 dan #15) | dijalankan ulang 22 Okt |
+| Uji ujung ke ujung API | 23 skenario lulus (dijalankan sebelum PR #14 dan #15) | TESTING.md |
+| Agen browser (OpenClaw) | Runtime terpasang dan merespons; profil Instagram dibuka, halaman login terbaca (77 elemen layar). Login akun asli dan balas DM lewat browser belum berhasil diuji | TESTING.md, docs/browser-agent.md |
 | Link publik | 11,7 detik dari tempel pesan sampai usulan (sekali ukur) | TESTING.md |
 
 ## Prompt dasar GPT
@@ -76,9 +113,21 @@ Kamu akan membuat slide presentasi 16:9 berbahasa Indonesia. Semua slide memakai
 - Footbar: pita biru tua (#1636C9) selebar halaman berisi lima label putih: Problem Definition, Solution,
   Marketing Opportunity, Business Model, Future Outlook. Tab aktif berupa pil putih yang menonjol ke atas dengan teks
   biru. Untuk slide-slide ini, tab aktifnya "Solution".
-Pakai font sans-serif bersih (Inter atau Poppins). Tulis teks persis seperti yang saya berikan. Jangan menambah angka,
-persentase, logo, slogan, atau klaim yang tidak ada di prompt. Bila saya menulis "SCREENSHOT", buat kotak placeholder
-yang jelas dengan tulisan itu.
+Pakai font Canva Sans untuk semua teks.
+Komponen yang sama di setiap slide (jangan diubah antar slide):
+- Label 12 pt biru; judul utama Canva Sans Bold 22 pt hitam, rata kiri.
+- Pil judul blok: latar biru #1636C9, teks putih bold 12 pt, sudut bulat penuh.
+- Kartu isi: putih, garis tepi abu #C9D1DC 1 px, sudut 12 px, tanpa bayangan tebal.
+- Kartu bernomor: latar oranye #F7931E, lingkaran nomor putih dengan angka oranye, teks putih, semua ukurannya sama.
+- Panah oranye 2 px dengan kepala sederhana. Ikon garis 2 px satu warna; logo aplikasi resmi hanya untuk WhatsApp,
+  Instagram, Facebook, Gmail.
+- Tabel: kepala biru teks putih, baris putih dan abu sangat muda bergantian.
+- Jarak antar komponen seragam (kelipatan 8 px), semua sejajar pada satu grid.
+Gaya: datar (flat), bersih, seperti slide konsultan. Jangan pakai efek 3D, gradien neon, kilau, bayangan tebal,
+ilustrasi orang, robot, otak, atau gambar stok. Paling banyak tiga warna utama (biru, oranye, abu) plus hitam dan putih.
+Tulis teks persis seperti yang saya berikan, dengan ejaan yang benar dan tanpa huruf terpotong. Jangan menambah angka,
+persentase, logo, slogan, atau klaim yang tidak ada di prompt. Bila saya menulis "SCREENSHOT", buat kotak abu muda
+bergaris putus-putus berisi tulisan itu; jangan menggambar tampilan aplikasi sendiri.
 ```
 
 ---
@@ -112,6 +161,9 @@ cabang berwarna merah menunjukkan kapan agen berhenti. Kotak abu-abu di bawah be
 Kotak cabang merah (di bawah langkah 5): "Minta diskon 70%: agen tidak menjanjikan angka, keputusan di tangan Bu Rina."
 dan "Minta nomor pelanggan lain: ditahan untuk dicek manual." Tambahkan ikon tombol "Jeda agen" di lajur Pemilik.
 
+Kotak kecil "Jalur lain" (abu, di atas langkah 2, dengan panah putus-putus ke langkah 2): "Akun belum tersambung lewat
+API? Agen browser membaca inbox di browser, Bu Rina memastikan pesannya, lalu pesan masuk ke alur yang sama."
+
 **Prompt GPT:**
 
 ```
@@ -135,6 +187,8 @@ Di bawah langkah 5, kotak cabang kecil berwarna merah berisi dua baris:
 "Minta diskon 70%: agen tidak menjanjikan angka, keputusan di tangan Bu Rina."
 "Minta nomor pelanggan lain: ditahan untuk dicek manual."
 Di lajur Pemilik, tambahkan ikon tombol kecil "Jeda agen".
+Di atas langkah 2, kotak kecil abu berjudul "Jalur lain" dengan panah putus-putus ke langkah 2:
+"Akun belum tersambung lewat API? Agen browser membaca inbox di browser, Bu Rina memastikan pesannya, lalu pesan masuk ke alur yang sama."
 Kotak abu-abu bawah: "Agen yang membaca, mengecek, dan menulis draf. Bu Rina yang menentukan apa yang terkirim."
 Footbar dengan tab "Solution" aktif.
 ```
@@ -190,6 +244,10 @@ dan lima kartu oranye bernomor.
 Kalau uji aplikasi sungguhan berhasil sebelum 15.00, ganti kalimat kedua dan ketiga kotak bawah dengan yang
 benar-benar teruji, misalnya "Gmail sudah tersambung ke akun asli."
 
+**Agen browser di demo:** hanya bisa ditunjukkan dari laptop (bukan link juri), karena belum ada di Cloud Run dan akun
+demo tidak punya akses. Balas DM lewat browser belum berhasil diuji, jadi kalau ditunjukkan, cukup sampai membuka inbox
+dan membaca pesan, lalu sebutkan bahwa fitur ini masih diuji. Kalau waktunya tidak cukup, jangan ditampilkan.
+
 **Screenshot dari link juri (akun demo):** Workspace di layar 1440 px (pesan dari empat aplikasi, prioritas tinggi di
 atas) dan detail pesan di HP 390 px (kartu usulan dengan tombol Setujui dan Ubah). Jangan tampilkan URL OAuth, token,
 kata sandi, atau email asli.
@@ -229,23 +287,24 @@ kartu dengan judul pil biru.
 
 | Kolom | Isi |
 |---|---|
-| Masukan | WhatsApp, Instagram, Facebook (webhook); Gmail (dibaca berkala); Tempel pesan |
+| Masukan | **API resmi:** WhatsApp, Instagram, Facebook (webhook); Gmail (dibaca berkala); Tempel pesan. **Agen browser:** OpenClaw membuka inbox di browser, Gemini membaca layar, pemilik menyetujui setiap klik atau ketikan dan memastikan pesan sebelum masuk |
 | Proses agen (Cloud Run) | 1 **Triage**: mengenali maksud, urgensi, detail pesanan, dan risiko (Gemini 3.5 Flash-Lite dibantu aturan). 2 **Identitas**: menyatukan pelanggan yang sama dari berbagai aplikasi, lengkap dengan buktinya. 3 **Orchestrator** (Google ADK dan Gemini 3.8 Flash): memanggil alat untuk riwayat, katalog dan FAQ, batas waktu balas, dan skor, lalu menyusun usulan. 4 **Guard**: aturan tetap di luar model, untuk harga, diskon, data pelanggan lain, instruksi menyusup, dan batas waktu balas |
 | Keluaran (backend) | Antrean persetujuan sesuai izin agen (Selalu tanya, Hybrid, Percaya penuh). Executor, satu-satunya bagian yang bisa mengirim. CRM, catatan audit, dan pengingat follow-up |
 | Catatan di bawah diagram | Pengetahuan bisnis (katalog, FAQ, gaya bahasa) diatur per bisnis dan per aplikasi. Token akun disimpan di Secret Manager. |
 
-**Kartu kanan:**
+**Kartu kanan (tiga kartu bertumpuk):**
 
 | Kartu | Judul | Isi | Gambar |
 |---|---|---|---|
 | 1 | Google ADK dan Gemini | Agen memilih alat sendiri lalu menyusun usulan. Kalau model gagal, templat aman mengambil alih. | SCREENSHOT: Aktivitas agen |
 | 2 | Guard dan izin pemilik | Draf yang melanggar aturan diperbaiki atau ditahan. Yang ditandai Guard selalu menunggu keputusan orang. | SCREENSHOT: Usulan dengan hasil Guard |
+| 3 | Agen browser (OpenClaw) | Untuk akun yang belum tersambung lewat API. Setiap klik dan ketikan disetujui pemilik; kata sandi langsung ke browser, tidak ke model. Masih diuji. | SCREENSHOT: Halaman agen browser |
 
 **Tiga kartu bawah:**
 
 | Kartu | Isi |
 |---|---|
-| Agen, bukan chatbot | Tiga peran agen, maksimal 8 langkah alat per pesan, izin diatur pemilik, dan tombol jeda. |
+| Agen, bukan chatbot | Tiga peran agen, maksimal 8 langkah alat per pesan, dua jalur masuk (API resmi dan agen browser), izin diatur pemilik, dan tombol jeda. |
 | Lebih cepat, mutu tetap | Dari 40,9 menjadi 13,3 detik per pesan. 17 dari 18 kasus lulus di percobaan pertama. |
 | Aman dari awal | Tidak ada salah harga yang sampai ke pelanggan. 7 dari 7 kasus berbahaya tertangani. Token tiap bisnis dienkripsi, dan setiap aksi tercatat. |
 
@@ -256,7 +315,9 @@ Buat slide "Agentic Architecture" memakai template.
 Label kecil biru: "Agentic Architecture". Judul utama tebal: "Bagaimana Agen OmniLead Bekerja dan Tetap di Bawah Kendali Pemilik".
 Isi.
 Kiri (sekitar 60%): diagram alur dalam tiga kolom yang dihubungkan panah.
-Kolom "Masukan": "WhatsApp, Instagram, Facebook (webhook)", "Gmail (dibaca berkala)", "Tempel pesan".
+Kolom "Masukan", dua kelompok:
+"API resmi": "WhatsApp, Instagram, Facebook (webhook)", "Gmail (dibaca berkala)", "Tempel pesan".
+"Agen browser (OpenClaw)": "Membuka inbox di browser, Gemini membaca layar, pemilik menyetujui setiap klik dan memastikan pesan sebelum masuk".
 Kolom "Proses agen - Cloud Run", empat kotak bernomor bertumpuk:
 1 "Triage" - "Mengenali maksud, urgensi, detail pesanan, dan risiko (Gemini 3.5 Flash-Lite dibantu aturan)".
 2 "Identitas" - "Menyatukan pelanggan yang sama dari berbagai aplikasi, lengkap dengan buktinya".
@@ -265,11 +326,12 @@ Kolom "Proses agen - Cloud Run", empat kotak bernomor bertumpuk:
 Kolom "Keluaran - Backend": "Antrean persetujuan sesuai izin agen (Selalu tanya, Hybrid, Percaya penuh)",
 "Executor, satu-satunya bagian yang bisa mengirim", "CRM, catatan audit, dan pengingat follow-up".
 Di bawah diagram, catatan kecil: "Pengetahuan bisnis (katalog, FAQ, gaya bahasa) diatur per bisnis dan per aplikasi. Token akun disimpan di Secret Manager."
-Kanan (sekitar 40%): dua kartu, masing-masing dengan placeholder gambar kecil:
+Kanan (sekitar 40%): tiga kartu bertumpuk, masing-masing dengan placeholder gambar kecil:
 "Google ADK dan Gemini" - "Agen memilih alat sendiri lalu menyusun usulan. Kalau model gagal, templat aman mengambil alih." (placeholder "SCREENSHOT: Aktivitas agen")
 "Guard dan izin pemilik" - "Draf yang melanggar aturan diperbaiki atau ditahan. Yang ditandai Guard selalu menunggu keputusan orang." (placeholder "SCREENSHOT: Usulan dengan hasil Guard")
+"Agen browser (OpenClaw)" - "Untuk akun yang belum tersambung lewat API. Setiap klik dan ketikan disetujui pemilik; kata sandi langsung ke browser, tidak ke model. Masih diuji." (placeholder "SCREENSHOT: Halaman agen browser")
 Bawah: tiga kartu dengan judul pil biru:
-"Agen, bukan chatbot" - "Tiga peran agen, maksimal 8 langkah alat per pesan, izin diatur pemilik, dan tombol jeda."
+"Agen, bukan chatbot" - "Tiga peran agen, maksimal 8 langkah alat per pesan, dua jalur masuk (API resmi dan agen browser), izin diatur pemilik, dan tombol jeda."
 "Lebih cepat, mutu tetap" - "Dari 40,9 menjadi 13,3 detik per pesan. 17 dari 18 kasus lulus di percobaan pertama."
 "Aman dari awal" - "Tidak ada salah harga yang sampai ke pelanggan. 7 dari 7 kasus berbahaya tertangani. Token tiap bisnis dienkripsi, dan setiap aksi tercatat."
 Footbar dengan tab "Solution" aktif.
@@ -299,6 +361,7 @@ kalimat kunci.
 | Batas aplikasi | Batas 24 jam untuk membalas sudah lewat | 2 dari 2 ditahan | Akun bisnis tetap patuh aturan Meta |
 | Spam dan bahasa sehari-hari | Spam, "brp harga nasbox 30 org" | 4 dari 4 | Bahasa chat UMKM yang sebenarnya |
 | Konsistensi | Kasus yang sama diuji 3 kali | Gemini 15–17 dari 18 di dua kali uji; mesin aturan 18 dari 18 | Hasil yang naik turun tetap kami laporkan |
+| Agen browser (OpenClaw) | Membuka profil Instagram di browser lokal dan membaca halaman | Runtime dan halaman login terbaca (77 elemen layar). Login akun asli dan balas DM belum berhasil: perencana masih memilih elemen yang tidak valid | Kendala ditulis apa adanya; fitur masih diuji |
 
 **Panel 02. Kecepatan dan ketahanan**
 
@@ -308,13 +371,13 @@ kalimat kunci.
 | Pesan masuk sampai usulan (mesin aturan cadangan) | sekitar 0,4 detik |
 | Tempel pesan sampai usulan di link publik | 11,7 detik (sekali ukur) |
 | Model gagal | Beralih ke templat aman, tetap dicek Guard |
-| Tes otomatis | Backend 171, agen 60, frontend 23; uji ujung ke ujung 23 skenario |
+| Tes otomatis | Backend 230, agen 60, frontend 23; uji ujung ke ujung API 23 skenario |
 
 **Panel 03. Perbandingan**
 
 | Kemampuan | Balas otomatis biasa | Meta Business Agent | Mekari Qontak | OmniLead |
 |---|---|---|---|---|
-| Aplikasi | Satu | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email |
+| Aplikasi | Satu | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email; lewat API resmi atau agen browser |
 | Siapa yang mengirim | Bot langsung | Agen otomatis penuh | Chatbot dan saran balasan; tidak ada antrean persetujuan | Pemilik, atau sesuai izin yang ia atur |
 | Satu profil lintas aplikasi | Tidak | Tanpa email | Tidak disebutkan jelas | Ya, dengan bukti penggabungan |
 | Harga dijaga katalog | Tidak | Tidak disebutkan | Tidak disebutkan | Guard menahan harga di luar katalog |
@@ -336,15 +399,16 @@ Keamanan | Instruksi menyusup, minta data pelanggan lain, minta diskon 70% | 3 d
 Batas aplikasi | Batas 24 jam untuk membalas sudah lewat | 2 dari 2 ditahan | Akun bisnis tetap patuh aturan Meta
 Spam dan bahasa sehari-hari | Spam, "brp harga nasbox 30 org" | 4 dari 4 | Bahasa chat UMKM yang sebenarnya
 Konsistensi | Kasus yang sama diuji 3 kali | Gemini 15–17 dari 18 di dua kali uji; mesin aturan 18 dari 18 | Hasil yang naik turun tetap kami laporkan
+Agen browser (OpenClaw) | Membuka profil Instagram di browser lokal dan membaca halaman | Runtime dan halaman login terbaca (77 elemen layar). Login akun asli dan balas DM belum berhasil: perencana masih memilih elemen yang tidak valid | Kendala ditulis apa adanya; fitur masih diuji
 Panel "02 Kecepatan dan ketahanan" (kiri bawah), baris dengan ikon kecil:
 Pesan masuk sampai usulan (Gemini): 13–17 detik per pesan
 Pesan masuk sampai usulan (mesin aturan cadangan): sekitar 0,4 detik
 Tempel pesan sampai usulan di link publik: 11,7 detik (sekali ukur)
 Model gagal: beralih ke templat aman, tetap dicek Guard
-Tes otomatis: backend 171, agen 60, frontend 23; uji ujung ke ujung 23 skenario
+Tes otomatis: backend 230, agen 60, frontend 23; uji ujung ke ujung API 23 skenario
 Panel "03 Perbandingan" (kanan bawah), matriks dengan kolom OmniLead disorot hijau muda, kolom
 Kemampuan | Balas otomatis biasa | Meta Business Agent | Mekari Qontak | OmniLead, dan baris:
-Aplikasi | Satu | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email
+Aplikasi | Satu | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email; lewat API resmi atau agen browser
 Siapa yang mengirim | Bot langsung | Agen otomatis penuh | Chatbot dan saran balasan; tidak ada antrean persetujuan | Pemilik, atau sesuai izin yang ia atur
 Satu profil lintas aplikasi | Tidak | Tanpa email | Tidak disebutkan jelas | Ya, dengan bukti penggabungan
 Harga dijaga katalog | Tidak | Tidak disebutkan | Tidak disebutkan | Guard menahan harga di luar katalog
@@ -360,6 +424,9 @@ Footbar dengan tab "Solution" aktif.
 - [ ] Setiap slide punya label, judul utama, isi, dan footbar dengan tab Solution aktif.
 - [ ] Semua teks berbahasa Indonesia, kecuali label kecil, nama produk, teknologi, dan label footbar.
 - [ ] Angka sama persis dengan tabel aturan angka. GPT tidak menambah angka atau slogan.
+- [ ] Font Canva Sans di semua teks; komponen (pil, kartu, panah, ikon, tabel) sama ukuran dan gayanya di setiap slide.
+- [ ] Tidak ada ilustrasi orang, robot, efek 3D, atau gradien neon; tampilan aplikasi hanya dari screenshot asli.
+- [ ] Agen browser selalu disebut "masih diuji" sampai balas DM lewat browser berhasil.
 - [ ] Kata "asumsi" tetap tertulis pada harga OmniLead.
 - [ ] Logo ditempel manual di kanan atas, dan screenshot asli menggantikan placeholder.
 - [ ] Tidak ada URL OAuth, token, kata sandi, atau email asli di screenshot.
