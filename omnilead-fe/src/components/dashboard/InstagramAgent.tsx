@@ -1,50 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useState } from "react";
 import { ArrowRight, Check, Loader2, Play } from "lucide-react";
 import { api, type InstagramSync } from "@/lib/api";
-import { cn } from "@/lib/ui";
 import { Button } from "@/components/action/button";
 import { ChannelIcon } from "@/components/primitives";
-import { TimeAgo } from "@/components/TimeAgo";
 import { AgentRunPanel, useAgentRun } from "@/components/dashboard/AgentRun";
-
-const DOT = { green: "bg-emerald-500", amber: "bg-amber-500", gray: "bg-rc-border-strong" } as const;
-
-function Row({ dot, label, children }: { dot?: keyof typeof DOT; label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
-      <dt className="text-rc-fg-muted">{label}</dt>
-      <dd className="flex items-center gap-1.5 text-right text-rc-fg">
-        {dot ? <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", DOT[dot])} /> : null}
-        {children}
-      </dd>
-    </div>
-  );
-}
 
 type Phase = "idle" | "reading" | "answering" | "done";
 
 export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void> }) {
-  const [status, setStatus] = useState<InstagramSync | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [read, setRead] = useState<InstagramSync | null>(null);
   const [answered, setAnswered] = useState(0);
   const [error, setError] = useState("");
   const agent = useAgentRun(onFinished);
-
-  const load = useCallback(async () => {
-    try {
-      setStatus(await api.instagramSyncStatus());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Status Instagram belum bisa dimuat");
-    }
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => void load(), 0);
-    return () => clearTimeout(t);
-  }, [load]);
 
   async function start() {
     setError("");
@@ -52,17 +22,19 @@ export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void>
     setAnswered(0);
     setPhase("reading");
     try {
-      const synced = await api.instagramSync();
-      setStatus(synced);
+      const synced = await api.instagramSync(true, true);
       setRead(synced);
+      const queued = new Set(synced.queued ?? []);
       const events = await api.events();
-      const targets = events
-        .filter((e) => e.channel === "instagram" && e.status === "new" && !e.trace?.goal)
-        .map((e) => ({ id: e.id, name: e.sender.name || e.sender.handle || "Pelanggan" }));
+      const targets = (synced.queued ?? [])
+        .map((id) => events.find((e) => e.id === id))
+        .filter((e) => e && queued.has(e.id))
+        .map((e) => ({ id: e!.id, name: e!.sender.name || e!.sender.handle || "Pelanggan" }));
       setAnswered(targets.length);
       if (targets.length) {
         setPhase("answering");
-        await agent.start(targets);
+        void onFinished();
+        await agent.start(targets, true);
       } else {
         await onFinished();
       }
@@ -93,18 +65,9 @@ export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void>
             {phase === "reading" ? "Membaca…" : phase === "answering" ? "Menjawab…" : "Mulai baca"}
           </Button>
         </div>
-        <dl className="mt-4 divide-y divide-rc-border border-t border-rc-border">
-          <Row label="Webhook" dot={status?.webhook_last_at ? (status.webhook_stale ? "amber" : "green") : "gray"}>
-            {status?.webhook_last_at ? (
-              <>
-                {status.webhook_stale ? "Sepi" : "Aktif"}, <TimeAgo iso={status.webhook_last_at} />
-              </>
-            ) : (
-              "Belum menerima"
-            )}
-          </Row>
-          <Row label="Terakhir dibaca">{status?.last_run_at ? <TimeAgo iso={status.last_run_at} /> : "Belum pernah"}</Row>
-        </dl>
+        <p className="mt-3 text-xs text-rc-fg-muted">
+          Membuka Instagram lewat OpenClaw di komputer ini. Pastikan gateway sudah jalan (`tools/openclaw/start.sh`).
+        </p>
       </section>
 
       {phase === "reading" ? (
@@ -124,9 +87,19 @@ export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void>
       ) : null}
 
       {read?.error ? (
-        <p role="alert" className="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+        <p role="alert" className="rounded-lg border border-rc-border bg-rc-surface px-4 py-2.5 text-sm text-rc-fg-muted">
           {read.error}
         </p>
+      ) : null}
+
+      {phase === "answering" ? (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rc-border bg-rc-surface px-5 py-4">
+          <p className="text-sm text-rc-fg-muted">Hasil analisis muncul satu per satu di Workspace selagi agen bekerja.</p>
+          <Button purpose="nav" href="/dashboard/inbox" className="gap-1.5">
+            Lihat di Workspace
+            <ArrowRight aria-hidden className="h-4 w-4" />
+          </Button>
+        </section>
       ) : null}
 
       {agent.run ? <AgentRunPanel run={agent.run} running={agent.running} onStop={agent.requestStop} /> : null}

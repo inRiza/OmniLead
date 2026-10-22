@@ -11,6 +11,7 @@ OWN_PREVIEW = re.compile(r"^(you|anda|kamu)\s*:\s*", re.I)
 STATUS_TEXT = re.compile(r"^(unread|belum dibaca|active( now|\s+\d+\s*\w+(\s+ago)?)?|aktif( sekarang|\s+\d+\s*\w+(\s+(yang )?lalu)?)?|seen|dilihat)$", re.I)
 NOTICE_LABEL = re.compile(r"\s(commented|replied to your comment|mentioned you in a comment)\s*:", re.I)
 AVATAR = "user-profile-picture"
+SYSTEM_PREVIEW = re.compile(r"^(liked a message|menyukai pesan|\d+\+? new messages?|\d+\+? pesan baru|.* sent an? (attachment|photo|video|voice message|reel|post|sticker|gif)\.?|.* mengirim (lampiran|foto|video|pesan suara|reel|postingan|stiker)\.?|reacted .* to your message|.* reacted to your message|bereaksi .*|sent a message\.?|you sent .*|anda mengirim .*)$", re.I)
 
 
 @dataclass
@@ -104,6 +105,8 @@ def threads(snapshot: str) -> list[Thread]:
         if len(texts) < 2:
             continue
         name, preview = texts[0], " ".join(texts[1:]).strip()
+        if SYSTEM_PREVIEW.match(preview):
+            continue
         incoming = not OWN_PREVIEW.match(preview)
         out.append(Thread(name=name[:200], preview=OWN_PREVIEW.sub("", preview)[:2000],
                           unread=bool(re.search(r"\bUnread\b|Belum dibaca", node.name)), incoming=incoming,

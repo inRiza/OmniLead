@@ -12,6 +12,10 @@ class OpenClawUnavailable(Exception):
     pass
 
 
+class BrowserSendFailed(Exception):
+    pass
+
+
 class OpenClawBrowser:
     def __init__(self, settings, workspace, channel):
         endpoint = urlsplit(settings.openclaw_browser_url)

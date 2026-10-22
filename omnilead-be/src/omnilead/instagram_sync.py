@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -7,6 +8,8 @@ from omnilead.ingest import IngestService, handle_key
 from omnilead.instagram_snapshot import comments as parse_comments, find_ref, threads as parse_threads
 from omnilead.models import Channel, EventIn, Sender
 from omnilead.openclaw_browser import OpenClawBrowser, OpenClawUnavailable
+
+log = logging.getLogger(__name__)
 
 INBOX_URL = "https://www.instagram.com/direct/inbox/"
 NOTIFICATIONS_URL = "https://www.instagram.com/notifications/"
@@ -138,7 +141,27 @@ def _from_browser(settings, workspace: str) -> tuple[list[EventIn], str]:
         browser.close()
 
 
-def sync_instagram(store, registry, ingest: IngestService, settings, workspace: str, *, use_browser: bool = True) -> dict:
+def _try_browser(settings, workspace: str, report: dict, errors: list[str]) -> list[EventIn]:
+    if not settings.browser_enabled:
+        errors.append("OpenClaw belum diaktifkan (OMNILEAD_BROWSER_ENABLED).")
+        return []
+    try:
+        events, state = _from_browser(settings, workspace)
+        report["source"] = "openclaw_text"
+        report["needs_login"] = state == "needs_login"
+        if report["needs_login"]:
+            errors[:] = ["Sesi Instagram di browser agen belum masuk. Masuk dulu di jendela Chrome lalu baca ulang."]
+        else:
+            errors.clear()
+        return events
+    except OpenClawUnavailable as exc:
+        log.warning("instagram browser sync failed: %s", exc)
+        errors.append(str(exc) or "Browser agen belum bisa membaca Instagram. Jalankan tools/openclaw/start.sh.")
+        return []
+
+
+def sync_instagram(store, registry, ingest: IngestService, settings, workspace: str, *,
+                   use_browser: bool = True, prefer_browser: bool = False) -> dict:
     started = _now()
     report = {"last_run_at": started.isoformat(), "source": "none", "fetched": 0, "imported": 0, "duplicates": 0,
               "dms": 0, "comments": 0, "webhook_gap": 0, "error": "", "api_error": "", "needs_login": False}
@@ -146,28 +169,29 @@ def sync_instagram(store, registry, ingest: IngestService, settings, workspace: 
     account = (getattr(registry, "account_ids", None) or {}).get("instagram", "")
     events: list[EventIn] = []
     errors: list[str] = []
-    if hasattr(connector, "recent_messages"):
-        for reader in (_api_messages, _api_comments):
-            try:
-                events += reader(connector, account)
-                report["source"] = "meta_api"
-            except (ConnectorError, ActionNotSupported) as exc:
-                errors.append(str(exc))
-    else:
-        errors.append("Instagram belum terhubung lewat Meta API untuk bisnis ini.")
+    used_browser = False
 
-    if report["source"] == "none":
-        report["api_error"] = " ".join(dict.fromkeys(errors))
-        if use_browser and settings.browser_enabled:
-            try:
-                events, state = _from_browser(settings, workspace)
-                report["source"] = "openclaw_text"
-                report["needs_login"] = state == "needs_login"
-                errors = ["Masuk ke Instagram di jendela OpenClaw lalu sinkronkan lagi."] if report["needs_login"] else []
-            except OpenClawUnavailable as exc:
-                errors.append(f"Fallback OpenClaw gagal: {exc}")
-    elif errors:
-        errors = [f"Sebagian data Meta API gagal dibaca: {errors[0]}"]
+    if prefer_browser and use_browser:
+        events = _try_browser(settings, workspace, report, errors)
+        used_browser = report["source"] == "openclaw_text" or report["needs_login"]
+
+    if not used_browser:
+        if hasattr(connector, "recent_messages"):
+            for reader in (_api_messages, _api_comments):
+                try:
+                    events += reader(connector, account)
+                    report["source"] = "meta_api"
+                except (ConnectorError, ActionNotSupported) as exc:
+                    errors.append(str(exc))
+        else:
+            errors.append("Instagram belum terhubung lewat Meta API untuk bisnis ini.")
+
+        if report["source"] == "none" or not events:
+            report["api_error"] = " ".join(dict.fromkeys(errors))
+            if use_browser:
+                events = _try_browser(settings, workspace, report, errors)
+        elif errors:
+            errors = [f"Sebagian data Meta API gagal dibaca: {errors[0]}"]
 
     report["error"] = " ".join(dict.fromkeys(errors))
     report["fetched"] = len(events)
@@ -189,9 +213,33 @@ def sync_instagram(store, registry, ingest: IngestService, settings, workspace: 
                     f"{report['webhook_gap']} pesan Instagram tidak masuk lewat webhook dan dipulihkan lewat Meta API",
                     actor="system", channel="instagram")
     store.audit("instagram_sync",
-                f"Sumber {report['source']}: {report['fetched']} dibaca, {report['dms']} DM baru, "
+                f"Instagram: {report['fetched']} dibaca, {report['dms']} DM baru, "
                 f"{report['comments']} komentar baru, {report['duplicates']} sudah ada"
                 + (f". {report['error']}" if report["error"] else ""),
                 actor="system", channel="instagram")
     _save(store, **report)
     return sync_status(store)
+
+
+
+def queue_analysis(store) -> list[str]:
+    pending = [e for e in store.list_events(limit=500)
+               if e.channel == Channel.INSTAGRAM and e.status == "new" and not (e.trace or {}).get("goal")]
+    pending.sort(key=lambda e: _aware(e.ts) or _now())
+    queued_at = _now().isoformat()
+    for event in pending:
+        event.trace = {"queued": True, "queued_at": queued_at, "status": "Menunggu giliran"}
+        store.save_event(event)
+    return [e.id for e in pending]
+
+
+def run_analysis_queue(store, ingest: IngestService, ids: list[str]) -> None:
+    for event_id in ids:
+        event = store.get_event(event_id)
+        if not event or event.status != "new" or not (event.trace or {}).get("queued"):
+            continue
+        try:
+            event = ingest.prepare(event)
+            ingest.process(event, expected_run_id=event.trace["run_id"])
+        except Exception as exc:
+            log.warning("instagram analysis failed for %s: %s", event_id, exc)

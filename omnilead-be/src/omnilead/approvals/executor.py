@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, TransientError
 from omnilead.connectors.registry import Registry
 from omnilead.approvals.merge import build_snapshot
+from omnilead.openclaw_browser import BrowserSendFailed
 from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus, set_stage
 from omnilead.store import Store
 from omnilead.windows import check_window
@@ -47,9 +48,10 @@ class RateLimited(Exception):
 
 
 class Executor:
-    def __init__(self, registry: Registry, store: Store):
+    def __init__(self, registry: Registry, store: Store, browser_send=None):
         self._registry = registry
         self._store = store
+        self._browser_send = browser_send
 
     def execute(self, action: Action) -> Action:
         if action.status in DONE:
@@ -91,6 +93,9 @@ class Executor:
         write_action = WRITE_ACTION[action.kind]
 
         source = self._store.get_event(action.event_id) if action.event_id else None
+        if (self._browser_send and source and source.meta.get("source") == "openclaw_text"
+                and action.kind == ActionKind.SEND_MESSAGE and source.kind == "dm"):
+            return self._send_by_browser(action, source, settings)
         if (source and source.meta.get("handoff_only")) or not connector.supports(write_action):
             action.status = ActionStatus.AWAITING_MANUAL_SEND
             action.result_ref = None
@@ -137,6 +142,34 @@ class Executor:
         action.delivery_at = now
         self._store.save_action(action)
         self._log(action, "executed", f"ref={ref}", actor="executor")
+        return action
+
+    def _send_by_browser(self, action: Action, source, settings) -> Action:
+        if settings.dry_run:
+            action.status = ActionStatus.EXECUTED
+            action.result_ref = "dry-run"
+            self._store.save_action(action)
+            self._log(action, "dry_run", "Dry-run: tidak dikirim ke Instagram", actor="executor")
+            return action
+        now = datetime.now(timezone.utc)
+        action.status = ActionStatus.EXECUTING
+        action.attempts += 1
+        action.last_attempt_at = now
+        action.next_retry_at = None
+        self._store.save_action(action)
+        try:
+            ref = self._browser_send(source.sender.handle, action.text)
+        except BrowserSendFailed as exc:
+            return self._fail(action, f"Gagal kirim ke Instagram: {exc}")
+        except Exception:
+            return self._fail(action, "Gagal kirim ke Instagram: browser agen belum siap. Coba ulang sebentar lagi.")
+        action.status = ActionStatus.EXECUTED
+        action.result_ref = ref
+        action.error = None
+        action.delivery_status = "sent"
+        action.delivery_at = now
+        self._store.save_action(action)
+        self._log(action, "executed", f"ref={ref} lewat browser agen", actor="executor")
         return action
 
     # --- internal ---

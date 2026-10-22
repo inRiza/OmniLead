@@ -299,7 +299,7 @@ def test_openclaw_fallback_needs_login(store, ingest, browser):
     browser.login = True
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert result["needs_login"] and result["imported"] == 0 and "Masuk ke Instagram" in result["error"]
+    assert result["needs_login"] and result["imported"] == 0 and "belum masuk" in result["error"]
     assert browser.closed == 1
 
 
@@ -313,6 +313,13 @@ def test_openclaw_unavailable_is_reported(store, ingest, monkeypatch):
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
     assert result["source"] == "none" and "Gateway OpenClaw" in result["error"] and "token kosong" in result["error"]
+
+
+def test_prefer_browser_skips_meta_api(store, ingest, browser):
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(messages=[msg("m-api", "dari api")])})
+    result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1", prefer_browser=True)
+    assert result["source"] == "openclaw_text" and result["dms"] == 2
+    assert all(e.meta.get("source") == "openclaw_text" for e in store.list_events() if e.kind == "dm")
 
 
 def test_answer_later_runs_agent_on_fetched_event(store, ingest):
@@ -362,3 +369,36 @@ def test_webhook_marks_last_seen_and_status_route(tmp_path, monkeypatch):
     status = client.get("/instagram/sync").json()
     assert status["webhook_stale"] is False and status["webhook_last_event_at"]
     get_settings.cache_clear()
+
+
+def test_empty_meta_api_falls_back_to_openclaw(store, ingest, browser):
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector()})
+    result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert result["source"] == "openclaw_text" and (result["dms"], result["comments"]) == (2, 1)
+
+
+def test_sync_queues_new_messages_and_analyzes_them_in_order(store, ingest, agent):
+    from omnilead.analysis_state import visible_analysis_state
+    from omnilead.instagram_sync import queue_analysis, run_analysis_queue
+
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(messages=[msg("m2", "kedua", minutes=1), msg("m1", "pertama", minutes=5)])})
+    sync_instagram(store, registry, ingest, settings(), "legacy")
+    ids = queue_analysis(store)
+    assert [store.get_event(i).text for i in ids] == ["pertama", "kedua"]
+    assert all(visible_analysis_state(store.get_event(i)).trace["queued"] for i in ids)
+    assert queue_analysis(store) == ids
+    calls = len(agent.calls)
+    run_analysis_queue(store, ingest, ids)
+    assert len(agent.calls) == calls + 2
+    assert {store.get_event(i).status for i in ids} == {"analyzed"}
+    assert queue_analysis(store) == []
+
+
+def test_stale_queue_marker_is_dropped(store):
+    from omnilead.analysis_state import visible_analysis_state
+    from omnilead.models import Event
+
+    old = (NOW - timedelta(minutes=30)).isoformat()
+    event = Event(id="e1", channel=Channel.INSTAGRAM, kind="dm", external_id="x", sender=Sender(handle="a"), text="halo",
+                  trace={"queued": True, "queued_at": old, "status": "Menunggu giliran"})
+    assert visible_analysis_state(event).trace is None

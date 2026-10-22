@@ -63,6 +63,9 @@ export interface BeSender {
 
 export interface BeTrace {
   goal?: string;
+  run_id?: string;
+  queued?: boolean;
+  queued_at?: string;
   plan?: string[];
   steps?: { n: number; tool: string; input: Record<string, unknown>; result: string }[];
   guard_summary?: string;
@@ -149,6 +152,7 @@ export interface BeLead {
   score_reasons?: string[];
   scored_at?: string | null;
   score_rubric?: string;
+  score_analysis?: string;
   needs?: Record<string, unknown>;
   next_step?: string;
 }
@@ -209,12 +213,6 @@ export interface BeAudit {
   lead_id: string | null;
 }
 
-export interface TestMode {
-  available: boolean;
-  enabled: boolean;
-  accounts: { provider: string; channel: string; configured: boolean }[];
-}
-
 export interface InstagramSync {
   last_run_at?: string;
   source?: "meta_api" | "openclaw_text" | "none";
@@ -227,6 +225,7 @@ export interface InstagramSync {
   error?: string;
   api_error?: string;
   needs_login?: boolean;
+  queued?: string[];
   webhook_last_at?: string;
   webhook_last_event_at?: string;
   webhook_stale: boolean;
@@ -408,9 +407,13 @@ export const api = {
   event: (eventId: string) => request<BeEvent>(`/events/${eventId}`),
   reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze?background=true`),
   instagramSyncStatus: () => request<InstagramSync>("/instagram/sync"),
-  instagramSync: () => post<InstagramSync>("/instagram/sync"),
-  testMode: () => request<TestMode>("/test-mode"),
-  setTestMode: (enabled: boolean) => request<TestMode>("/test-mode", { method: "PUT", body: JSON.stringify({ enabled }) }),
+  instagramSync: (analyze = false, preferBrowser = false) => {
+    const q = new URLSearchParams();
+    if (analyze) q.set("analyze", "true");
+    if (preferBrowser) q.set("prefer_browser", "true");
+    const suffix = q.size ? `?${q}` : "";
+    return post<InstagramSync>(`/instagram/sync${suffix}`);
+  },
 
   setPause: (paused: boolean) =>
     post<{ paused: boolean; reprocessed_events: number }>("/settings/pause", {

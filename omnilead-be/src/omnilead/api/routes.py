@@ -48,7 +48,7 @@ from omnilead.approvals.auto import AutoSender
 from omnilead.approvals.executor import ChannelDisabled, Executor, Paused, RateLimited
 from omnilead.dedup import scan_duplicates
 from omnilead.config import get_settings as app_config
-from omnilead.instagram_sync import sync_instagram, sync_status
+from omnilead.instagram_sync import queue_analysis, run_analysis_queue, sync_instagram, sync_status
 from omnilead.approvals.merge import can_undo, undo_merge
 from omnilead.approvals.queue import ApprovalQueue, InvalidTransition
 from omnilead.connectors import handoff
@@ -571,8 +571,18 @@ def instagram_sync_status(store: Store = Depends(get_store)) -> dict:
 @router.post("/instagram/sync")
 def instagram_sync_now(
     request: Request,
+    background_tasks: BackgroundTasks,
+    analyze: bool = Query(False),
+    prefer_browser: bool = Query(False),
     store: Store = Depends(get_store),
     registry: Registry = Depends(get_registry),
     ingest: IngestService = Depends(get_ingest),
 ) -> dict:
-    return sync_instagram(store, registry, ingest, app_config(), workspace_for_request(request))
+    result = sync_instagram(
+        store, registry, ingest, app_config(), workspace_for_request(request),
+        prefer_browser=prefer_browser,
+    )
+    if analyze:
+        result["queued"] = queue_analysis(store)
+        background_tasks.add_task(run_analysis_queue, store, ingest, result["queued"])
+    return result

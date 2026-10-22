@@ -123,8 +123,16 @@ def get_queue(request: Request, store=Depends(get_store)) -> ApprovalQueue:
     return ApprovalQueue(store, actor=current_user(request)["email"], account_bindings=account_bindings(workspace))
 
 
-def get_executor(registry=Depends(get_registry), store=Depends(get_store)) -> Executor:
-    return Executor(registry, store)
+def browser_sender(workspace: str):
+    settings = get_settings()
+    if workspace == "legacy" or not settings.browser_enabled or not _test_mode(workspace):
+        return None
+    from omnilead.instagram_send import send_dm
+    return lambda name, text: send_dm(settings, workspace, name, text)
+
+
+def get_executor(request: Request, registry=Depends(get_registry), store=Depends(get_store)) -> Executor:
+    return Executor(registry, store, browser_sender(workspace_for_request(request)))
 
 
 @lru_cache
@@ -148,13 +156,13 @@ def get_ingest(request: Request, store=Depends(get_store), queue=Depends(get_que
 def auto_sender_for_workspace(workspace: str) -> AutoSender:
     store = store_for_workspace(workspace)
     queue = ApprovalQueue(store, account_bindings=account_bindings(workspace))
-    return AutoSender(store, queue, Executor(registry_for_workspace(workspace), store))
+    return AutoSender(store, queue, Executor(registry_for_workspace(workspace), store, browser_sender(workspace)))
 
 
 def ingest_for_workspace(workspace: str) -> IngestService:
     store = store_for_workspace(workspace)
     queue = ApprovalQueue(store, account_bindings=account_bindings(workspace))
-    executor = Executor(registry_for_workspace(workspace), store)
+    executor = Executor(registry_for_workspace(workspace), store, browser_sender(workspace))
     auto = AutoSender(store, queue, executor)
     profile = (lambda: get_accounts().workspace_profile(workspace)) if workspace != "legacy" else None
     return IngestService(store, queue, get_agent_client(), executor, on_proposed=auto.handle, profile=profile)
