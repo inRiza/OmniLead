@@ -8,7 +8,6 @@ Model dipilih lewat OMNILEAD_AGENT_MODEL (ID dicek di konsol Vertex/AI Studio).
 Autentikasi: GOOGLE_API_KEY, atau Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=1).
 """
 
-import asyncio
 import os
 import uuid
 from datetime import timedelta, timezone, datetime
@@ -23,7 +22,9 @@ from omnilead_agent.orchestrator import (
     TemplateDrafter,
 )
 from omnilead_agent.schemas import GuardNote, Proposal
+from omnilead_agent.adk_triage import generation_config
 from omnilead_agent.knowledge import sources
+from omnilead_agent.progress import run_async
 
 APP_NAME = "omnilead_agent"
 DEFAULT_MODEL = "gemini-3.8-flash"  # terverifikasi di Vertex (location global), 21 Okt 2026
@@ -239,6 +240,7 @@ def build_agent(ctx: DraftContext, sink: list[Proposal], model=None) -> LlmAgent
             preferences=_preferences_text(ctx.req.preferences),
         ),
         tools=tools,
+        generate_content_config=generation_config(),
         **extra,
     )
 
@@ -260,10 +262,16 @@ async def _run(agent: LlmAgent, message: str) -> None:
         app_name=APP_NAME, user_id=user_id, session_id=session_id
     )
     content = types.Content(role="user", parts=[types.Part(text=message)])
-    async for _ in runner.run_async(
-        user_id=user_id, session_id=session_id, new_message=content
-    ):
-        pass
+    events = runner.run_async(user_id=user_id, session_id=session_id, new_message=content)
+    proposed: set[str] = set()
+    async for event in events:
+        # Berhenti setelah balasan dan update CRM diusulkan; giliran ringkasan penutup tidak dipakai.
+        responses = event.get_function_responses()
+        proposed |= {r.name for r in responses if "error" not in (r.response or {})}
+        if responses and all(r.name.startswith("propose_") for r in responses) \
+                and "propose_crm_update" in proposed and "propose_reply" in proposed:
+            break
+    await events.aclose()
 
 
 class AdkDrafter:
@@ -276,7 +284,7 @@ class AdkDrafter:
     def draft(self, ctx: DraftContext) -> list[Proposal]:
         sink: list[Proposal] = []
         agent = build_agent(ctx, sink, self._model)
-        asyncio.run(_run(agent, _user_message(ctx)))
+        run_async(_run(agent, _user_message(ctx)))
         return sink
 
     def revise(self, p: Proposal, issues: list[GuardNote], ctx: DraftContext) -> Proposal:

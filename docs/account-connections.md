@@ -17,6 +17,33 @@ mengganti akun tersebut. Kanal aktif: Instagram, Facebook Page, WhatsApp, dan em
 lama dan tidak otomatis diberikan kepada akun baru. `OMNILEAD_AUTH_ENABLED=false`
 secara eksplisit mengaktifkan mode demo lama dengan API key opsional. Jangan memakai mode itu untuk layanan publik.
 
+## Development lokal lewat HTTPS tunnel
+
+Arahkan tunnel HTTPS ke frontend port 3000. Satu origin dapat dipakai untuk OAuth dan webhook
+Meta melalui proxy Next.js. Buka OmniLead dan login dari origin HTTPS tersebut agar cookie sesi
+tersedia ketika OAuth kembali.
+
+- BE `.env`: sesuaikan `OMNILEAD_FRONTEND_URL` dan tambahkan origin tunnel ke `OMNILEAD_CORS_ORIGINS`.
+- FE `.env.local`: isi `OMNILEAD_FRONTEND_URL` dengan origin yang sama. Next.js mengizinkan
+  hostname tersebut lewat `allowedDevOrigins` untuk aset development.
+- HTTPS memerlukan `OMNILEAD_TOKEN_ENCRYPTION_KEY` eksplisit. Instalasi lokal yang sudah memakai
+  `.secrets/oauth.key` harus menggunakan kembali key itu agar token tersimpan tetap dapat dibaca.
+- Buat nilai acak untuk `OMNILEAD_META_VERIFY_TOKEN`; isi kolom verifikasi webhook Meta dengan
+  nilai yang sama. Nilai ini berbeda dari App Secret dan access token akun.
+- Restart FE dan BE setelah mengubah konfigurasi; biarkan tunnel tetap berjalan.
+
+Dengan origin contoh `https://contoh.ngrok-free.dev`:
+
+| Pengaturan Meta | URL |
+|---|---|
+| Pengalihan login Instagram | `https://contoh.ngrok-free.dev/api/backend/auth/oauth/instagram/callback` |
+| Callback webhook Instagram | `https://contoh.ngrok-free.dev/api/backend/webhooks/instagram` |
+
+Proxy webhook mendukung GET/POST untuk Instagram, Facebook, dan WhatsApp. Body diteruskan utuh
+bersama `X-Hub-Signature-256`; backend tetap memeriksa verify token dan signature. Webhook Gmail
+tidak diekspos melalui proxy ini. Backend langsung `/webhooks/instagram` tetap dapat dipakai
+jika backend mempunyai origin HTTPS sendiri.
+
 ## Konfigurasi sekali oleh pengelola
 
 Set `OMNILEAD_FRONTEND_URL` ke origin FE yang sebenarnya, tanpa path tambahan,
@@ -58,6 +85,29 @@ kedaluwarsa atau dicabut diarahkan ke **Hubungkan ulang**.
 Rujukan: [Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/),
 [koleksi resmi Meta](https://www.postman.com/meta/instagram/folder/6raa77c/instagram-api-with-instagram-login).
 
+#### Parsing dan diagnosis webhook Instagram
+
+| Notifikasi | Penanganan saat ini |
+|---|---|
+| `messages`, lewat `entry.messaging[]` atau `entry.changes[].value` | Pesan teks masuk menjadi event DM; ID pesan didedup |
+| `comments`, `live_comments` | Komentar teks masuk menjadi event komentar |
+| `message_edit`, `message_reactions`, `messaging_seen`, `messaging_handover`, `messaging_optins`, `messaging_postbacks`, `messaging_referral`, `standby` | Dicatat sebagai ringkasan notifikasi untuk akun yang dikenal; tidak membuat balasan baru |
+| Echo, pesan sendiri, penghapusan, pesan tanpa teks | Tidak membuat usulan balasan baru |
+
+POST harus lolos signature. Respons memuat `accepted`, `unmapped_entries`,
+`entries_without_new_text`, dan `fields`; log hanya mencatat ringkasannya.
+ID penerima yang tidak terhubung ke bisnis tidak dialihkan ke bisnis lain.
+Sampel tombol **Uji** Meta dapat menggunakan ID dummy `0`, `12334`, dan `23245`:
+HTTP 200 dengan `accepted=0, unmapped_entries=1` berarti endpoint menerima sampel,
+bukan bukti pesan pelanggan sudah masuk. Gunakan DM asli untuk verifikasi akhirnya.
+
+Jika DM terlihat di Instagram tetapi belum ada request webhook di backend,
+periksa status publikasi dan akses messaging pada dashboard provider. Koneksi
+OAuth dan langganan `messages` saja belum membuktikan pengiriman notifikasi.
+Periksa log sejak sebelum DM dikirim; daftar ngrok yang dibatasi 100 request
+dapat cepat tergeser oleh polling dashboard. Jangan menyalin body pesan,
+access token, signature, atau parameter rahasia ke log diagnostik publik.
+
 ### Facebook Page
 
 - Pakai aplikasi Meta yang sama dengan WhatsApp (`OMNILEAD_META_APP_ID`, `OMNILEAD_META_APP_SECRET`).
@@ -89,7 +139,7 @@ Rujukan: [Private Replies](https://developers.facebook.com/docs/messenger-platfo
 - Refresh token diperoleh otomatis melalui offline access; tidak perlu mengisi
   `OMNILEAD_GMAIL_REFRESH_TOKEN` dalam mode login bisnis.
 - Untuk pembaruan inbox, aktifkan job `/scheduler/gmail-poll`. Jika memakai push,
-  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud).
+  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud).
 - Mode Testing dan penggunaan publik memiliki ketentuan masa berlaku serta verifikasi
   scope Google. Koneksi menampilkan **Hubungkan ulang** bila grant tidak lagi dapat dipakai.
 
@@ -97,6 +147,16 @@ Rujukan: [OAuth web server](https://developers.google.com/identity/protocols/oau
 [scope Gmail](https://developers.google.com/workspace/gmail/api/auth/scopes).
 
 ### WhatsApp
+
+**Cara cepat untuk demo: nomor uji Meta.** Di Akun & Integrasi, kartu WhatsApp menampilkan
+**Hubungkan nomor uji** bila `OMNILEAD_META_APP_SECRET` sudah diisi. Pemilik menempel Phone Number ID,
+WhatsApp Business Account ID, dan access token dari halaman API Setup Meta. Backend memeriksa ke Meta bahwa
+token itu dapat membaca daftar nomor WABA dan nomor tersebut ada di dalamnya, menolak nomor yang sudah
+dipakai bisnis lain, lalu berlangganan webhook WABA. Token disimpan terenkripsi dan tidak dikirim kembali ke
+browser. Token sementara berlaku 24 jam; untuk demo lebih aman memakai token System User. Diuji dengan HTTP
+tiruan (`tests/test_whatsapp_manual.py`), belum ke Meta sungguhan.
+
+**Alur lengkap untuk nomor bisnis: Embedded Signup.**
 
 - Siapkan aplikasi Meta, produk WhatsApp, dan konfigurasi **Embedded Signup / Facebook Login for Business**.
 - Isi `OMNILEAD_META_APP_ID`, `OMNILEAD_META_APP_SECRET`,

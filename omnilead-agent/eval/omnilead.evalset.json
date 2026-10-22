@@ -103,7 +103,7 @@
      "reply_comment"
     ],
     "text_contains": [
-     "Bandung dan Cimahi"
+     ["Bandung dan Cimahi", "melayani pengantaran", "melayani pengiriman", "bisa kirim ke Cimahi", "bisa antar ke Cimahi"]
     ],
     "guard_all_pass": true
    }
@@ -182,7 +182,7 @@
      "tanya_harga"
     ],
     "text_contains": [
-     "minimum order 30"
+     ["minimum order 30", "minimum 30", "minimal 30", "minimum pemesanan 30", "minimal pemesanan 30", "minimum pemesanan kami adalah 30", "minimal order 30"]
     ],
     "guard_all_pass": true
    }

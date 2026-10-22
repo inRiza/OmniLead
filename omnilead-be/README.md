@@ -47,6 +47,10 @@ Page access token. Login lewat Facebook Login (aplikasi Meta yang sama dengan Wh
 beberapa Page, pengguna memilih satu Page di halaman Integrasi. Untuk mode lokal tanpa login, isi
 `OMNILEAD_FACEBOOK_PAGE_ID` dan `OMNILEAD_FACEBOOK_PAGE_ACCESS_TOKEN`.
 
+WhatsApp dapat dihubungkan dengan nomor uji Meta: di Akun & Integrasi pilih **Hubungkan nomor uji**, lalu
+tempel Phone Number ID, WhatsApp Business Account ID, dan token. Backend memverifikasi ke Meta sebelum menyimpan
+(`POST /connections/whatsapp/manual`; butuh `OMNILEAD_META_APP_SECRET`).
+
 Semua connector diuji dengan transport HTTP tiruan. Ke platform sungguhan, Instagram sudah diverifikasi
 (baca post dan komentar). WhatsApp, Gmail, dan Facebook Page belum diverifikasi end-to-end di lingkungan ini.
 
@@ -86,8 +90,9 @@ Pesan masuk: WhatsApp lewat webhook `/webhooks/whatsapp` (butuh URL HTTPS publik
 Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
 
 Akun demo untuk juri: isi `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD`. Saat server menyala, akun itu
-dibuat (bila belum ada) dan bisnisnya diisi data demo (`demo.py`). Dipakai untuk deploy publik di Cloud Run;
-lihat PRD bagian *Deploy Publik untuk Juri*.
+dibuat (bila belum ada) dan bisnisnya diisi data demo, knowledge base katalog di keempat kanal, dan 4 pesan
+contoh yang dianalisis agen di background (`demo.py`; matikan dengan `OMNILEAD_DEMO_SAMPLES=false`). Dipakai untuk
+deploy publik di Cloud Run; lihat PRD bagian *Deploy Publik untuk Juri*.
 
 Penyimpanan: `OMNILEAD_STORE=sqlite` (default; cukup untuk dev, tes, dan demo lokal) atau `firestore`
 (`store_firestore.py`, untuk deploy Cloud Run; belum diuji ke Firestore sungguhan).

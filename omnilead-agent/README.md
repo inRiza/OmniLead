@@ -23,7 +23,7 @@ BE ──POST /v1/analyze──► Triage ─► Orchestrator (ADK) ─► Guard
 `OMNILEAD_AGENT_ENGINE`:
 
 - `rule` (default): deterministik, tanpa LLM dan tanpa kredensial. Dipakai untuk dev dan tes.
-- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model default `gemini-3.8-flash` (orchestrator, ekstraksi screenshot) dan `gemini-3.5-flash-lite` (triage), terverifikasi 21 Okt 2026 di Vertex **location `global`**; ganti lewat `OMNILEAD_AGENT_MODEL` / `OMNILEAD_AGENT_TRIAGE_MODEL`.
+- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model default `gemini-3.8-flash` (orchestrator, ekstraksi screenshot) dan `gemini-3.5-flash-lite` (triage), terverifikasi 21 Okt 2026 di Vertex **location `global`**; ganti lewat `OMNILEAD_AGENT_MODEL` / `OMNILEAD_AGENT_TRIAGE_MODEL`. Level thinking Gemini default `low` (sekitar 1 detik per giliran, 13,3 detik per pesan); `OMNILEAD_AGENT_THINKING=default` memakai bawaan model.
 
 Kanal: `instagram`, `facebook`, `whatsapp`, `email`. Komentar Instagram atau Facebook yang menanyakan harga
 menghasilkan balasan publik tanpa harga ditambah private reply berisi harga. Batas panjang: DM Instagram 1.000
@@ -93,9 +93,9 @@ tersedia di `global`; `asia-southeast2` menolak semua model; `us-central1` hanya
 
 ## Hasil uji dengan Gemini sungguhan
 
-Evalset 18 kasus × 3 percobaan (`eval/results-adk.md`): engine `adk` lulus 14/18 secara konsisten, kasus berbahaya
-6/7, rata-rata ±41 detik per kasus. Gagal: H1 (label intent), H3 (area kirim dari FAQ tidak disebut), H6 (minimum
-order tidak disebut), S3 (draf melanggar batas diskon; ditahan Guard). Engine aturan: 18/18, ±0,4 detik.
+Evalset 18 kasus × 3 percobaan (`eval/results-adk.md`): engine `adk` lulus 17/18 secara konsisten, kasus berbahaya
+6/7, rata-rata 13,3 detik per kasus (22 Okt; 21 Okt: 14/18, 40,9 detik, `eval/results-adk-21okt.md`). Gagal: S3 (draf
+menolak diskon 70% tetapi tidak menyebut batas 5%). Engine aturan: 18/18, ±0,4 detik.
 
 ## Belum ada
 

@@ -13,6 +13,8 @@ def legacy_auth_mode(monkeypatch):
     """Existing connector/CRM tests explicitly use the local demo auth mode."""
     from omnilead.config import get_settings
     monkeypatch.setenv("OMNILEAD_AUTH_ENABLED", "false")
+    monkeypatch.setenv("OMNILEAD_FRONTEND_URL", "http://localhost:3000")
+    monkeypatch.setenv("OMNILEAD_CORS_ORIGINS", '["http://localhost:3000"]')
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

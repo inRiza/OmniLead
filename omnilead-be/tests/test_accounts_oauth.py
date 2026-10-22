@@ -343,7 +343,8 @@ def test_ingest_passes_only_channel_knowledge_and_tone_to_agent(app):
     captured = []
     def handler(req):
         captured.append(json.loads(req.content))
-        return httpx.Response(200, json=CANNED)
+        return httpx.Response(200, text=json.dumps({"type": "result", "data": CANNED}) + "\n",
+                              headers={"content-type": "application/x-ndjson"})
     app.dependency_overrides[deps.get_agent_client] = lambda: AgentClient("http://agent", transport=httpx.MockTransport(handler))
     selected = client.post("/knowledge-bases", json={"name": "Jam buka", "content": "Kami buka jam 09.00.", "products": [{"name": "Kaos Basic", "unit_price": 75000, "unit": "pcs", "min_order": 1}]}).json()
     client.post("/knowledge-bases", json={"name": "Tidak dipilih", "content": "RAHASIA TIDAK UNTUK KANAL INI"})

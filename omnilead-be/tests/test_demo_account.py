@@ -12,6 +12,7 @@ def make_app(tmp_path, monkeypatch, **env):
     monkeypatch.setenv("OMNILEAD_ACCOUNTS_DB_PATH", str(tmp_path / "accounts.db"))
     monkeypatch.setenv("OMNILEAD_DB_PATH", str(tmp_path / "crm.db"))
     monkeypatch.setenv("OMNILEAD_SECRETS_DIR", str(tmp_path / "secrets"))
+    monkeypatch.setenv("OMNILEAD_DEMO_SAMPLES", "false")
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     get_settings.cache_clear()
@@ -27,6 +28,11 @@ def test_demo_account_is_created_seeded_and_can_log_in(tmp_path, monkeypatch, le
         assert login.status_code == 200, login.text
         leads = client.get("/leads").json()
         assert any(lead["name"] == "Ani" for lead in leads) and len(leads) >= 30
+        knowledge = client.get("/knowledge-bases").json()
+        assert [k["id"] for k in knowledge] == ["demo-katalog"] and len(knowledge[0]["products"]) == 3
+        channels = client.get("/agent/channel-settings").json()
+        assert all(c["knowledge_base_ids"] == ["demo-katalog"] for c in channels.values())
+        assert channels["email"]["tone"] == "professional"
     # Restart: akun yang sudah ada tidak dibuat ulang dan datanya tidak direset.
     with TestClient(make_app(tmp_path, monkeypatch, OMNILEAD_DEMO_EMAIL="juri@omnilead.id",
                              OMNILEAD_DEMO_PASSWORD="demo-juri-2026")) as client:
@@ -42,3 +48,19 @@ def test_no_demo_account_without_env(tmp_path, monkeypatch, legacy_auth_mode):
     get_settings.cache_clear()
     deps.get_accounts.cache_clear()
     deps.store_for_workspace.cache_clear()
+
+
+def test_demo_messages_cover_all_channels_and_survive_agent_errors():
+    from omnilead.demo import DEMO_MESSAGES, analyze_demo_messages
+
+    seen = []
+
+    class Ingest:
+        def ingest(self, ev):
+            seen.append(ev)
+            if ev.channel.value == "instagram":
+                raise RuntimeError("agen mati")
+
+    analyze_demo_messages(Ingest())
+    assert {ev.channel.value for ev in seen} == {"whatsapp", "instagram", "facebook", "email"}
+    assert len(seen) == len(DEMO_MESSAGES) and all(ev.ts is not None for ev in seen)

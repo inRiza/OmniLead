@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     demo_password: str = ""
     demo_name: str = "Bu Rina"
     demo_business: str = "Usaha Bu Rina (demo)"
+    demo_samples: bool = True
     meta_app_id: str = ""
     whatsapp_signup_config_id: str = ""
     whatsapp_signup_version: str = "v25.0"

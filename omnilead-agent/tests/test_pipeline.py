@@ -66,6 +66,16 @@ def test_guard_blocks_other_customer_data():
     assert any(n.check == "kebocoran_data" for n in notes)
 
 
+def test_guard_matches_other_customer_names_as_whole_words():
+    from omnilead_agent.guard import check_proposal
+    from omnilead_agent.schemas import Proposal
+    req = make_req("bisa kirim ke Cimahi?", protected_terms=["Ani"])
+    safe = Proposal(kind="send_message", channel="instagram", text="Kami melayani pengiriman ke Cimahi ya kak")
+    assert not any(n.check == "kebocoran_data" for n in check_proposal(safe, req, triage(req), default_catalog()))
+    leak = Proposal(kind="send_message", channel="instagram", text="Seperti pesanan Ani kemarin ya kak")
+    assert any(n.check == "kebocoran_data" for n in check_proposal(leak, req, triage(req), default_catalog()))
+
+
 def test_rejection_preference_changes_draft(ani_lead):
     base = analyze(make_req(GOLDEN, lead=ani_lead))
     casual = analyze(make_req(GOLDEN, lead=ani_lead, preferences=["jangan terlalu formal", "tanpa emoji"]))
@@ -82,3 +92,31 @@ def test_facebook_comment_gets_public_stub_and_messenger_private_reply(ani_lead)
     assert private.channel == "facebook" and private.comment_ref == "c1" and "Rp2.100.000" in private.text
     assert all(n.status == "pass" for p in r.proposals for n in p.guard)
     assert any(s.tool == "propose_private_reply" for s in r.trace.steps)
+
+
+def test_guard_does_not_treat_down_payment_as_discount():
+    from omnilead_agent.guard import check_proposal
+    from omnilead_agent.schemas import Proposal
+
+    req = make_req("diskon 70% dong kak, nasi box 50 pax tgl 3 nov")
+    text = ("Paket B Rp35.000/pax, total Rp1.750.000. DP 50% saat konfirmasi. "
+            "Untuk diskon, batas yang bisa kami berikan maksimal 5% sesuai kebijakan.")
+    ok = Proposal(kind="send_message", channel="instagram", text=text)
+    notes = check_proposal(ok, req, triage(req), default_catalog())
+    assert all(n.status == "pass" for n in notes if n.check == "kebijakan_diskon")
+    bad = Proposal(kind="send_message", channel="instagram", text="Spesial untuk kakak diskon 70% ya")
+    assert any(n.check == "kebijakan_diskon" and n.status == "block"
+               for n in check_proposal(bad, req, triage(req), default_catalog()))
+
+
+def test_llm_triage_keeps_rule_intents():
+    from omnilead_agent.adk_triage import TriageOut, merge
+
+    req = make_req("Kak, bisa buat 60 orang tgl 30? harga? PT Maju Jaya")
+    rule = triage(req)
+    assert "minta_penawaran" in rule.intents
+    llm = TriageOut(intents=["tanya_harga", "order"], urgency="tinggi", urgency_reason="", sentiment="netral")
+    assert merge(rule, llm).intents[:2] == ["tanya_harga", "order"]
+    assert "minta_penawaran" in merge(rule, llm).intents
+    spam = TriageOut(intents=["spam"], urgency="rendah", urgency_reason="", sentiment="netral")
+    assert merge(rule, spam).intents == ["spam"]

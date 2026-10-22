@@ -1,6 +1,6 @@
 ---
 title: Tiket Kanban (salinan board 2ndbrain)
-related: ../plan.md, crm-agentic-multikanal-5.0.md
+related: ../plan.md, crm-agentic-multikanal-5.1.md
 updated: 2026-10-21
 ---
 
@@ -24,9 +24,9 @@ Keterangan kondisi repo:
 
 | Kondisi repo | Jumlah | Tiket |
 |---|---|---|
-| Selesai | 5 | TSK-4, TSK-5, TSK-14, TSK-15, TSK-32 |
+| Selesai | 7 | TSK-4, TSK-5, TSK-14, TSK-15, TSK-27, TSK-32, TSK-34 |
 | Ada, belum uji nyata | 3 | TSK-33, TSK-37, TSK-38 |
-| Sebagian | 14 | TSK-1, TSK-8, TSK-9, TSK-16, TSK-17, TSK-19, TSK-21, TSK-22, TSK-23, TSK-24, TSK-25, TSK-26, TSK-27, TSK-34 |
+| Sebagian | 12 | TSK-1, TSK-8, TSK-9, TSK-16, TSK-17, TSK-19, TSK-21, TSK-22, TSK-23, TSK-24, TSK-25, TSK-26 |
 | Belum | 7 | TSK-3, TSK-18, TSK-20, TSK-28, TSK-29, TSK-30, TSK-6* |
 | Beda arah | 4 | TSK-7, TSK-10, TSK-11, TSK-31 |
 | Pengembangan lanjutan (PRD 4.0) | 2 | TSK-12, TSK-13 |
@@ -69,19 +69,19 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | TSK-24 | Tangani kasus data tidak lengkap dan tandai tidak pasti | backend | Sebagian | Agen mati → event `agent_error` + analisis ulang; nama sama tanpa konteks → usulan ke dua profil, manusia memilih. Belum ada penanda "tidak pasti" umum. |
 | TSK-25 | Tulis README arsitektur agent dan cara menjalankan | docs | Sebagian | README root dan per service ada. Kurang **pembagian kontribusi anggota** (wajib TOR §7). |
 | TSK-26 | Tulis catatan sumber, dataset, lisensi, dan penggunaan AI | docs | Sebagian | [SOURCES.md](SOURCES.md) ada; bagian "dibantu asisten coding AI" masih kosong (wajib TOR §6.3). |
-| TSK-27 | Isi bukti uji dengan skenario, input, dan hasil aktual | docs | Sebagian | [TESTING.md](../TESTING.md) ada untuk engine aturan. Hasil engine `adk` (14/18 pass^3, ±41 dtk) sudah dimasukkan ke TESTING.md. |
-| TSK-28 | Bekukan versi dan buat tag rilis untuk penilai | devops | Belum | Tag `v1.0-freeze` paling lambat Kamis 22 Okt 13.00. |
+| TSK-27 | Isi bukti uji dengan skenario, input, dan hasil aktual | docs | Selesai | [TESTING.md](../TESTING.md): evalset aturan dan Gemini (17/18, 13,3 dtk), uji E2E lokal, verifikasi deploy, dan temuan audit UI. |
+| TSK-28 | Bekukan versi dan buat tag rilis untuk penilai | devops | Belum | Tag `v1.0-freeze` paling lambat Kamis 22 Okt 15.00, di commit yang di-deploy. |
 | TSK-29 | Susun slide deck seleksi pitch dua menit | deck | Belum | Rencana di [rencana-deck-demo-top10.md](rencana-deck-demo-top10.md). Batas Kamis 15.00. |
 | TSK-30 | Rekam video cadangan demo versi yang sama | deck | Belum | Rekam setelah freeze, versi yang sama. |
 | TSK-33 | Email + WhatsApp messaging entry and push chat | integration | Ada, belum uji nyata | Tumpang tindih dengan TSK-37 dan TSK-38. Webhook WA, push + polling Gmail ada di `api/webhooks.py`. |
-| TSK-34 | Konfigurasi sifat agent (emosi + tone) | ai | Sebagian | Guard memeriksa nada; alasan penolakan menjadi preferensi bisnis yang dimuat di draf berikutnya. Belum ada pengaturan tone eksplisit. |
+| TSK-34 | Konfigurasi sifat agent (emosi + tone) | ai | Selesai | Tone per kanal (ramah, profesional, santai, ringkas, custom) di halaman Pengetahuan & Tone; akun demo memakai nada profesional untuk email. Alasan penolakan menjadi preferensi bisnis. |
 
 ## In Progress (5)
 
 | ID | Tiket | Label | Kondisi repo | Catatan |
 |---|---|---|---|---|
 | TSK-31 | Pilih dan uji dataset e-commerce nyata | data | Beda arah | Repo memakai data contoh: 30 lead dummy + Ani, katalog katering (P1 lama) dan fashion wanita. Sesuai TOR §15 (utamakan data contoh). PRD 3.0 mengganti P1 menjadi olahan buah; katalog belum diganti (lihat tiket baru). |
-| TSK-32 | Bangun agent analisis konteks dan draf pesan | ai | Selesai | Triage → Orchestrator (Google ADK) → Guard. Gemini `gemini-3.8-flash` di Vertex (location `global`) terverifikasi 21 Okt. Eval: engine aturan 18/18, engine Gemini 14/18 (gagal H1, H3, H6, S3), ±41 dtk per kasus. |
+| TSK-32 | Bangun agent analisis konteks dan draf pesan | ai | Selesai | Triage → Orchestrator (Google ADK) → Guard. Gemini `gemini-3.8-flash` di Vertex (location `global`) terverifikasi 21 Okt. Eval: engine aturan 18/18, engine Gemini 17/18 (gagal S3), 13,3 dtk per kasus (22 Okt). Berjalan di Cloud Run. |
 | TSK-11 | Bangun connector Instagram komentar dan DM via instagrapi | integration | Beda arah | Diganti Instagram Graph API resmi (`connectors/instagram.py`): balasan publik, DM, private reply. Belum diuji ke akun asli. |
 | TSK-12 | Bangun connector LinkedIn pesan dan komentar via linkedin-api | integration | Pengembangan lanjutan | PRD 4.0: LinkedIn bukan kanal MVP; kode LinkedIn dihapus 21 Okt 2026. Messaging API hanya untuk partner. |
 | TSK-4 | Rancang wireframe dashboard dan detail pelanggan | design | Selesai | UI dashboard sudah diimplementasi; tidak ada file wireframe terpisah di repo. |
@@ -96,9 +96,9 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | Server MCP baca-saja + gateway | `omnilead-agent/src/omnilead_agent/mcp_server.py`, `gateway.py` |
 | Ekstraksi screenshot (Gemini multimodal) | `omnilead-agent/src/omnilead_agent/extract.py` |
 | Persona fashion wanita (P2) sebagai konfigurasi katalog | `omnilead-agent/data/catalog-fashion.json` |
-| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-5.0.md](crm-agentic-multikanal-5.0.md) |
+| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-5.1.md](crm-agentic-multikanal-5.1.md) |
 | Evalset 18 kasus + pass^3, evaluasi identitas | `omnilead-agent/eval/`, `omnilead-be/eval/` |
-| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud) |
+| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud) |
 | Landing page dan logo | `omnilead-fe/src/app/page.tsx`, `src/components/brand/Logo.tsx` |
 
 ## Usulan perubahan board
@@ -117,7 +117,39 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
    | ~~Tampilkan Facebook di landing page dan halaman Integrasi~~ | frontend | **Selesai** |
    | Uji Facebook Page dengan akun nyata (Facebook Login, webhook Page, Messenger) | integration | Kode hanya diuji dengan HTTP tiruan |
    | Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah (rujak, es teler) | data, frontend | PRD 4.0 P1 sudah olahan buah; demo masih katering |
-   | Jalur hybrid triage dan draf: aturan dulu, Gemini hanya bila perlu | ai | Gemini ±41 dtk per pesan terlalu lambat untuk live demo |
+   | ~~Jalur hybrid triage dan draf~~ | ai | **Tidak diperlukan**: `thinking_level=low` menurunkan Gemini ke 13,3 dtk (22 Okt) |
    | Evalset "pesan sulit" (10–15 kasus) untuk membandingkan aturan vs Gemini | ai | Bukti kenapa LLM dibutuhkan; evalset sekarang ditulis bersama aturan |
    | Perbarui SOURCES.md (model terverifikasi, bagian bantuan AI) | docs | Wajib TOR §6.2–6.3 |
    | Uji pengguna 3–5 pemilik UMKM (waktu per pesan, kualitas draf) | research | Mengisi angka [A] di PRD §Dampak |
+
+## Catatan 22 Okt 2026 (dini hari): hasil uji E2E dan usulan tambahan MVP
+
+Uji E2E lokal (agen → BE → FE lewat proxy, akun demo, engine `rule`): 36 cek lulus setelah perbaikan di branch
+`fix/e2e-demo-agent` (agen tidak crash pada pesan berisi jumlah saat knowledge base kosong; akun demo diisi
+knowledge base katalog di semua kanal; draf aturan untuk "jam berapa", produk tak disebut, sapaan formal).
+Belum diuji: kirim ke akun kanal sungguhan (persetujuan berakhir di Salin & buka).
+
+Usulan tambahan MVP (belum dikerjakan, menunggu keputusan tim):
+
+| Tiket | Isi | Estimasi |
+|---|---|---|
+| TSK-24 | Guard menahan draf yang menyebut jam, harga, atau area yang tidak ada di knowledge base; label "perlu dicek" | 1–1,5 jam |
+| TSK-3 | Opt-out per pelanggan ("Jangan hubungi lagi"); agen dan executor berhenti untuk lead itu | 1–1,5 jam |
+| TSK-23 | Label *Fakta* (dari pesan) vs *Dugaan AI* (skor, intent, usulan merge) di detail lead | ±1 jam |
+
+Bisa ditutup: TSK-34 (tone per kanal sudah ada di halaman Knowledge). TSK-9 cukup ditambah filter label Hot/Warm/Cold.
+Tetap roadmap: TSK-16–20, TSK-22, TSK-6/7/31, TSK-12/13.
+
+## Catatan 22 Okt 2026 (pagi): deploy dan pekerjaan di luar tiket
+
+| Pekerjaan | Status |
+|---|---|
+| Deploy Cloud Run: `omnilead` (link juri), `omnilead-api`, `omnilead-agent` (engine `adk`) | Selesai |
+| Akun demo berisi katalog di 4 kanal dan usulan nyata dari agen | Selesai |
+| Koneksi nomor uji WhatsApp di halaman Integrasi | Selesai (HTTP tiruan) |
+| Gemini 13,3 dtk per kasus, evalset 17/18 | Selesai |
+| Design system landing di aplikasi, satu logo, navigasi HP | Selesai |
+| Landing menampilkan persetujuan pemilik dan prioritas lead | Selesai |
+| Uji kanal nyata (Gmail, WA, IG, FB) | Belum; menunggu kredensial |
+
+Freeze kode **15.00**. Usulan MVP tambahan (TSK-24, TSK-3, TSK-23) masih menunggu keputusan tim.

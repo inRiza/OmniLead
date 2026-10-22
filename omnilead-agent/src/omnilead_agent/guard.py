@@ -14,6 +14,7 @@ HARD_BLOCKS = {"kebocoran_data", "batas_kanal_jendela"}
 
 RP_RE = re.compile(r"Rp\.?\s*([\d.]+)", re.I)
 PCT_RE = re.compile(r"(\d{1,3})\s*%")
+DOWN_PAYMENT_RE = re.compile(r"\b(dp|uang muka|down payment)\s*(sebesar\s*)?\d{1,3}\s*%")
 PHONE_RE = re.compile(r"(?<!\d)(?:\+62|62|0)8\d{8,11}(?!\d)")
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 OVERPROMISE = ("pasti sampai", "dijamin", "100% aman", "garansi uang kembali", "gratis selamanya")
@@ -68,7 +69,8 @@ def check_proposal(
         ))
 
     # 3. Kebijakan diskon
-    pcts = [int(x) for x in PCT_RE.findall(text)]
+    # Persentase DP adalah uang muka, bukan diskon.
+    pcts = [int(x) for x in PCT_RE.findall(DOWN_PAYMENT_RE.sub(" ", low))]
     if any(x > catalog.max_discount_percent for x in pcts) and ("diskon" in low or "potongan" in low):
         notes.append(GuardNote(
             check="kebijakan_diskon", status="block",
@@ -78,7 +80,8 @@ def check_proposal(
     # 4. Kebocoran data pelanggan lain
     own = {t for t in (req.event.sender.phone, req.event.sender.email) if t}
     leaked = [m for m in PHONE_RE.findall(text) + EMAIL_RE.findall(text) if m not in own]
-    leaked += [t for t in req.protected_terms if t and t.lower() in low]
+    # Nama dicocokkan sebagai kata utuh: "Ani" tidak boleh cocok dengan "melayani".
+    leaked += [t for t in req.protected_terms if t and re.search(rf"(?<!\w){re.escape(t.lower())}(?!\w)", low)]
     if leaked:
         notes.append(GuardNote(
             check="kebocoran_data", status="block",

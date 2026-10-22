@@ -1,7 +1,7 @@
 ---
 title: Catatan sumber dan AI
 updated: 2026-10-21
-related: crm-agentic-multikanal-5.0.md
+related: crm-agentic-multikanal-5.1.md
 ---
 
 # Catatan sumber dan AI (TOR §6.2)
@@ -65,7 +65,7 @@ contoh (dummy, anonim), bukan data pelanggan nyata.
 
 | Peran | Model | Status |
 |---|---|---|
-| Orchestrator (draf, rencana) | `gemini-3.8-flash` via ADK (`OMNILEAD_AGENT_MODEL`) | Dipanggil sungguhan lewat evalset: 14/18 pass^3, ±41 detik per kasus |
+| Orchestrator (draf, rencana) | `gemini-3.8-flash` via ADK (`OMNILEAD_AGENT_MODEL`) | Dipanggil sungguhan lewat evalset: 17/18 pass^3, 13,3 detik per kasus (22 Okt) |
 | Triage (opsional) | `gemini-3.5-flash-lite` via ADK (`OMNILEAD_AGENT_TRIAGE_MODEL`) | Dipanggil sungguhan bersama orchestrator; aturan deterministik selalu berjalan sebagai pengaman |
 | Ekstraksi screenshot | `gemini-3.8-flash` (`google-genai`, `OMNILEAD_AGENT_EXTRACT_MODEL`) | Terhubung di kode; belum diuji dengan screenshot sungguhan |
 | Mode `rule` (default) | Tidak ada LLM | Dipakai untuk tes otomatis |

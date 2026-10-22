@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ComponentType, type SVGProps } from "react";
-import { BookOpen, Menu, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
+import { Activity, BookOpen, Menu, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
+import { useDashboard } from "./DashboardContext";
 import { LogoutButton } from "./LogoutButton";
 import { HomeIcon, InboxIcon, ListIcon, PlugIcon, SparkIcon, UsersIcon } from "./icons";
 
@@ -14,11 +15,13 @@ type NavItem = {
   href: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
+  badge?: number;
 };
 
 const main: NavItem[] = [
   { href: "/dashboard", label: "Beranda", icon: HomeIcon },
   { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
+  { href: "/dashboard/agent", label: "Aktivitas agen", icon: Activity },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
   { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
@@ -64,11 +67,17 @@ function useIsActive() {
   return (href: string) => (href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href));
 }
 
+function mainNav(pendingCount: number): NavItem[] {
+  return main.map((i) => (i.href === "/dashboard/inbox" ? { ...i, badge: pendingCount } : i));
+}
+
 export function Sidebar() {
   const collapsed = useCollapsed();
   const isActive = useIsActive();
   const { session } = useAccount();
+  const { pendingCount } = useDashboard();
   const user = session.user;
+  const navMain = mainNav(pendingCount);
 
   return (
     <aside
@@ -93,7 +102,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-5 px-3 py-1">
-        <NavGroup items={main} isActive={isActive} collapsed={collapsed} />
+        <NavGroup items={navMain} isActive={isActive} collapsed={collapsed} />
         <div>
           {collapsed ? (
             <span className="mx-auto mb-2 block h-px w-6 bg-rc-border" />
@@ -128,6 +137,7 @@ export function Sidebar() {
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const isActive = useIsActive();
+  const { pendingCount } = useDashboard();
   const pathname = usePathname();
   const [seen, setSeen] = useState(pathname);
   if (seen !== pathname) {
@@ -161,7 +171,7 @@ export function MobileNav() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <NavGroup items={[...main, ...secondary]} isActive={isActive} collapsed={false} />
+            <NavGroup items={[...mainNav(pendingCount), ...secondary]} isActive={isActive} collapsed={false} />
           </div>
         </div>
       )}
@@ -197,6 +207,16 @@ function NavGroup({
             >
               <Icon className="h-[18px] w-[18px] shrink-0" />
               {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+              {!collapsed && item.badge ? (
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-sm font-medium tabular-nums",
+                    active ? "bg-rc-accent text-white" : "bg-rc-highlight-soft text-[#8a5300]",
+                  )}
+                >
+                  {item.badge}
+                </span>
+              ) : null}
             </Link>
           </li>
         );

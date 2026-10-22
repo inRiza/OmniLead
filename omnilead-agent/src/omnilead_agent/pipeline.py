@@ -20,6 +20,7 @@ from omnilead_agent.schemas import (
 )
 from omnilead_agent.scoring import score_lead
 from omnilead_agent.triage import triage
+from omnilead_agent.progress import emit
 
 MAX_REVISIONS = 2
 
@@ -58,16 +59,26 @@ def _goal(req: AnalyzeRequest, tri: TriageResult) -> str:
     return f"Tanggapi {', '.join(tri.intents)} dari {who} via {req.event.channel}"
 
 
+INTENT_LABEL = {
+    "tanya_harga": "tanya harga", "minta_penawaran": "minta penawaran", "order": "mau pesan",
+    "tanya_stok": "tanya stok", "komplain": "komplain", "follow_up": "menagih balasan",
+    "pertanyaan_umum": "pertanyaan umum", "spam": "spam",
+}
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+
+
 def _summary(req: AnalyzeRequest, tri: TriageResult, score: LeadScore) -> str:
     e = tri.entities
-    bits = [f"Minat: {', '.join(tri.intents)}"]
+    intents = list(dict.fromkeys(INTENT_LABEL.get(i, i.replace("_", " ")) for i in tri.intents))
+    bits = [intents[0].capitalize() + "".join(", " + i for i in intents[1:])]
     if "qty" in e:
         bits.append(f"{e['qty']} {e.get('unit', '')}".strip())
     if "date" in e:
-        bits.append(f"tenggat {e['date']}")
+        y, m, d = str(e["date"]).split("-") if str(e["date"]).count("-") == 2 else ("", "", "")
+        bits.append(f"acara {int(d)} {MONTHS[int(m) - 1]}" if d.isdigit() and m.isdigit() else f"acara {e['date']}")
     if e.get("company"):
         bits.append(str(e["company"]))
-    return "; ".join(bits) + f". Skor {score.score} ({score.label})."
+    return "; ".join(bits) + "."
 
 
 def analyze(
@@ -84,13 +95,18 @@ def analyze(
         catalog = catalog or default_catalog()
     drafter = drafter or default_drafter()
     triager = triager or default_triager()
+    emit("triage", "Mengenali maksud dan urgensi pesan")
     tri = triager(req) if triager else triage(req)
+    emit("triage_done", "Maksud pesan dikenali", intents=tri.intents,
+         reason=tri.urgency_reason, urgency=tri.urgency, risk_flags=tri.risk_flags)
     trace = Trace(goal=_goal(req, tri), plan=list(PLAN))
     if req.business_context:
         names = ", ".join(doc.name for doc in req.business_context.documents) or "belum ada sumber"
         trace.plan.insert(0, f"Knowledge base {req.event.channel}: {names}; tone {req.business_context.tone}")
+    emit("plan", "Rencana penanganan disiapkan", plan=trace.plan, goal=trace.goal)
 
     def done(**kw) -> AnalyzeResponse:
+        emit("complete", "Analisis selesai", result=trace.status, guard_summary=trace.guard_summary)
         return AnalyzeResponse(event_id=req.event.id, triage=tri, trace=trace, **kw)
 
     # Manipulasi: blokir seluruh tugas, tidak ada draf aksi.
@@ -121,12 +137,14 @@ def analyze(
         )
 
     ctx = DraftContext(req=req, tri=tri, catalog=catalog, tools=Tools(req, tri, catalog, trace))
+    emit("drafting", "Menyusun usulan dengan konteks bisnis", engine=engine_name())
     try:
         proposals = drafter.draft(ctx)
     except Exception as exc:  # LLM/jaringan gagal: jatuh ke templat deterministik
         trace.steps.clear()
         ctx.score = None
         ctx.notes.append(f"Agen LLM gagal ({type(exc).__name__}); memakai templat")
+        emit("fallback", "Model gagal; draf dilanjutkan dengan templat")
         drafter = TemplateDrafter()
         proposals = drafter.draft(ctx)
     score = ctx.score or score_lead(req, tri, catalog)
@@ -134,6 +152,7 @@ def analyze(
     # Guard + revisi
     revisions = 0
     dropped: list[GuardNote] = []
+    emit("guard", "Memeriksa usulan sebelum masuk antrean persetujuan")
     while True:
         for p in proposals:
             p.guard = check_proposal(p, req, tri, catalog)
@@ -145,6 +164,7 @@ def analyze(
         if not soft or revisions >= MAX_REVISIONS:
             break
         revisions += 1
+        emit("revision", "Memperbaiki usulan setelah pemeriksaan", revision=revisions)
         proposals = [
             drafter.revise(p, [n for n in p.guard if n.status == "block"], ctx) if i in soft else p
             for i, p in enumerate(proposals)

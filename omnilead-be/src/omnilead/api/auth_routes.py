@@ -246,6 +246,22 @@ def whatsapp_select(body: WhatsAppSelection, request: Request, user=Depends(curr
     return {"ok": True}
 
 
+class WhatsAppManual(BaseModel):
+    phone_number_id: str = Field(pattern=r"^\d{5,64}$")
+    waba_id: str = Field(pattern=r"^\d{5,64}$")
+    access_token: str = Field(min_length=20, max_length=1024, pattern=r"^\S+$")
+
+
+@router.post("/connections/whatsapp/manual")
+def whatsapp_manual(body: WhatsAppManual, user=Depends(current_user)) -> dict:
+    try:
+        get_oauth().whatsapp_manual(user["workspace_id"], body.phone_number_id, body.waba_id, body.access_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    store_for_workspace(user["workspace_id"]).audit("channel_connected", "whatsapp (nomor uji)", actor=user["email"], channel="whatsapp")
+    return {"ok": True}
+
+
 class FacebookSelection(BaseModel):
     page_id: str = Field(pattern=r"^\d{1,64}$")
 

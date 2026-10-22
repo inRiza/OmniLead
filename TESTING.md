@@ -1,7 +1,130 @@
 # TESTING
 
-Bukti pengujian OmniLead per 21 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
+Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
+
+## Deploy Cloud Run dan audit UI (22 Okt 2026, pagi)
+
+**Deploy:** agen (`adk`), BE (SQLite), dan FE berjalan di Cloud Run `asia-southeast2`. Diperiksa dari luar lewat
+https://omnilead-fgbrqs2gfq-et.a.run.app: halaman `/`, `/login`, `/dashboard` 200; login akun demo 200; `/agent/health` melaporkan engine `adk`;
+satu pesan WhatsApp yang ditempel dianalisis Gemini dari Cloud Run dalam 11,7 detik dengan harga dari katalog.
+Akun demo yang baru dibuat berisi 12 usulan menunggu persetujuan dari 4 pesan contoh (WhatsApp, Instagram,
+Facebook, email).
+
+**Temuan dari audit UI di versi deploy, sudah diperbaiki:**
+
+| Temuan | Akibat | Perbaikan |
+|---|---|---|
+| Guard mencocokkan nama pelanggan lain sebagai potongan kata ("Ani" di "melayani") | Draf aman ditahan sebagai "data pihak lain" | Nama dicocokkan sebagai kata utuh; tes regresi |
+| Ringkasan lead dan audit memakai istilah internal (`minta_penawaran`, `crm_update`, `skor=48`) | Sulit dibaca pemilik | Label bahasa awam; tes adapter audit |
+| Tidak ada navigasi di HP; tabel Workspace terpotong | Halaman lain tidak bisa dibuka dari HP | Navigasi bawah, tabel ringkas di HP |
+
+Tes otomatis setelah perubahan: BE **162**, agen **57**, FE **23** lulus; `tsc --noEmit` dan `eslint` bersih.
+Tampilan diperiksa dengan screenshot Chromium headless (desktop 1440 px dan HP 390 px), bukan uji pengguna.
+
+## Uji E2E lokal, Gemini lebih cepat, dan koneksi nomor uji WhatsApp (22 Okt 2026)
+
+**Uji E2E lokal** (agen, BE, FE lewat proxy `/api/backend`, akun demo, engine `rule`, database sementara): 36 cek
+lulus setelah perbaikan. Cakupan: halaman FE, login dan logout, tempel pesan di WhatsApp, Instagram, Facebook, dan
+email, usulan agen, setujui dengan edit, Salin & buka, tandai terkirim, tolak dengan alasan, jeda (approve ditolak
+423), audit log, dan isolasi workspace. Bug yang ditemukan dan diperbaiki:
+
+| Temuan | Akibat | Perbaikan |
+|---|---|---|
+| `IndexError` di `scoring.py` bila katalog kosong | Pesan berisi jumlah ("50 pax") pada akun baru berakhir `agent_error` | Nilai order memakai budget bila tidak ada produk |
+| Akun demo tanpa knowledge base | Mode login hanya membaca knowledge base bisnis, jadi semua draf "kami cek dulu" | Akun demo diisi katalog dan FAQ di semua kanal |
+| "jam berapa" dianggap tanya harga | Pertanyaan area kirim tidak dijawab | Triage membedakan pertanyaan waktu |
+| Sapaan formal "Bapak/Ibu Pak." | Email terlihat salah | Sapaan seperti Pak atau Bu dibuang dari nama |
+
+**Gemini lebih cepat.** `thinking_level=low` (satu panggilan Gemini 3.8 Flash 12,2 detik menjadi 1,3 detik) dan
+giliran ringkasan penutup dilewati setelah balasan dan update CRM diusulkan.
+
+**Evalset engine `adk`** (Vertex `global`, 18 kasus x 3, `omnilead-agent/eval/results-adk.md`):
+
+| Tahap | pass^3 | Kasus berbahaya | Latensi rata-rata | Gagal |
+|---|---|---|---|---|
+| 21 Okt (`results-adk-21okt.md`) | 14/18 | 6/7 | 40,9 detik | H1, H3, H6, S3 |
+| 22 Okt, hanya percepatan | 14/18 | 6/7 | 13,1 detik | H1, H3, H6, S3 |
+| 22 Okt, setelah perbaikan | **17/18** | 6/7 | 13,3 detik | S3 |
+
+Perbaikan di antara dua baris terakhir, dicatat terbuka karena sebagian menyangkut cara menilai:
+- Kode: Guard tidak lagi menganggap "DP 50%" sebagai diskon 50% (draf aman sebelumnya ditahan). Gabungan triage
+  Gemini dan aturan mempertahankan intent dari aturan (H1).
+- Eval: H3 dan H6 kini menerima beberapa cara penulisan fakta yang sama ("melayani pengiriman", "minimal 30").
+  Draf Gemini untuk kedua kasus sudah benar secara isi; sebelumnya gagal karena eval mencari kalimat templat.
+- Sisa kegagalan S3: draf menolak diskon 70% tetapi tidak menyebut batas 5%. Tidak ada draf yang menawarkan 70%.
+
+**Koneksi nomor uji WhatsApp** (`tests/test_whatsapp_manual.py`, 3 tes, HTTP tiruan): nomor harus terdaftar di WABA
+dengan token itu, token salah ditolak, nomor milik bisnis lain ditolak, App Secret wajib, token tidak dikembalikan.
+Belum diuji ke Meta sungguhan.
+
+Tes otomatis: agen 56 lulus, BE 161 lulus, FE 22 lulus; `tsc --noEmit` dan `eslint` bersih.
+
+## Review aktivitas agen dan parser Instagram (22 Okt 2026)
+
+- Sesudah perbaikan review: backend **158 lulus**, agen **51 lulus**, frontend
+  **22 lulus**. Tes memakai rule engine atau transport/model tiruan, tanpa
+  pengiriman pesan Instagram atau panggilan model sungguhan.
+- Tes baru mencakup dua envelope pesan Instagram, komentar/live comments,
+  notifikasi status, echo, payload rusak, signature, dan isolasi bisnis.
+  Sampel Meta dengan ID akun dummy tidak dirutekan ke bisnis pengguna.
+- Review menemukan stream yang tidak membatalkan pekerja ketika terputus dan
+  analisis yang dapat tertinggal pada status processing setelah restart.
+  Keduanya diperbaiki: SDK asinkron dibatalkan, jumlah pekerja/kejadian dibatasi,
+  analisis memiliki batas waktu dan ID proses, serta analisis kedaluwarsa dapat
+  diproses ulang. Tes mencakup hasil proses lama yang datang setelah penggantinya.
+- Uji pembatalan awal mengalami race pada barrier tes; barrier dipindah ke dalam
+  coroutine SDK tiruan agar benar-benar menguji pembatalan panggilan yang berjalan.
+  Suite akhir lulus. Pembatasan pekerja bukan antrean persisten lintas instance.
+- Playwright membuka halaman aktivitas dengan akun demo sintetis pada desktop
+  dan mobile: tidak ada page error JavaScript maupun overflow horizontal mobile.
+  Pemeriksaan ini hanya membaca riwayat yang ada; tidak menyetujui pengiriman.
+- Dua POST dari tombol **Uji** Meta diterima pada 01.06 WIB, dengan bentuk
+  `changes[].field=messages` dan ID akun `0`. Parser kini mendukung bentuk ini
+  selain `entry.messaging[]`. Replay sampel bertanda tangan melalui tunnel
+  setelah restart menghasilkan HTTP 200, `accepted=0, unmapped_entries=1`.
+- Pemeriksaan 01.26 WIB: Conversations API HTTP 200 dengan 0 percakapan.
+  Log backend belum menunjukkan DM asli terkait pesan 01.18 WIB pada screenshot
+  pengguna. Status publikasi aplikasi belum dapat dipastikan. Penerimaan dan
+  pengiriman DM sungguhan tetap belum terverifikasi; hasil sampel tidak membuktikannya.
+
+## Aktivitas agen: pemeriksaan awal (22 Okt 2026)
+
+- Halaman `/dashboard/agent` dan panel aktivitas di Workspace ditambahkan. Agen
+  menerbitkan kejadian pelaksanaan melalui NDJSON; backend menyimpan kemajuan
+  pada trace per bisnis dan frontend memperbarui tampilan setiap tiga detik.
+- Pemeriksaan statis: TypeScript, ESLint, dan parsing sintaks Python lulus.
+  Backend dan service agen berhasil startup dan `/health` keduanya merespons 200.
+  Suite tes, browser, dan panggilan LLM untuk alur streaming baru belum dijalankan.
+- Diagnostik Instagram: callback login tercatat; koneksi akun yang sesuai
+  screenshot tersimpan sebagai connected. GET subscribed_apps merespons 200,
+  dengan `comments` dan `messages`. Saat diperiksa belum ada POST webhook DM
+  yang masuk ke backend. Status publikasi/konfigurasi aplikasi Meta masih
+  membutuhkan pemeriksaan di dashboard provider.
+- Pembacaan Conversations API dengan token tersimpan merespons 200, tetapi
+  daftar percakapan kosong. Izin `instagram_business_manage_messages` tercatat
+  pada koneksi. Pengiriman pesan sungguhan belum dicoba; hasil ini belum
+  membuktikan bahwa DM masuk atau balasan dapat dikirim.
+- Sebelum perubahan streaming, satu pesan sintetis melalui pipeline nyata
+  selesai dalam 42 detik, tanpa fallback, memakai konteks pengetahuan dan tone
+  profesional. Namun draf menyebut tutup 18.00 sedangkan sumber menyebut 17.00.
+  Kasus ini menunjukkan alur berjalan, tetapi ketepatan fakta belum lolos.
+
+## OAuth dan webhook melalui tunnel HTTPS lokal (21 Okt 2026)
+
+- Next.js sebelumnya menolak dev asset dari origin tunnel (403). Hostname dari
+  `OMNILEAD_FRONTEND_URL` kini masuk `allowedDevOrigins`; halaman login dan asetnya merespons 200.
+- Proxy FE meneruskan GET/POST webhook Meta, body utuh, dan header signature. Diagnostik melalui
+  HTTPS publik: challenge dengan verify token benar 200 dan body challenge sesuai; token salah 403;
+  POST tanpa signature 403; POST bertanda tangan dengan daftar event kosong 200. Tidak ada event
+  pelanggan atau pengiriman pesan pada pemeriksaan ini.
+- Login HTTPS awal menghasilkan 500 karena key enkripsi eksplisit belum terisi. Konfigurasi lokal
+  memakai kembali key lama `.secrets/oauth.key` (tanpa rotasi), lalu login akun sintetis berhasil
+  200 dengan cookie Secure. Sesi diagnostik di-logout setelah pemeriksaan.
+- Start Instagram menghasilkan redirect dengan callback HTTPS sesuai origin tunnel. Consent di
+  Instagram dan pendaftaran callback Meta masih dilakukan pengguna; belum terbukti selesai.
+- TypeScript dan lint lulus. Suite tes tidak dijalankan ulang. Diagnostik lokal:
+  `omnilead-be/data/local-runtime/diagnose-https-onboarding.py` (gitignored).
 
 ## Facebook Page, Gemini sungguhan, dan Docker (21 Okt 2026)
 
@@ -134,7 +257,7 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 - Connector WhatsApp, Gmail, Instagram, dan Facebook Page diuji dengan transport HTTP tiruan. **Belum ada panggilan ke platform
   sungguhan**, jadi format permintaan yang benar-benar diterima Meta/Google belum terverifikasi.
 - Adapter Firestore diuji dengan fake in-memory, bukan Firestore atau emulator.
-- Image Docker agen dan BE sudah dibangun dan dijalankan lokal; build FE gagal di `npm ci`. Perintah deploy belum dijalankan.
+- Ketiga service sudah di-deploy ke Cloud Run dan diperiksa dari luar (22 Okt 2026). Cloud Scheduler belum dibuat.
 - Evalset dipakai juga untuk memperbaiki aturan (lihat "Hasil awal vs sesudah perbaikan"), jadi ia dev-set, bukan
   ukuran independen. Angka sempurna sesudah perbaikan tidak boleh dibaca sebagai akurasi di data nyata.
 - Belum ada pengujian dengan pemilik UMKM nyata, jadi kolom intervensi manusia tidak terisi dari data lapangan.
@@ -143,12 +266,12 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 98 lulus (72 sebelum login bisnis dan Facebook) |
-| Agen `omnilead-agent` | `uv run pytest` | 43 lulus (38 sebelum knowledge base dan Facebook) |
+| Backend `omnilead-be` | `uv run pytest` | 162 lulus (22 Okt) |
+| Agen `omnilead-agent` | `uv run pytest` | 57 lulus (22 Okt) |
 | Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
-| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 14/18 pass^3, ±41 detik per kasus |
+| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 17/18 pass^3, 13,3 detik per kasus (21 Okt: 14/18, 40,9 detik) |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |
-| Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 22 tes lulus; tsc dan eslint bersih |
+| Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 23 tes lulus (22 Okt); tsc dan eslint bersih |
 | Evalset persona P2 (fashion, 6 kasus x 3) | `python -m omnilead_agent.eval --set eval/omnilead-fashion.evalset.json` | 6/6 pass^3 (dev-set yang ditulis bersama kode; bukan ukuran independen) |
 | Latensi event → draf (HTTP BE→agen, engine rule, lokal) | 5 percobaan `POST /events` | 0,34 – 0,40 detik |
 

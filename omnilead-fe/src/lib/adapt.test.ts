@@ -213,6 +213,14 @@ describe("lead dan audit", () => {
     expect(adaptAudit({ ...base, event: "executed" }).event).toBe("Terkirim");
     expect(adaptAudit({ ...base, event: "event_baru_x" }).event).toBe("event_baru_x");
   });
+
+  it("detail dan pelaku audit tanpa istilah internal", () => {
+    const base = { id: 1, ts: "t", action_id: null, event: "proposed", actor: "agent", channel: null, lead_id: null };
+    expect(adaptAudit({ ...base, detail: "crm_update di email untuk -" })).toMatchObject({ detail: "Update CRM di Email", actor: "Agen" });
+    expect(adaptAudit({ ...base, detail: "followup di whatsapp untuk 0812" }).detail).toBe("Follow-up di WhatsApp untuk 0812");
+    expect(adaptAudit({ ...base, detail: "skor=48 Warm" }).detail).toBe("Skor 48 (Warm)");
+    expect(adaptAudit({ ...base, detail: "teks bebas" }).detail).toBe("teks bebas");
+  });
 });
 
 describe("ikon kanal", () => {

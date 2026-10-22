@@ -11,7 +11,7 @@ export function ContentInset({
   return (
     <div
       className={cn(
-        "min-h-0 flex-1 overflow-hidden rounded-xl border border-rc-border bg-rc-surface",
+        "min-h-0 flex-1 overflow-hidden",
         className,
       )}
     >
