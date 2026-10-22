@@ -12,7 +12,7 @@ Empat slide, masing-masing meniru pola referensi yang diberikan:
 
 | Slide | Pola referensi | Inti pesan |
 |---|---|---|
-| S1. Demo: dari chat tercecer ke balasan yang disetujui | "What retailers have, what BIMA does, what retailers get" (3 kolom dengan screenshot HP) | Apa yang masuk, apa yang dikerjakan agen, apa yang didapat Bu Rina |
+| S1. Demo | Template deck tim (label bagian, judul, kotak abu-abu, navigasi Solution) dengan kartu oranye bernomor seperti slide Value Proposition | Alur demo lima langkah dan di mana pemilik memutuskan |
 | S2. User flow (use-case) | Process flow dengan swimlane per aktor dan langkah bernomor | Siapa melakukan apa, dan di mana manusia memutuskan |
 | S3. Arsitektur agentic | AI architecture engine layer: diagram di kiri, kartu komponen di kanan, tiga kartu angka di bawah | Agen bekerja sendiri, tapi tidak pernah memegang tombol kirim |
 | S4. Prototype report | Benchmark: tabel eval harness, SLA latensi, matriks pembanding | Diuji, bukan diklaim |
@@ -23,36 +23,76 @@ atau [A] (asumsi, ditulis "asumsi" di slide).
 
 ---
 
-## S1. Demo: dari chat tercecer ke balasan yang disetujui
+## S1. Demo (mengikuti template deck tim)
 
-**Layout (16:9):** judul di atas. Tiga kelompok kolom dengan header pita gelap (navy `#0b1736`, teks putih),
-dipisah panah bulat di antaranya. Tiap kelompok berisi 2 mockup HP (screenshot aplikasi) dan kartu teks di bawah
-masing-masing (judul tebal, lalu 1–2 baris penjelasan). Pita bawah: dua kotak "Teknologi" dan "Arsitektur AI"
-berisi logo.
+Template yang dipakai sama dengan slide lain di deck: label bagian kecil berwarna biru dan judul tebal di kiri atas,
+logo di kanan atas, badan slide, kotak abu-abu bertepi bulat di bawah, dan navigasi bawah (Problem Definition,
+Solution, Marketing Opportunity, Business Model, Future Outlook) dengan tab **Solution** aktif. Gaya isi mengikuti
+slide Value Proposition: judul blok berupa pil biru, kartu bernomor berwarna oranye, panah oranye di antara langkah.
 
-**Judul slide:** Pesanan 60 porsi Ani tidak lagi tenggelam: agen menyiapkan, Bu Rina menyetujui
+### Versi A: sampul demo live (ditampilkan saat pindah ke aplikasi)
 
-| Kelompok | Header pita | Mockup HP (screenshot dari link demo, ukuran 390 px) | Kartu teks |
+| Bagian template | Isi |
+|---|---|
+| Label kecil | Solution |
+| Judul | Demo: dari chat tercecer ke balasan yang disetujui |
+| Badan | Di tengah, satu baris besar "Demo". Di bawahnya tiga hal kecil berjajar: QR ke link juri, teks link `omnilead-fgbrqs2gfq-et.a.run.app`, dan "Akun juri: `juri@omnilead.id`" (kata sandi hanya di form submission) |
+| Kotak abu-abu | "Kami akan menunjukkan satu pesanan Ani dari pesan masuk sampai balasan disetujui. Data pelanggan adalah data contoh." |
+
+### Versi B: isi demo (untuk deck yang dibaca juri, atau cadangan bila demo live gangguan)
+
+**Judul:** Demo: dari chat tercecer ke balasan yang disetujui
+
+**Badan, dua kolom:**
+
+- **Kiri (sekitar 60%), pil biru "Tampilan aplikasi":** satu bingkai laptop berisi screenshot **Workspace** (pesan dari
+  WhatsApp, Instagram, Facebook, email; Ani di urutan atas), dan di sudut kanan bawah bingkai, satu mockup HP berisi
+  kartu **Usulan agen** dengan tombol Setujui dan Edit. Di bawah bingkai: QR ke link juri.
+- **Kanan (sekitar 40%), pil biru "Alur demo (sekitar 4 menit)":** lima kartu oranye bernomor, gaya sama dengan Key
+  Features:
+
+| No | Judul kartu (tebal) | Keterangan (1 baris) | Yang dilihat juri |
 |---|---|---|---|
-| 1 | **YANG MASUK KE BU RINA** | (a) Workspace: pesan dari WhatsApp, Instagram, Facebook, email bercampur | **Chat dari 4 aplikasi:** komentar IG, DM, WA, dan email, sering dari orang yang sama |
-| | | (b) Pesan Ani: komentar IG "Kak, bisa buat 60 orang tgl 30? harga?" | **Order besar di antara chat eceran:** 60 porsi untuk kantor, tenggat 9 hari |
-| 2 | **YANG DIKERJAKAN AGEN** | (c) Aktivitas agen: langkah tools (riwayat, katalog, jendela kanal, skor) | **Memahami dan mengecek:** satukan identitas Ani dari 3 kanal, cari paket di katalog, hitung skor prioritas |
-| | | (d) Kartu usulan: draf balasan publik tanpa harga + DM berisi harga, hasil Guard | **Menyiapkan, bukan mengirim:** draf dengan harga dari katalog, diperiksa Guard |
-| 3 | **YANG DIDAPAT BU RINA** | (e) Usulan dengan tombol Setujui / Edit / Tolak | **Tinggal memutuskan:** Setujui, Edit, atau Tolak dengan alasan (agen belajar dari alasan itu) |
-| | | (f) Beranda HP: jumlah usulan, prioritas, kanal | **Gambaran hari ini:** pesanan bernilai besar di urutan atas, follow-up tidak terlewat |
+| 1 | **Pesan dari 4 kanal, satu layar** | Komentar IG, WA, dan email Ani jadi satu profil | Workspace dan profil lead |
+| 2 | **Yang penting naik ke atas** | 60 pax untuk kantor, tenggat 9 hari: prioritas tinggi beserta alasannya | Skor dan alasan prioritas |
+| 3 | **Agen bekerja, langkahnya terlihat** | Baca riwayat, cek katalog, cek jendela kanal, hitung skor, susun usulan | Halaman Aktivitas agen secara langsung |
+| 4 | **Draf dari katalog, dicek Guard** | Balasan publik tanpa harga dan DM berisi total dari katalog | Kartu usulan dan hasil Guard |
+| 5 | **Pemilik memegang kendali** | Setujui atau Edit; atur izin agen (Selalu tanya, Hybrid, Percaya penuh); Jeda agen | Tombol persetujuan, Pengaturan, Jeda |
 
-Pita bawah:
-- **Teknologi:** Next.js, FastAPI (Python), Google Cloud Run, Secret Manager, SQLite.
-- **Arsitektur AI:** Google ADK, Gemini 3.8 Flash dan 3.5 Flash-Lite (Vertex AI), WhatsApp Cloud API, Instagram API,
-  Facebook Graph API, Gmail API.
+Opsional, kartu ke-6 bila waktu cukup: **"DP masuk, tahap jadi Deal"**: pesan "sudah transfer DP" memunculkan usulan
+tahap Deal yang menunggu pemilik, lalu kartu Closing di Beranda bertambah.
 
-**Cara mengambil screenshot:** login akun demo di link juri, tampilan HP (lebar 390 px). Jangan tampilkan URL OAuth,
-token, atau email asli. Pesan Ani bisa ditempel dulu lewat **Tempel pesan** agar urutannya sama dengan cerita.
+**Kotak abu-abu (kalimat kunci dan keterangan jujur):**
+"Agen menyiapkan semuanya dalam sekitar 13–17 detik; pemilik memutuskan apa yang terkirim. Data pelanggan adalah data
+contoh; kanal yang belum terhubung memakai Tempel pesan dan Salin & buka."
+Bila uji kanal nyata sudah berhasil sebelum 15.00, ganti kalimat kedua dengan kanal yang benar-benar sudah diuji,
+misalnya "Gmail sudah diuji ke akun asli".
 
-**Narasi (30 detik bila dipakai sebagai pengantar demo live):** "Kiri: yang Bu Rina hadapi setiap Sabtu. Tengah:
-yang dikerjakan agen dalam sekitar 13 detik. Kanan: yang tersisa untuk Bu Rina, satu keputusan."
+**Narasi pembuka (sekitar 20 detik):** "Ini Sabtu pagi Bu Rina. Ani dari PT Maju Jaya menanyakan pesanan 60 porsi
+lewat Instagram, WhatsApp, dan email. Mari kita lihat apa yang dilakukan OmniLead, dan di mana Bu Rina memutuskan."
 
----
+### Screenshot yang perlu diambil (dari link juri, akun demo)
+
+| Untuk | Halaman | Keadaan yang ditunjukkan |
+|---|---|---|
+| Bingkai laptop | Workspace (1440 px) | Pesan dari 4 kanal, ada pesan prioritas tinggi di atas |
+| Mockup HP | Workspace di HP (390 px), detail pesan | Kartu Usulan agen dengan tombol Setujui dan Edit |
+| Cadangan kartu 3 | Aktivitas agen | Langkah tools yang sudah selesai |
+| Cadangan kartu 5 | Pengaturan | Pilihan izin agen |
+
+Jangan tampilkan URL OAuth, token, kata sandi, atau email asli di screenshot.
+
+### Catatan untuk slide Value Proposition (slide lain di deck)
+
+Beberapa isi di slide itu belum sejalan dengan produk atau aturan angka:
+
+| Bagian | Saat ini | Saran |
+|---|---|---|
+| Sales Channel | WhatsApp, Email, Instagram | Tambahkan **Facebook** (kanal MVP ke-4) |
+| Why OmniLead Is Different | "United user context" | "Unified customer context" |
+| Why OmniLead Is Different | "OmniLead is a tools, not to change business" | "OmniLead is a tool that fits how you already sell" |
+| Revenue Ranges | Rp500 juta–5 miliar | Beri sumber atau tulis "asumsi segmen" (TOR melarang angka tanpa dasar) |
+| The Core Flow, Seller Review | Seller review, edit, approve | Tambahkan "atau atur izin agen" agar sesuai fitur Selalu tanya, Hybrid, dan Percaya penuh |
 
 ## S2. User flow (use-case diagram)
 
