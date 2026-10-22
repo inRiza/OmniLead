@@ -73,7 +73,7 @@ export function AnnouncementBar() {
         <span className="sm:hidden">Hackathon 2026</span>
         <span aria-hidden className="h-4 w-px bg-white/25" />
         <Link
-          href="/dashboard/inbox"
+          href="/demo"
           className="group inline-flex items-center gap-1 font-medium whitespace-nowrap text-white hover:text-rc-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rc-highlight"
         >
           Coba demo
@@ -178,13 +178,13 @@ export function LandingHeader() {
               headerAction,
               solid
                 ? "bg-[#eef1f6] text-rc-fg hover:bg-[#e4e9f2]"
-                : "bg-white/15 text-white hover:bg-slate-100",
+                : "bg-white/15 text-white ring-1 ring-inset ring-white/35 hover:bg-white/25",
             )}
           >
             Masuk
           </Link>
           <Link
-            href="/dashboard/inbox"
+            href="/demo"
             className={cn(
               headerAction,
               solid ? "bg-rc-hero text-white hover:bg-rc-hero-hover" : "bg-white text-rc-hero hover:bg-white/90",
@@ -217,7 +217,7 @@ export function LandingHeader() {
             </a>
           ))}
           <Link
-            href="/dashboard/inbox"
+            href="/demo"
             className="mt-2 flex min-h-12 items-center justify-center rounded-md bg-rc-hero text-base font-medium text-white"
           >
             Coba demo

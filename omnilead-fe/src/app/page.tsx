@@ -343,7 +343,7 @@ export default function Landing() {
                 style={{ animationDelay: "240ms" }}
               >
                 <Link
-                  href="/dashboard/inbox"
+                  href="/demo"
                   className="group inline-flex min-h-12 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-rc-hero transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Coba demo
@@ -463,7 +463,7 @@ export default function Landing() {
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link
-                    href="/dashboard/inbox"
+                    href="/demo"
                     className="group inline-flex min-h-12 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-rc-hero transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
                     Coba demo
