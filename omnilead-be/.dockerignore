@@ -1,9 +1,9 @@
 .venv
 __pycache__
 .pytest_cache
-.env
+.env*
 .secrets
-data/*.db
+data
 .omc
 .e2e-tmp
 tests

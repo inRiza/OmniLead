@@ -154,3 +154,14 @@ class AgentClient:
             return resp.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise AgentUnavailable(str(exc)) from exc
+
+    def browser_plan(self, payload: dict) -> dict:
+        try:
+            response = self._http.post("/v1/browser/plan", json=payload, headers=self._auth())
+            response.raise_for_status()
+            data = response.json()
+            if not isinstance(data, dict):
+                raise ValueError()
+            return data
+        except (httpx.HTTPError, ValueError):
+            raise AgentUnavailable("Planner visual belum tersedia. Periksa service agen dan kredensial model.") from None

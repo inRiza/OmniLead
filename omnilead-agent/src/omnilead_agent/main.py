@@ -25,6 +25,7 @@ from omnilead_agent.extract import (
 from omnilead_agent.pipeline import analyze, engine_name
 from omnilead_agent.schemas import AnalyzeRequest, AnalyzeResponse
 from omnilead_agent.progress import run_observed, stream_analysis
+from omnilead_agent.browser import BrowserAction, BrowserPlanRequest, propose_browser_action
 
 
 def require_key(x_api_key: str | None = Header(default=None)) -> None:
@@ -59,6 +60,14 @@ def create_app() -> FastAPI:
     @app.post("/v1/analyze", response_model=AnalyzeResponse, dependencies=[Depends(require_key)])
     def analyze_event(req: AnalyzeRequest) -> AnalyzeResponse:
         return run_observed(analyze, req)
+
+    @app.post("/v1/browser/plan", response_model=BrowserAction, dependencies=[Depends(require_key)])
+    def browser_plan(req: BrowserPlanRequest) -> BrowserAction:
+        try:
+            return propose_browser_action(req)
+        except Exception:
+            raise HTTPException(status_code=503,
+                detail="Planner visual belum tersedia. Periksa model dan kredensial Gemini pada service agen.") from None
 
     @app.post("/v1/analyze/stream", dependencies=[Depends(require_key)])
     def analyze_stream(req: AnalyzeRequest):

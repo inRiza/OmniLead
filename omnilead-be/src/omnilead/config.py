@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     # key = X-API-Key saja; oidc = tambah token identitas Google (agen tidak publik di Cloud Run)
     agent_auth: str = "key"
 
+    # Opt-in OpenClaw runtime on the same host/container as this backend.
+    browser_enabled: bool = False
+    browser_headless: bool = False
+    openclaw_browser_url: str = "http://127.0.0.1:18891"
+    openclaw_token_file: Path = Path(".secrets/openclaw-token")
+    openclaw_state_dir: Path = Path("data/openclaw")
+
     # Cloud Scheduler: token bersama (Authorization: Bearer) atau OIDC bila audience diisi.
     scheduler_token: str = ""
     scheduler_oidc_audience: str = ""

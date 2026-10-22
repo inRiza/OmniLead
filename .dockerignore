@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.next
+**/.env*
+**/.secrets
+**/data
+**/.runtime
+**/.omc
+**/.e2e-tmp
+**/*.log
+**/tests
+2026-10-21-160847-coba-baca-dan-perbaiki-prd-jiaka-ada-yang-emang-b.txt

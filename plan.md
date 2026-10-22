@@ -1,5 +1,20 @@
 # Plan Implementasi OmniLead
 
+## Agen browser OpenClaw (22 Okt 2026)
+
+- [x] Rencana dan batas arsitektur di `docs/browser-agent.md`.
+- [x] Planner screenshot Gemini dengan satu usulan aksi terstruktur.
+- [x] Dependency resmi OpenClaw 2026.10.5 dan lockfile, profil per bisnis/kanal, kontrol stop/close.
+- [x] Kontrol manual dashboard untuk login browser headless di server; input pemilik tidak diteruskan ke model.
+- [x] Dockerfile browser, supervisor, Compose dengan volume persisten, template Cloud Run sementara; belum build/deploy image browser.
+- [x] Screenshot, scroll, dan tautan inbox/percakapan yang dikenali berjalan otomatis; input lain melalui persetujuan satu langkah.
+- [x] Layar dan riwayat browser di dashboard, konteks knowledge base dan tone per kanal.
+- [ ] Verifikasi end-to-end dengan akun kanal nyata dan model visual.
+- [x] Ekstraksi screenshot dan impor pesan ke CRM/Guard setelah konfirmasi pemilik; sumber browser dipaksa handoff agar tidak memakai ID API yang salah.
+- [ ] Pemantauan inbox, dedup lintas screenshot berdasarkan ID pesan, executor browser dari draf Guard, serta penyimpanan/routing sesi untuk banyak instance.
+
+Mode awal terbimbing; belum pengganti penuh koneksi API atau agen pengirim otonom.
+
 Pembaruan 22 Okt 2026 (freeze kode 15.00):
 
 - [x] Uji E2E lokal (agen, BE, FE lewat proxy, akun demo): 36 cek lulus setelah perbaikan crash katalog kosong,

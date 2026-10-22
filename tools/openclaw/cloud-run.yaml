@@ -1,0 +1,54 @@
+# Template only: replace image, service account, agent/frontend URLs and secret names.
+# Browser/account state is EPHEMERAL here. Prefer the Compose VM setup for durable login.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: omnilead-browser-api
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/cpu-throttling: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      serviceAccountName: REPLACE_SERVICE_ACCOUNT
+      containerConcurrency: 20
+      timeoutSeconds: 300
+      containers:
+        - image: REPLACE_BROWSER_IMAGE
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: '2'
+              memory: 4Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 48
+          env:
+            - name: OMNILEAD_STORE
+              value: sqlite
+            - name: OMNILEAD_FRONTEND_URL
+              value: https://REPLACE_FRONTEND_HOST
+            - name: OMNILEAD_CORS_ORIGINS
+              value: '["https://REPLACE_FRONTEND_HOST"]'
+            - name: OMNILEAD_AGENT_URL
+              value: https://REPLACE_AGENT_HOST
+            - name: OMNILEAD_AGENT_AUTH
+              value: oidc
+            - name: OMNILEAD_AGENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: REPLACE_AGENT_SHARED_KEY_SECRET
+                  key: latest
+            - name: OMNILEAD_TOKEN_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: REPLACE_FERNET_KEY_SECRET
+                  key: latest
