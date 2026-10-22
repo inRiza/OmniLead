@@ -1,5 +1,7 @@
 """Tes orkestrator ADK dengan model palsu (tanpa kredensial Gemini)."""
 
+import json
+
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
@@ -93,3 +95,45 @@ def test_adk_stops_after_reply_and_crm_without_closing_turn(ani_lead):
     r = analyze(make_req(GOLDEN, lead=ani_lead), drafter=AdkDrafter(model=Counting(script=_script())))
     assert [p.kind for p in r.proposals] == ["reply_comment", "send_message", "crm_update"]
     assert len(calls) == len(_script())
+
+
+class RevisingLlm(ScriptedLlm):
+    revised: str = ""
+
+    async def generate_content_async(self, llm_request, stream=False):
+        if "ditolak pemeriksa" in str(llm_request.config.system_instruction):
+            yield LlmResponse(content=types.Content(role="model", parts=[
+                types.Part(text=json.dumps({"text": self.revised}))]))
+            return
+        async for r in super().generate_content_async(llm_request, stream):
+            yield r
+
+
+def test_guard_revision_is_rewritten_by_llm_not_template(ani_lead):
+    script = _script()
+    script[5] = _call("propose_private_reply", text="Paket B cuma Rp20.000/pax kak", reason="x")
+    revised = "Untuk 60 orang Paket B Rp35.000/pax ya kak, totalnya Rp2.100.000. Mau dikirim tgl 30?"
+    r = analyze(make_req(GOLDEN, lead=ani_lead),
+                drafter=AdkDrafter(model=RevisingLlm(script=script, revised=revised)))
+    dm = next(p for p in r.proposals if p.kind == "send_message")
+    assert dm.text == revised and r.trace.revisions == 1
+
+
+def test_user_message_carries_recent_conversation(ani_lead):
+    from omnilead_agent.adk_orchestrator import _user_message
+    from omnilead_agent.orchestrator import DraftContext, Tools
+    from omnilead_agent.catalog import default_catalog
+    from omnilead_agent.schemas import Trace, TimelineItem
+    from omnilead_agent.triage import triage
+
+    ani_lead.timeline += [
+        TimelineItem(channel="instagram", direction="out", text="Halo kak, ada yang bisa dibantu?"),
+        TimelineItem(channel="instagram", direction="in", text="mau tanya paket B"),
+    ]
+    req = make_req("jadi gimana kak?", kind="dm", lead=ani_lead)
+    tri = triage(req)
+    catalog = default_catalog()
+    msg = _user_message(DraftContext(req=req, tri=tri, catalog=catalog,
+                                     tools=Tools(req, tri, catalog, Trace(goal="", plan=[]))))
+    assert "Kita (instagram): Halo kak, ada yang bisa dibantu?" in msg
+    assert msg.index("Pelanggan (instagram): mau tanya paket B") < msg.index("jadi gimana kak?")
