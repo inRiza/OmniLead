@@ -24,15 +24,15 @@ class OpenBrowser(BaseModel):
 
 class BrowserTask(BaseModel):
     task: str = Field(min_length=3, max_length=2000, repr=False)
-    account_label: str = Field(min_length=1, max_length=100)
-    allow_screenshot_to_model: bool = False
+    account_label: str = Field(default="", max_length=100)
+    allow_screenshot_to_model: bool = True
 
 
 class BrowserChat(BaseModel):
     message: str = Field(min_length=1, max_length=2000, repr=False)
     channel: Literal["instagram", "facebook", "whatsapp", "email"] = "instagram"
     account_label: str = Field(default="", max_length=100)
-    allow_screenshot_to_model: bool = False
+    allow_screenshot_to_model: bool = True
 
 
 class BrowserLogin(BaseModel):
@@ -48,7 +48,7 @@ class Approval(BaseModel):
 
 
 class ScreenshotConsent(BaseModel):
-    allow_screenshot_to_model: bool = False
+    allow_screenshot_to_model: bool = True
 
 
 class ManualControl(BaseModel):
@@ -119,12 +119,12 @@ def run_browser(body: BrowserTask, workspace=Depends(scope)):
             raise HTTPException(status_code=409, detail=str(exc)) from None
         return state(workspace)
     if not body.allow_screenshot_to_model:
-        raise HTTPException(status_code=422, detail="Izinkan screenshot dikirim ke model untuk menjalankan tugas visual.")
-    if not body.task.strip() or not body.account_label.strip():
-        raise HTTPException(status_code=422, detail="Tugas dan nama akun wajib diisi.")
+        raise HTTPException(status_code=422, detail="Pembacaan layar sedang dimatikan. Aktifkan kembali di pengaturan sesi.")
+    if not body.task.strip():
+        raise HTTPException(status_code=422, detail="Tugas wajib diisi.")
     try:
         context = build_context(store_for_workspace(workspace), actor.channel, body.task)
-        actor.run(body.task.strip(), body.account_label.strip(), context)
+        actor.run(body.task.strip(), "Akun yang sedang aktif pada browser", context)
     except BrowserConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return state(workspace)
@@ -199,13 +199,11 @@ def chat_browser(body: BrowserChat, workspace=Depends(scope)):
                     actor.say("assistant", snapshot["auth"]["message"])
                 return state(workspace)
             if not body.allow_screenshot_to_model:
-                raise HTTPException(status_code=422, detail="Izinkan screenshot dikirim ke model untuk menjalankan tugas lewat chat.")
+                raise HTTPException(status_code=422, detail="Pembacaan layar sedang dimatikan. Aktifkan kembali di pengaturan sesi.")
             task = snapshot.get("queued_task") if command in {"lanjut", "lanjutkan"} else message
             if not task:
                 raise BrowserConflict("Tuliskan tugas yang ingin Anda kerjakan.")
-            account_label = body.account_label.strip() or snapshot["account_label"]
-            if not account_label:
-                raise BrowserConflict("Isi nama akun yang terlihat pada browser sebelum memberi tugas.")
+            account_label = "Akun yang sedang aktif pada browser"
             context = build_context(store_for_workspace(workspace), actor.channel, task)
             actor.run(task, account_label, context)
     except BrowserConflict as exc:

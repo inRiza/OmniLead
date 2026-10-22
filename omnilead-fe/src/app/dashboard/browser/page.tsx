@@ -29,7 +29,7 @@ function BrowserWorkspace() {
   const [state, setState] = useState<BrowserState | null>(null);
   const [channel, setChannel] = useState<BrowserChannel>("instagram");
   const [accountLabel, setAccountLabel] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] = useState(true);
   const [error, setError] = useState("");
   const [pollError, setPollError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,7 +70,6 @@ function BrowserWorkspace() {
 
   async function control(command: Omit<ManualControl, "image_revision">) {
     if (!session || working || pending || busy) return;
-    setConsent(false);
     setManualText("");
     await act(() => browserApi.manual({ ...command, image_revision: session.image_revision }));
   }
@@ -96,15 +95,15 @@ function BrowserWorkspace() {
           <p className="mt-2 text-sm text-rc-fg-muted">Pengelola perlu mengaktifkan runtime browser pada server OmniLead. Setelah aktif, Anda bisa login dan mengendalikan layarnya dari halaman ini.</p>
         </section> : <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
           <div className="space-y-5">
-            <BrowserChatPanel state={state} channel={activeChannel} accountLabel={accountLabel} consent={consent} onState={setState} onAccountLabel={setAccountLabel} onConsent={setConsent} />
+            <BrowserChatPanel state={state} channel={activeChannel} accountLabel={accountLabel} consent={consent} onState={setState} onAccountLabel={setAccountLabel} />
             <details className={cardClass}>
-              <summary className="cursor-pointer text-sm font-semibold">Kanal &amp; pengaturan akun</summary>
+              <summary className="cursor-pointer text-sm font-semibold">Pengaturan sesi</summary>
               <label className="mt-4 block text-sm">Kanal
-                <select className={inputClass} value={activeChannel} disabled={Boolean(opened) || busy || !state} onChange={(e) => { setChannel(e.target.value as BrowserChannel); setAccountLabel(""); setConsent(false); }}>
+                <select className={inputClass} value={activeChannel} disabled={Boolean(opened) || busy || !state} onChange={(e) => { setChannel(e.target.value as BrowserChannel); setAccountLabel(""); setConsent(true); }}>
                   {CHANNELS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
-              <label className="mt-4 block text-sm">Akun pada browser<input className={inputClass} maxLength={100} placeholder="Username atau alamat email" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} /></label>
+              <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-rc-fg-muted"><input type="checkbox" className="mt-0.5" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Izinkan agen membaca layar saat menjalankan tugas. Aktif secara default; screenshot dikirim ke model untuk memahami halaman.</label>
               <p className="mt-3 text-xs text-rc-fg-muted">Profil terpisah untuk setiap bisnis dan kanal. Login browser berbeda dari koneksi API. Pengetahuan dan tone mengikuti bisnis ini.</p>
               {!opened && <Button purpose="action" className="mt-4" disabled={busy || !state} onClick={() => void act(() => browserApi.open(channel))}>Buka browser</Button>}
               {opened && <Button purpose="action" className="mt-4" disabled={Boolean(working) || busy} onClick={() => void act(browserApi.capture)}><RefreshCw className="mr-2 h-4 w-4" />Perbarui layar</Button>}
@@ -119,7 +118,7 @@ function BrowserWorkspace() {
                 <p role="status" className="text-sm text-rc-fg-muted">{STATUS[session?.status ?? ""] ?? "Belum dibuka"}{session ? ` · ${session.steps}/12 langkah` : ""}</p>
               </div>
               {session?.page_url && <p className="mt-2 truncate text-xs text-rc-fg-subtle">{session.page_url}</p>}
-              {session?.task && <p className="mt-3 break-words text-sm text-rc-fg-muted">Tugas untuk {session.account_label}: {session.task}</p>}
+              {session?.task && <p className="mt-3 break-words text-sm text-rc-fg-muted">Tugas: {session.task}</p>}
               {session?.image_base64 ? <div className="relative mt-4 overflow-hidden rounded-lg border border-rc-border bg-rc-bg">
                 <button type="button" className="block w-full disabled:cursor-default" aria-label="Klik posisi pada layar browser dalam kontrol manual" disabled={!manual || Boolean(working) || busy || Boolean(pending)} onClick={(event) => {
                   if (!event.detail) return;
@@ -138,7 +137,7 @@ function BrowserWorkspace() {
               </div>}
               {opened && <details className="mt-4 border-t border-rc-border pt-4">
                 <summary className="mb-3 cursor-pointer text-sm font-medium">Kontrol manual jika diperlukan</summary>
-                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={manual} disabled={Boolean(working) || Boolean(pending) || busy} onChange={(event) => { setManual(event.target.checked); setManualText(""); setConsent(false); }} />Kontrol manual untuk login / mengambil alih</label>
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={manual} disabled={Boolean(working) || Boolean(pending) || busy} onChange={(event) => { setManual(event.target.checked); setManualText(""); }} />Kontrol manual untuk login / mengambil alih</label>
                 {manual && <form className="mt-3 space-y-3" onSubmit={(event) => { event.preventDefault(); void control({ operation: "type", text: manualText }); }}>
                   <p className="text-xs leading-relaxed text-rc-fg-muted">Klik kolom pada screenshot dahulu. Teks langsung masuk ke browser tanpa dikirim ke model. Tombol Enter atau klik dapat mengirim formulir/pesan; periksa layar sebelum menekannya. Matikan kontrol manual setelah login dan buka inbox.</p>
                   <label className="block text-sm">Teks untuk kolom yang dipilih<input className={inputClass} type="password" autoComplete="off" maxLength={4000} value={manualText} onChange={(event) => setManualText(event.target.value)} /></label>
@@ -150,7 +149,7 @@ function BrowserWorkspace() {
               </details>}
               {opened && <div className="mt-4 border-t border-rc-border pt-4">
                 <Button purpose="action" disabled={busy || Boolean(working) || Boolean(pending) || held || !consent || manual} onClick={() => void act(() => browserApi.extract(consent))}>Baca pesan layar untuk Workspace</Button>
-                <p className="mt-2 text-xs text-rc-fg-muted">Buka satu percakapan, lalu baca pesan pelanggan dari screenshot. Aktifkan izin screenshot di chat. Anda meninjau isi dan pengirim sebelum pesan dianalisis di Workspace.</p>
+                <p className="mt-2 text-xs text-rc-fg-muted">Buka satu percakapan, lalu baca pesan pelanggan dari screenshot. Pembacaan layar aktif secara default dan dapat dimatikan di Pengaturan sesi. Anda meninjau isi dan pengirim sebelum pesan dianalisis di Workspace.</p>
               </div>}
             </section>
 

@@ -15,10 +15,9 @@ interface Props {
   consent: boolean;
   onState: (state: BrowserState) => void;
   onAccountLabel: (value: string) => void;
-  onConsent: (value: boolean) => void;
 }
 
-export function BrowserChatPanel({ state, channel, accountLabel, consent, onState, onAccountLabel, onConsent }: Props) {
+export function BrowserChatPanel({ state, channel, accountLabel, consent, onState, onAccountLabel }: Props) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -57,10 +56,9 @@ export function BrowserChatPanel({ state, channel, accountLabel, consent, onStat
       <div className="mt-3 flex gap-2"><Button purpose="action" disabled={busy} onClick={() => void send("setujui")}>Setujui langkah</Button><Button purpose="action" disabled={busy} onClick={() => void send("tolak")}>Tolak</Button></div>
     </div>}
     <form className="mt-4 border-t border-rc-border pt-4" onSubmit={(event) => { event.preventDefault(); void send(message); }}>
-      {session && stage === "none" && !session.account_label && <label className="mb-3 block text-sm">Akun yang terlihat di browser<input className={inputClass} maxLength={100} value={accountLabel} onChange={(event) => onAccountLabel(event.target.value)} placeholder="Konfirmasi username / email sebelum memberi tugas" /></label>}
       <label className="block text-sm">Pesan untuk agen<textarea className={`${inputClass} min-h-24 resize-y`} maxLength={2000} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Contoh: login Instagram atau baca pesan terbaru" disabled={busy || working || !state?.enabled} /></label>
       <p className="mt-2 text-xs text-rc-fg-muted">Password dan kode verifikasi diisi lewat kartu aman dalam chat.</p>
-      <label className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-rc-fg-muted"><input type="checkbox" className="mt-0.5" checked={consent} onChange={(event) => onConsent(event.target.checked)} />Izinkan screenshot dikirim ke model untuk mengerjakan tugas. Login melalui kartu aman tidak memerlukan izin ini.</label>
+      <p className="mt-3 text-xs leading-relaxed text-rc-fg-muted">{consent ? "Agen membaca layar otomatis saat mengerjakan pesan Anda, menggunakan akun yang sedang terbuka." : "Pembacaan layar dimatikan di pengaturan sesi."}</p>
       <Button purpose="action" style="primary" type="submit" className="mt-3 w-full" disabled={busy || working || !message.trim() || !state?.enabled}><Send className="mr-2 h-4 w-4" />Kirim ke agen</Button>
     </form>
   </section>;

@@ -62,10 +62,11 @@ login dengan akun pribadi. Akun demo publik tidak diberi akses browser. Port
    bukan ke model, task, riwayat chat, atau audit.
 3. Jika platform meminta kode, kartu kode verifikasi muncul. QR dan CAPTCHA tetap
    ditangani pemilik melalui layar browser atau kontrol manual.
-4. Sesudah masuk, izinkan screenshot untuk tugas model, lalu beri tugas lewat chat.
+4. Sesudah masuk, beri tugas lewat chat. Pembacaan layar aktif secara default;
+   dapat dimatikan melalui **Pengaturan sesi**.
    Contoh: **Baca pesan pelanggan terbaru dan siapkan draf**. Knowledge base dan tone
-   memakai kanal bisnis aktif. Nama akun adalah konfirmasi pemilik, bukan bukti
-   identitas yang diverifikasi otomatis.
+   memakai kanal bisnis aktif. Tugas memakai akun yang sedang terbuka, tanpa isian
+   nama akun wajib. Jika penerima belum jelas, agen perlu meminta penjelasan.
 5. Pengamatan, usulan langkah, kendala, dan hasil ditampilkan. Tulis **setujui** untuk
    langkah yang sedang ditampilkan, **tolak**, atau **berhenti**. Perintah **cek layar**,
    **sudah login**, **lanjutkan**, dan **tutup browser** juga tersedia.
@@ -75,6 +76,10 @@ login; teks aslinya tidak disimpan/dikirim ke model. Jangan menaruh password pad
 teks tugas umum. Secret khusus input login dikosongkan setelah operasi. Chat dan
 screenshot sementara di memori, hilang ketika sesi ditutup/backend direstart.
 Login melalui kartu tidak memerlukan persetujuan pengiriman screenshot ke model.
+
+**Kendala terbuka:** tugas DM pada inbox Instagram masih dapat berhenti karena
+planner menghasilkan referensi elemen tidak valid. Perubahan default layar tidak
+menyelesaikan kendala tersebut. Detail dan langkah lanjut ada di `HANDOFF.md`.
 
 Helper login memakai label/ref OpenClaw saat tersedia, fallback selector field
 provider tetap, serta tombol login/next/verify yang harus tunggal. Tahap login yang

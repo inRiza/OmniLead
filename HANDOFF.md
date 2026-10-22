@@ -2,6 +2,29 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
+## Handoff melalui PR: kendala yang masih ada (22 Okt 2026)
+
+- Pengguna meminta commit, push, dan PR ke `develop` agar rekan melanjutkan.
+- Pembacaan screenshot sekarang aktif secara default pada chat/API. Checkbox
+  persetujuan di composer dihapus; pengaturan untuk mematikan pembacaan berada
+  di Pengaturan sesi. Login/password tetap tidak dikirim ke planner.
+- Input nama akun tidak lagi wajib untuk tugas umum. Agen bekerja pada sesi
+  browser aktif; nama akun bukan nama penerima DM. Teks tugas di layar tidak lagi
+  memakai judul "Tugas untuk <nama akun>" yang membingungkan.
+- **Belum diperbaiki:** pengguna berhasil membuka inbox Instagram, tetapi tugas
+  membalas berhenti dengan "Planner belum memilih referensi OpenClaw yang valid".
+  `_advance` menolak `target_ref` kosong/tidak ada di `browser.refs`. Planner saat
+  ini menerima screenshot dan `page_snapshot`, belum daftar referensi terstruktur
+  atau pemilihan ref yang dibatasi schema. Ini prioritas berikutnya.
+- Saran lanjut: kirim metadata ref/role/label secara eksplisit, batasi output ref
+  ke kandidat saat ini, lalu reobservasi/replan terbatas jika tampilan berubah.
+  Pertahankan pengikatan persetujuan ke halaman/sasaran; jangan mengeksekusi ref
+  hasil tebakan. Jika belum ada percakapan aktif dan penerima ambigu, tanyakan di
+  chat alih-alih memilih sembarang pesan belum dibaca.
+- Jangan menyatakan alur balas DM berhasil. Screenshot pengguna menunjukkan
+  kegagalan sebelum aksi pertama (0/12). Login akun nyata dan pengiriman pesan
+  via helper/chat belum diverifikasi end-to-end.
+
 ## Chat dan perbaikan Mulai tugas (22 Okt 2026)
 
 - Branch `feat/browser-agent`; versi browser awal sudah di-push pada `fe88a36`.

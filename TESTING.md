@@ -5,6 +5,14 @@ kasus yang gagal tetap dicantumkan.
 
 ## Agen browser OpenClaw (22 Okt 2026)
 
+- Kendala dari penggunaan nyata: inbox Instagram tampil, tetapi planner memilih
+  ref kosong/tidak valid dan tugas berhenti sebelum aksi pertama. **Masih terbuka**
+  dan dicatat sebagai prioritas handoff. Belum ada bukti balas DM sukses.
+- Perubahan terakhir membuat pembacaan layar aktif secara default serta menghapus
+  isian akun wajib dari chat. Ini perubahan UX/default, bukan perbaikan bug ref.
+  TypeScript, lint dua komponen frontend, parsing sintaks router Python, dan
+  pemeriksaan whitespace diff lulus; tidak menjalankan suite tes baru.
+
 - Pembaruan chat/login: TypeScript, lint tiga file frontend terkait, dan parsing
   empat file Python lulus. Backend, agen, frontend browser, dan kontrol OpenClaw
   merespons HTTP 200 sesudah layanan dimuat ulang. Chat, login aman, OTP,
