@@ -249,6 +249,7 @@ def analyze(
         needs=_needs(tri),
         next_step=_next_step(proposals, tri, stage),
         rubric=score.rubric,
+        score_analysis=score.analysis,
     )
     return done(
         score=score,

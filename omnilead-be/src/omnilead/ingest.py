@@ -507,6 +507,7 @@ class IngestService:
                 lead.score_reason = str(crm.get("score_reason", lead.score_reason))
                 lead.score_reasons = [str(r) for r in crm.get("reasons") or []] or lead.score_reasons
                 lead.score_rubric = str(crm.get("rubric") or lead.score_rubric)
+                lead.score_analysis = str(crm.get("score_analysis") or lead.score_analysis)
                 lead.scored_at = now
             if crm:
                 lead.needs = {**lead.needs, **(crm.get("needs") or {})}

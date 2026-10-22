@@ -87,4 +87,27 @@ def score_lead(req: AnalyzeRequest, tri: TriageResult, catalog: Catalog) -> Lead
     score = max(0, min(100, score))
     label = "Hot" if score >= HOT else "Warm" if score >= WARM else "Cold"
     return LeadScore(score=score, label=label, reasons=reasons or ["Belum cukup sinyal"],
-                     estimated_value=value or None)
+                     estimated_value=value or None, analysis=analysis(score, label, reasons, tri, "spam" in intents))
+
+
+ADVICE = {
+    "Hot": "Tangani lebih dulu karena sinyal pembeliannya kuat.",
+    "Warm": "Layak ditindaklanjuti. Lengkapi detail kebutuhan agar penawaran bisa disiapkan.",
+    "Cold": "Prioritas rendah. Cukup jawab pertanyaannya dan tunggu sinyal pembelian berikutnya.",
+}
+
+
+def analysis(score: int, label: str, reasons: list[str], tri: TriageResult, spam: bool) -> str:
+    if spam:
+        return "Skor 0 (Cold). Pesan terdeteksi sebagai spam atau promosi, jadi tidak diperlakukan sebagai calon pembeli."
+    found = [r[0].lower() + r[1:] for r in reasons]
+    missing = [name for key, name in (("qty", "jumlah pesanan"), ("date", "tenggat"), ("budget", "anggaran"))
+               if tri.entities.get(key) in (None, "")]
+    text = f"Skor {score} ({label}). "
+    if found:
+        text += "Sinyal yang ditemukan: " + ", ".join(found) + ". "
+    else:
+        text += "Pesan ini belum menunjukkan niat membeli, nilai pesanan, atau tenggat. "
+    if missing and found:
+        text += "Belum diketahui: " + ", ".join(missing) + ". "
+    return text + ADVICE[label]
