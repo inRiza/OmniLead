@@ -25,8 +25,8 @@ di tengahnya. Keempat slide ada di bagian **Solution** pada footbar.
 
 | Bagian | Isi | Gaya |
 |---|---|---|
-| **Judul** (kiri atas, kecil) | Nama halaman, misalnya "Alur Pengguna" | Teks kecil biru, satu baris |
-| **Deskripsi** (di bawah judul) | Satu kalimat inti halaman | Hitam tebal, sekitar 20 pt |
+| **Label** (kiri atas, kecil) | Nama bagian dalam bahasa Inggris, sama seperti slide lain (misalnya "Value Proposition", "Background Problem") | Teks kecil biru, satu baris |
+| **Judul utama** (di bawah label) | Judul berbahasa Indonesia dengan Huruf Kapital di Awal Kata, berbentuk pernyataan atau "Bagaimana OmniLead ...". Contoh dari deck: "Bagaimana OmniLead Membantu UMKM Mengelola Pelanggan dengan Lebih Mudah", "Besarnya Pasar UMKM Digital Membuka Peluang bagi OmniLead" | Hitam tebal, sekitar 20 pt |
 | Logo (kanan atas) | Logo OmniLead dan logo penyelenggara | Ditempel manual setelah gambar jadi |
 | Garis header | Garis tipis biru muda di bawah header | |
 | **Isi** | Konten utama | Kartu putih atau abu muda bertepi bulat; judul blok berupa pil biru; kartu bernomor oranye; panah oranye |
@@ -66,7 +66,8 @@ Tempel sekali di awal percakapan, sebelum prompt per slide.
 
 ```
 Kamu akan membuat slide presentasi 16:9 berbahasa Indonesia. Semua slide memakai template yang sama:
-- Kiri atas: label kecil berwarna biru (judul halaman), dan di bawahnya satu kalimat tebal berwarna hitam (deskripsi halaman).
+- Kiri atas: label kecil berwarna biru (nama bagian, dalam bahasa Inggris), dan di bawahnya judul utama tebal berwarna hitam
+  dalam bahasa Indonesia dengan huruf kapital di awal setiap kata utama.
 - Kanan atas: biarkan kosong untuk logo. Jangan menggambar logo apa pun.
 - Garis tipis biru muda di bawah header.
 - Area isi berlatar putih. Pakai kartu bertepi bulat (putih atau abu muda #C9D1DC), judul blok berupa pil biru
@@ -82,7 +83,7 @@ yang jelas dengan tulisan itu.
 
 ---
 
-## Slide 1. Alur Pengguna
+## Slide 1. User Flow (Alur Pengguna)
 
 **Layout:** tiga lajur horizontal (Pelanggan, Agen OmniLead, Pemilik). Kolom kiri tiap lajur berisi ikon dan nama
 pelaku. Delapan langkah bernomor bergerak dari kiri ke kanan dan berpindah lajur mengikuti panah oranye. Satu kotak
@@ -90,8 +91,8 @@ cabang berwarna merah menunjukkan kapan agen berhenti. Kotak abu-abu di bawah be
 
 | Bagian | Isi |
 |---|---|
-| Judul | Alur Pengguna |
-| Deskripsi | Satu pesanan Ani, dari tiga aplikasi sampai balasan yang disetujui Bu Rina |
+| Label | User Flow |
+| Judul utama | Bagaimana Satu Pesanan Diproses dari Pesan Masuk hingga Balasan Terkirim |
 | Lajur atas | Pelanggan: Ani, PT Maju Jaya (ikon Instagram, WhatsApp, email) |
 | Lajur tengah | Agen OmniLead: Google ADK dan Gemini di Cloud Run |
 | Lajur bawah | Pemilik: Bu Rina, lewat aplikasi web OmniLead |
@@ -114,9 +115,9 @@ dan "Minta nomor pelanggan lain: ditahan untuk dicek manual." Tambahkan ikon tom
 **Prompt GPT:**
 
 ```
-Buat slide "Alur Pengguna" memakai template.
-Label kecil biru: "Alur Pengguna".
-Deskripsi tebal: "Satu pesanan Ani, dari tiga aplikasi sampai balasan yang disetujui Bu Rina".
+Buat slide "User Flow" memakai template.
+Label kecil biru: "User Flow".
+Judul utama tebal: "Bagaimana Satu Pesanan Diproses dari Pesan Masuk hingga Balasan Terkirim".
 Isi: tiga lajur horizontal, masing-masing dengan kolom pelaku di kiri:
 1) "Pelanggan: Ani, PT Maju Jaya" dengan ikon kecil Instagram, WhatsApp, dan email,
 2) "Agen OmniLead: Google ADK dan Gemini di Cloud Run",
@@ -149,8 +150,8 @@ atau sebagai cadangan kalau demo langsung bermasalah.
 
 | Bagian | Isi |
 |---|---|
-| Judul | Demo |
-| Deskripsi | Kita lihat langsung pesanan Ani di aplikasi |
+| Label | Demo |
+| Judul utama | Demo OmniLead: dari Pesan Pelanggan hingga Balasan yang Disetujui |
 | Isi | Tulisan besar "Demo Langsung" di tengah. Di bawahnya: QR ke link juri dengan keterangan "Pindai untuk mencoba", link `omnilead-fgbrqs2gfq-et.a.run.app`, dan "Akun juri: juri@omnilead.id". Kata sandi hanya ditulis di form submission. |
 | Kotak bawah | Data pelanggan di demo ini adalah data contoh. |
 
@@ -158,7 +159,7 @@ atau sebagai cadangan kalau demo langsung bermasalah.
 
 ```
 Buat slide sampul "Demo" memakai template.
-Label kecil biru: "Demo". Deskripsi tebal: "Kita lihat langsung pesanan Ani di aplikasi".
+Label kecil biru: "Demo". Judul utama tebal: "Demo OmniLead: dari Pesan Pelanggan hingga Balasan yang Disetujui".
 Isi: tulisan besar di tengah "Demo Langsung". Di bawahnya tiga elemen kecil berjajar:
 placeholder kode QR dengan keterangan "Pindai untuk mencoba", teks link "omnilead-fgbrqs2gfq-et.a.run.app",
 dan teks "Akun juri: juri@omnilead.id".
@@ -174,8 +175,8 @@ dan lima kartu oranye bernomor.
 
 | Bagian | Isi |
 |---|---|
-| Judul | Demo |
-| Deskripsi | Dari chat yang tercecer sampai balasan yang disetujui |
+| Label | Demo |
+| Judul utama | Demo OmniLead: dari Pesan Pelanggan hingga Balasan yang Disetujui |
 | Kotak bawah | Agen menyiapkan usulan dalam 13–17 detik, lalu Bu Rina yang memutuskan. Data pelanggan adalah data contoh. Aplikasi yang belum tersambung memakai Tempel pesan dan Salin & buka. |
 
 | No | Kartu oranye | Keterangan |
@@ -197,7 +198,7 @@ kata sandi, atau email asli.
 
 ```
 Buat slide isi "Demo" memakai template.
-Label kecil biru: "Demo". Deskripsi tebal: "Dari chat yang tercecer sampai balasan yang disetujui".
+Label kecil biru: "Demo". Judul utama tebal: "Demo OmniLead: dari Pesan Pelanggan hingga Balasan yang Disetujui".
 Isi dua kolom.
 Kolom kiri (sekitar 60%): pil biru "Tampilan aplikasi", bingkai laptop berisi placeholder "SCREENSHOT: Workspace",
 dan mockup HP kecil yang menumpuk di sudut kanan bawah bingkai, berisi placeholder "SCREENSHOT: Usulan agen dengan tombol Setujui dan Ubah".
@@ -213,7 +214,7 @@ Footbar dengan tab "Solution" aktif.
 
 ---
 
-## Slide 3. Arsitektur Agen
+## Slide 3. Agentic Architecture (Arsitektur Agen)
 
 **Layout:** kiri sekitar 60%: diagram alur agen dalam tiga kolom (Masukan, Proses agen, Keluaran) yang dihubungkan
 panah. Kanan sekitar 40%: dua kartu komponen utama, masing-masing dengan placeholder SCREENSHOT kecil. Bawah: tiga
@@ -221,8 +222,8 @@ kartu dengan judul pil biru.
 
 | Bagian | Isi |
 |---|---|
-| Judul | Arsitektur Agen |
-| Deskripsi | Agen bisa merencanakan dan memakai alat sendiri, tapi tidak pernah memegang tombol kirim |
+| Label | Agentic Architecture |
+| Judul utama | Bagaimana Agen OmniLead Bekerja dan Tetap di Bawah Kendali Pemilik |
 
 **Diagram alur agen (kiri):**
 
@@ -251,8 +252,8 @@ kartu dengan judul pil biru.
 **Prompt GPT:**
 
 ```
-Buat slide "Arsitektur Agen" memakai template.
-Label kecil biru: "Arsitektur Agen". Deskripsi tebal: "Agen bisa merencanakan dan memakai alat sendiri, tapi tidak pernah memegang tombol kirim".
+Buat slide "Agentic Architecture" memakai template.
+Label kecil biru: "Agentic Architecture". Judul utama tebal: "Bagaimana Agen OmniLead Bekerja dan Tetap di Bawah Kendali Pemilik".
 Isi.
 Kiri (sekitar 60%): diagram alur dalam tiga kolom yang dihubungkan panah.
 Kolom "Masukan": "WhatsApp, Instagram, Facebook (webhook)", "Gmail (dibaca berkala)", "Tempel pesan".
@@ -276,7 +277,7 @@ Footbar dengan tab "Solution" aktif.
 
 ---
 
-## Slide 4. Laporan Uji Prototipe
+## Slide 4. Prototype Testing Report (Laporan Uji Prototipe)
 
 **Layout:** panel 01 selebar halaman (tabel evaluasi). Di bawahnya dua panel berdampingan: 02 (kecepatan dan
 ketahanan, dengan ikon kecil) dan 03 (perbandingan, kolom OmniLead disorot hijau muda). Kotak abu-abu bawah berisi
@@ -284,8 +285,8 @@ kalimat kunci.
 
 | Bagian | Isi |
 |---|---|
-| Judul | Laporan Uji Prototipe |
-| Deskripsi | Kami menguji agen di bagian yang paling mungkin gagal |
+| Label | Prototype Testing Report |
+| Judul utama | Hasil Pengujian OmniLead pada Kasus Umum dan Kasus Berisiko |
 | Kotak bawah | Saat Gemini salah, masih ada Guard dan Bu Rina sebelum draf sampai ke pelanggan. |
 
 **Panel 01. Evaluasi agen: 18 kasus, masing-masing diuji 3 kali**
@@ -324,8 +325,8 @@ Isi kolom pesaing hanya yang tercantum di sumber (PRD bagian Diferensiasi). Sele
 **Prompt GPT:**
 
 ```
-Buat slide "Laporan Uji Prototipe" memakai template.
-Label kecil biru: "Laporan Uji Prototipe". Deskripsi tebal: "Kami menguji agen di bagian yang paling mungkin gagal".
+Buat slide "Prototype Testing Report" memakai template.
+Label kecil biru: "Prototype Testing Report". Judul utama tebal: "Hasil Pengujian OmniLead pada Kasus Umum dan Kasus Berisiko".
 Isi tiga panel dengan lencana nomor berwarna biru.
 Panel "01 Evaluasi agen: 18 kasus, masing-masing diuji 3 kali" (selebar halaman), tabel dengan kolom
 Area | Cara uji | Hasil | Kenapa penting, dan baris:
@@ -356,8 +357,8 @@ Footbar dengan tab "Solution" aktif.
 
 ## Checklist sebelum dipakai
 
-- [ ] Setiap slide punya judul, deskripsi, isi, dan footbar dengan tab Solution aktif.
-- [ ] Semua teks berbahasa Indonesia, kecuali nama produk, teknologi, dan label footbar.
+- [ ] Setiap slide punya label, judul utama, isi, dan footbar dengan tab Solution aktif.
+- [ ] Semua teks berbahasa Indonesia, kecuali label kecil, nama produk, teknologi, dan label footbar.
 - [ ] Angka sama persis dengan tabel aturan angka. GPT tidak menambah angka atau slogan.
 - [ ] Kata "asumsi" tetap tertulis pada harga OmniLead.
 - [ ] Logo ditempel manual di kanan atas, dan screenshot asli menggantikan placeholder.
