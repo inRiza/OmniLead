@@ -193,3 +193,26 @@ def test_sender_own_name_not_treated_as_other_customer_data(client, store, agent
     client.post("/events", json=ev(external_id="own1", sender={"handle": "@ani.x", "name": "Ani"}))
     terms = agent.calls[-1]["protected_terms"]
     assert "Ani" not in terms and "6281234500001" in terms and "Budi" in terms
+
+
+def test_agent_reasons_needs_and_next_step_saved_to_lead(client, store, agent):
+    agent.response = {**CANNED, "crm": {**CANNED["crm"], "reasons": ["Meminta penawaran 60 pax", "Pelanggan korporat"],
+                                        "needs": {"qty": 60, "product": "Paket B"}, "estimated_value": 2100000,
+                                        "next_step": "Kirim penawaran", "rubric": "rubrik-awal-v1"}}
+    created = client.post("/events", json=ev()).json()
+    lead = client.get("/leads").json()[0]
+    assert lead["score_reasons"] == ["Meminta penawaran 60 pax", "Pelanggan korporat"]
+    assert lead["needs"] == {"qty": 60, "product": "Paket B"}
+    assert lead["estimated_value"] == 2100000 and lead["next_step"] == "Kirim penawaran"
+    assert lead["scored_at"] and lead["score_rubric"] == "rubrik-awal-v1"
+    assert client.get(f"/events/{created['id']}").json()["id"] == created["id"]
+    assert client.get("/events/tidak-ada").status_code == 404
+
+    agent.response = {**CANNED, "score": {"score": 92, "label": "Hot", "reasons": []},
+                      "crm": {**CANNED["crm"], "score": 92, "reasons": ["Tenggat dekat"]}}
+    client.post("/events", json=ev(external_id="m2", text="jadi ya kak, besok"))
+    audit = [a.detail for a in store.list_audit(event="summary_updated")]
+    lead = client.get("/leads").json()[0]
+    assert lead["score"] == 92 and lead["score_reasons"] == ["Tenggat dekat"]
+    assert lead["needs"]["product"] == "Paket B"
+    assert any(d.startswith("skor 86 Hot -> 92 Hot. Tenggat dekat") for d in audit)

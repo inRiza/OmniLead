@@ -137,7 +137,8 @@ class IngestService:
 
     # --- public ---
 
-    def ingest(self, ev: EventIn, *, defer_analysis: Callable[[Event, bool], None] | None = None) -> tuple[Event, bool]:
+    def ingest(self, ev: EventIn, *, defer_analysis: Callable[[Event, bool], None] | None = None,
+               analyze: bool = True) -> tuple[Event, bool]:
         """Mengembalikan (event, duplikat)."""
         bindings = self._queue.account_bindings
         if bindings is not None:
@@ -164,6 +165,8 @@ class IngestService:
             channel=event.channel.value,
             lead_id=lead.id,
         )
+        if not analyze:
+            return event, False
         if defer_analysis:
             event = self.prepare(event)
             defer_analysis(event, created or identity_added)
@@ -492,21 +495,36 @@ class IngestService:
         event.review_reason = result.review_reason
 
         if lead:
-            new_score = (result.crm or {}).get("score")
+            crm = result.crm or {}
+            new_score = crm.get("score")
+            before = (lead.score, lead.label)
+            now = datetime.now(timezone.utc)
             # Pesan sepele ("halo?") tidak boleh menurunkan lead Hot atau menimpa ringkasannya.
-            if result.crm and (lead.score is None or new_score is None or new_score >= lead.score):
-                lead.summary = str(result.crm.get("summary", lead.summary))
+            if crm and (lead.score is None or new_score is None or new_score >= lead.score):
+                lead.summary = str(crm.get("summary", lead.summary))
                 lead.score = new_score if new_score is not None else lead.score
-                lead.label = result.crm.get("label", lead.label)
-                lead.score_reason = str(result.crm.get("score_reason", lead.score_reason))
+                lead.label = crm.get("label", lead.label)
+                lead.score_reason = str(crm.get("score_reason", lead.score_reason))
+                lead.score_reasons = [str(r) for r in crm.get("reasons") or []] or lead.score_reasons
+                lead.score_rubric = str(crm.get("rubric") or lead.score_rubric)
+                lead.scored_at = now
+            if crm:
+                lead.needs = {**lead.needs, **(crm.get("needs") or {})}
+                lead.next_step = str(crm.get("next_step") or lead.next_step)
+                if lead.estimated_value is None and crm.get("estimated_value"):
+                    lead.estimated_value = int(crm["estimated_value"])
             company = (result.triage.get("entities") or {}).get("company")
             if company and not lead.company:
                 lead.company = str(company)
-            lead.updated_at = datetime.now(timezone.utc)
+            lead.updated_at = now
             self._store.save_lead(lead)
+            change = (f"skor {before[0]} {before[1] or ''} -> {lead.score} {lead.label or ''}".replace("  ", " ")
+                      if before[0] is not None and before != (lead.score, lead.label)
+                      else f"skor={lead.score} {lead.label or ''}".strip())
+            reasons = "; ".join(lead.score_reasons)
             self._store.audit(
                 "summary_updated",
-                f"skor={lead.score} {lead.label or ''}".strip(),
+                f"{change}. {reasons}" if reasons else change,
                 actor="agent",
                 channel=event.channel.value,
                 lead_id=lead.id,

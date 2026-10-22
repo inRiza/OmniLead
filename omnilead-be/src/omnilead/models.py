@@ -187,6 +187,11 @@ class Lead(BaseModel):
     created_at: datetime
     updated_at: datetime
     identity_sources: dict[str, dict] = Field(default_factory=dict)
+    score_reasons: list[str] = Field(default_factory=list)
+    scored_at: datetime | None = None
+    score_rubric: str = ""
+    needs: dict = Field(default_factory=dict)
+    next_step: str = ""
 
 
 LEAD_STAGES = ("baru", "tertarik", "penawaran", "deal", "batal")
@@ -232,6 +237,8 @@ class AppSettings(BaseModel):
     # Izin agen: manual (selalu tanya), hybrid (risiko rendah otomatis), auto (percaya penuh).
     autonomy: Literal["manual", "hybrid", "auto"] = "manual"
     auto_merge_threshold: float = Field(default=0.9, ge=0.5, le=1.0)
+    instagram_sync: dict = Field(default_factory=dict)
+    test_mode: bool = False
 
 
 class AuditEntry(BaseModel):
