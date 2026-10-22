@@ -1421,7 +1421,7 @@ Region Cloud Run `asia-southeast2`. Gemini lewat Vertex AI di location `global`;
 
 | Service | URL |
 |---|---|
-| `omnilead` (link juri) | https://omnilead-fgbrqs2gfq-et.a.run.app (URL panjang https://omnilead-439767898975.asia-southeast2.run.app dipakai untuk redirect OAuth) |
+| `omnilead` (link juri) | https://omnilead-fgbrqs2gfq-et.a.run.app (dipakai juga untuk redirect OAuth sejak 22 Okt siang; URL panjang https://omnilead-439767898975.asia-southeast2.run.app tetap bisa dibuka) |
 | `omnilead-api` | https://omnilead-api-439767898975.asia-southeast2.run.app |
 | `omnilead-agent` | https://omnilead-agent-439767898975.asia-southeast2.run.app |
 
@@ -1862,7 +1862,7 @@ diisi nilai acak langsung ke Secret Manager tanpa ditampilkan.
 
 ```bash
 P=hackathon-primestep-03 R=asia-southeast2 SA=hackathon-runtime@$P.iam.gserviceaccount.com
-FE=https://omnilead-439767898975.asia-southeast2.run.app
+FE=https://omnilead-fgbrqs2gfq-et.a.run.app  # URL pendek; BE OMNILEAD_CORS_ORIGINS memuat URL pendek dan panjang
 AG=https://omnilead-agent-439767898975.asia-southeast2.run.app
 
 # Agen (Gemini)

@@ -36,7 +36,7 @@ penahan otomatis untuk klaim seperti ini adalah usulan TSK-24.
    email yang akan dipakai juri sebagai **test users**.
 2. Credentials lalu Create OAuth client ID lalu **Web application**. Authorized redirect URI:
    - lokal: `http://localhost:3000/api/backend/auth/oauth/gmail/callback`
-   - deploy: `https://omnilead-439767898975.asia-southeast2.run.app/api/backend/auth/oauth/gmail/callback`
+   - deploy: `https://omnilead-fgbrqs2gfq-et.a.run.app/api/backend/auth/oauth/gmail/callback`
 3. Isi `OMNILEAD_GMAIL_CLIENT_ID` dan `OMNILEAD_GMAIL_CLIENT_SECRET` di `omnilead-be/.env` (lokal) atau
    Secret Manager (deploy). Jangan di-commit.
 4. Login OmniLead lalu Integrasi lalu Hubungkan Gmail lalu setujui `gmail.readonly` dan `gmail.send`.
@@ -61,7 +61,7 @@ penahan otomatis untuk klaim seperti ini adalah usulan TSK-24.
 
 1. App Meta lalu Instagram lalu Webhooks: callback `https://<url-omnilead-api>/webhooks/instagram`, verify token =
    `OMNILEAD_META_VERIFY_TOKEN`, field `messages` dan `comments`.
-2. Redirect OAuth: `https://omnilead-439767898975.asia-southeast2.run.app/api/backend/auth/oauth/instagram/callback`.
+2. Redirect OAuth: `https://omnilead-fgbrqs2gfq-et.a.run.app/api/backend/auth/oauth/instagram/callback`.
 3. App Roles lalu tambahkan akun Instagram pengirim uji sebagai **Instagram Tester** dan terima undangannya.
 4. Isi `OMNILEAD_META_APP_SECRET`, `OMNILEAD_META_VERIFY_TOKEN`, dan kredensial app Instagram di env BE.
 5. Hubungkan dari halaman Integrasi, kirim DM dari akun tester, cek `/dashboard/agent`.
@@ -87,7 +87,7 @@ Project `hackathon-primestep-03`, region `asia-southeast2`, kode dari branch `fe
 
 | Service | Isi | URL |
 |---|---|---|
-| `omnilead` | FE (link juri) | https://omnilead-fgbrqs2gfq-et.a.run.app (URL panjang https://omnilead-439767898975.asia-southeast2.run.app untuk OAuth) |
+| `omnilead` | FE (link juri, juga untuk OAuth) | https://omnilead-fgbrqs2gfq-et.a.run.app |
 | `omnilead-api` | BE, SQLite, min=max=1 | https://omnilead-api-439767898975.asia-southeast2.run.app |
 | `omnilead-agent` | Agen, engine `adk` (Gemini, thinking low) | https://omnilead-agent-439767898975.asia-southeast2.run.app |
 | `omnilead-fe` | FE lama, **tidak diperbarui lagi** | menunggu keputusan hapus |
@@ -104,3 +104,11 @@ Menunggu keputusan tim:
 3. Kredensial kanal nyata: App Secret Meta, nomor uji WA (Phone Number ID, WABA ID, token), Page Facebook, OAuth client Gmail.
 4. Merge `feat/app-design-hitl` ke `develop`, lalu screenshot halaman Revisions untuk form submission.
 5. Usulan MVP tambahan dari kanban: TSK-24 (penahan klaim di luar knowledge base), TSK-3 (opt-out), TSK-23 (fakta vs dugaan AI).
+
+## Pembaruan 22 Okt 2026 (siang): satu URL untuk semuanya
+
+BE `omnilead-api` kini memakai `OMNILEAD_FRONTEND_URL=https://omnilead-fgbrqs2gfq-et.a.run.app`; `OMNILEAD_CORS_ORIGINS` memuat URL pendek dan panjang.
+Login, OAuth (redirect `https://omnilead-fgbrqs2gfq-et.a.run.app/api/backend/auth/oauth/<facebook|gmail|instagram>/callback`), dan demo juri memakai
+URL pendek. Callback webhook Meta tetap ke alamat BE `https://omnilead-api-439767898975.asia-southeast2.run.app/webhooks/<whatsapp|facebook|instagram>`.
+Diverifikasi dari luar: halaman 200, login dari URL pendek dan panjang 200, 4 pesan contoh dianalisis, 15 usulan
+menunggu, agen engine `adk`.
