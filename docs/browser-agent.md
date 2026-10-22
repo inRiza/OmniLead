@@ -1,23 +1,48 @@
-# Agen browser dengan OpenClaw
+# OpenClaw sebagai fallback DM Instagram
 
 ## Arsitektur
 
 Dependency resmi **openclaw@2026.10.5** dan lockfile berada di `tools/openclaw/`.
-Tidak memakai fork. OpenClaw menangani profil persisten, browser, tab, screenshot,
-snapshot elemen, dan eksekusi aksi. OmniLead menambahkan dashboard, scope bisnis,
-planner visual Gemini, persetujuan, serta impor ke CRM. Orchestrator CRM tetap
-service agen OmniLead. Jalur browser tidak memerlukan token API Instagram/Meta;
-service agen tetap memerlukan kredensial model Gemini.
+OpenClaw dipakai hanya dalam **mode teks**: OmniLead membaca snapshot aksesibilitas
+(`/snapshot`, format `ai`). Tidak ada screenshot, tidak ada planner visual, dan tidak
+ada halaman Agen browser atau Aktivitas agen. Jejak reasoning agen kini tampil sebagai
+teks di panel **Agen** pada Workspace.
+
+Urutan sumber DM Instagram:
 
 ```text
-Dashboard → backend → OpenClaw browser control (loopback) → Chromium / Edge
-                ↓
-       planner visual Gemini → usulan → persetujuan → aksi OpenClaw
+1. Webhook Meta (utama)        -> job webhook -> ingest -> Workspace
+2. Meta API Conversations      -> sinkronisasi -> ingest (dedup dengan ID pesan webhook)
+3. OpenClaw snapshot teks      -> agen membaca daftar inbox -> ingest (kirim manual)
 ```
 
-Kanal: Instagram, Facebook/Messenger, WhatsApp Web, Gmail. Profil dipisahkan
-menurut bisnis dan kanal. Login browser berbeda dari koneksi OAuth di Integrasi.
-Satu sesi per bisnis, maksimal empat sesi per proses backend.
+- **Kredensial Meta** memakai env aplikasi (`OMNILEAD_INSTAGRAM_CLIENT_ID`,
+  `OMNILEAD_INSTAGRAM_CLIENT_SECRET`, `OMNILEAD_META_APP_SECRET`) dan akun bisnis yang
+  dihubungkan lewat halaman Integrasi. Di mode tanpa login, `OMNILEAD_INSTAGRAM_USER_ID`
+  dan `OMNILEAD_INSTAGRAM_ACCESS_TOKEN` di env juga berlaku.
+- **Meta API** (`InstagramConnector.recent_messages`) membaca
+  `/{ig-user-id}/conversations?platform=instagram` beserta pesan terbarunya. ID pesan sama
+  dengan `mid` webhook, jadi DM yang sudah masuk lewat webhook tidak terduplikasi. Setiap DM
+  baru yang hanya ditemukan lewat API dicatat sebagai celah webhook (audit
+  `instagram_webhook_gap`).
+- **OpenClaw** dipakai hanya bila Meta API tidak bisa dipakai (belum terhubung, token habis,
+  atau error) dan `OMNILEAD_BROWSER_ENABLED=true`. OmniLead membuka
+  `https://www.instagram.com/direct/inbox/` di profil bisnis, membaca snapshot teks, lalu
+  agen (`POST /v1/instagram/inbox-text`, Gemini teks atau parser aturan) mengembalikan daftar
+  percakapan. Hanya pratinjau pesan masuk yang diimpor. Event ini ditandai `handoff_only`,
+  sehingga balasannya selalu dikirim manual (ID percakapan browser bukan ID penerima API).
+
+## Lokal macOS / Linux
+
+Dari root repo (Node **24 LTS** disarankan; v25 memerlukan `install.sh` yang memakai `--ignore-scripts`):
+
+```bash
+chmod +x tools/openclaw/install.sh tools/openclaw/start.sh
+./tools/openclaw/install.sh
+./tools/openclaw/start.sh
+```
+
+Pakai Chrome atau Edge terpasang. Token dan state sama seperti Windows (`omnilead-be/.secrets/openclaw-token`, `data/openclaw`).
 
 ## Lokal Windows
 
@@ -52,71 +77,32 @@ Jalankan agen, backend, frontend seperti biasa. Buka `/dashboard/browser` setela
 login dengan akun pribadi. Akun demo publik tidak diberi akses browser. Port
 18889 (gateway) dan 18891 (browser control) tetap loopback dan berautentikasi.
 
-## Login dan penggunaan lewat chat
+## Login dan penggunaan
 
-1. Buka `/dashboard/browser` dan tulis **login Instagram** pada chat. Browser
-   dibuka otomatis. Nama kanal lain yang lengkap juga dikenali.
-2. Isi kartu **Login akun** yang muncul dalam chat. Klik **Isi akun & lanjutkan
-   login** mengizinkan agen mengisi field dan menekan tombol login. Tidak perlu
-   mengklik satu per satu kolom pada screenshot. Password langsung ke browser,
-   bukan ke model, task, riwayat chat, atau audit.
-3. Jika platform meminta kode, kartu kode verifikasi muncul. QR dan CAPTCHA tetap
-   ditangani pemilik melalui layar browser atau kontrol manual.
-4. Sesudah masuk, beri tugas lewat chat. Pembacaan layar aktif secara default;
-   dapat dimatikan melalui **Pengaturan sesi**.
-   Contoh: **Baca pesan pelanggan terbaru dan siapkan draf**. Knowledge base dan tone
-   memakai kanal bisnis aktif. Tugas memakai akun yang sedang terbuka, tanpa isian
-   nama akun wajib. Jika penerima belum jelas, agen perlu meminta penjelasan.
-5. Pengamatan, usulan langkah, kendala, dan hasil ditampilkan. Tulis **setujui** untuk
-   langkah yang sedang ditampilkan, **tolak**, atau **berhenti**. Perintah **cek layar**,
-   **sudah login**, **lanjutkan**, dan **tutup browser** juga tersedia.
+1. Jalankan OpenClaw (lihat bagian instalasi) dan backend dengan `OMNILEAD_BROWSER_ENABLED=true`.
+2. Login Instagram dilakukan pemilik langsung di jendela OpenClaw (`OMNILEAD_BROWSER_HEADLESS=false`).
+   OmniLead tidak menerima atau menyimpan password. Profil login tersimpan per bisnis di
+   `data/openclaw`.
+3. Di Workspace, kartu **DM Instagram** menampilkan status webhook, sinkron terakhir, sumbernya
+   (Meta API atau OpenClaw teks), serta jumlah DM baru, duplikat, dan yang terlewat webhook.
+   Klik **Sinkronkan sekarang** untuk menjalankan sinkronisasi.
+4. Bila OpenClaw membuka halaman login, sinkronisasi berhenti dengan pesan
+   "Masuk ke Instagram di jendela OpenClaw lalu sinkronkan lagi."
 
-Teks chat/tugas yang menyebut password, OTP, atau kredensial diarahkan ke kartu
-login; teks aslinya tidak disimpan/dikirim ke model. Jangan menaruh password pada
-teks tugas umum. Secret khusus input login dikosongkan setelah operasi. Chat dan
-screenshot sementara di memori, hilang ketika sesi ditutup/backend direstart.
-Login melalui kartu tidak memerlukan persetujuan pengiriman screenshot ke model.
+Endpoint:
 
-**Kendala terbuka:** tugas DM pada inbox Instagram masih dapat berhenti karena
-planner menghasilkan referensi elemen tidak valid. Perubahan default layar tidak
-menyelesaikan kendala tersebut. Detail dan langkah lanjut ada di `HANDOFF.md`.
+- `GET /instagram/sync` dan `POST /instagram/sync` (Workspace, butuh login).
+- `POST /scheduler/instagram-sync` untuk Cloud Scheduler, misalnya tiap 10 menit.
 
-Helper login memakai label/ref OpenClaw saat tersedia, fallback selector field
-provider tetap, serta tombol login/next/verify yang harus tunggal. Tahap login yang
-belum dikenali berhenti dengan pesan dan menawarkan kontrol manual. Hasil login
-nyata tetap ditentukan platform. Formulir terkirim tidak dianggap bukti akun masuk.
+## Batasan fallback OpenClaw
 
-Pengaturan kanal dan kontrol manual dapat dibuka bila diperlukan. Jendela lokal
-juga bisa digunakan. Saat login manual selesai, **sudah login** memperbarui layar;
-beri tugas atau tulis **lanjutkan** untuk permintaan tertunda. Riwayat menampilkan
-aktivitas yang dapat diamati, bukan pikiran internal model.
-
-Planner memakai screenshot, snapshot OpenClaw, knowledge base dan tone kanal,
-serta riwayat tugas. Screenshot/scroll dan URL inbox dengan pola yang dikenali
-berjalan otomatis. Klik lain, ketikan, tombol, dan navigasi lain perlu persetujuan
-satu langkah. Sasaran model memakai referensi elemen OpenClaw. Koordinat hanya
-untuk klik langsung pemilik pada screenshot.
-
-Persetujuan terikat ID, URL, snapshot sasaran, dan kedaluwarsa dua menit. Perubahan
-snapshot membatalkan input. Tugas dibatasi 12 langkah/lima menit. Jeda, kanal
-nonaktif, simulasi, dan batas aksi per jam berlaku pada agen. Kontrol manual
-pemilik tetap tersedia saat agen dijeda. Hentikan tugas sebelum mengambil alih.
-Berhenti membatalkan langkah berikutnya; request model yang sudah diterima provider
-bisa tetap selesai. Tutup browser membersihkan riwayat/screenshot sementara,
-namun mempertahankan profil login.
-
-## Pesan ke Workspace
-
-Planner dapat menawarkan pesan yang terlihat, atau gunakan **Baca pesan layar
-untuk Workspace**. Pemilik mengoreksi dan mengonfirmasi akun/pengirim/teks sebelum
-impor. Pipeline CRM kemudian memakai pengetahuan, tone, dan Guard bisnis ini.
-
-- Draf visual langsung belum melewati Guard. Draf hasil impor CRM memakai Guard.
-- Event browser selalu handoff pengiriman, meskipun OAuth terhubung. Username
-  screenshot tidak dipakai sebagai ID penerima API.
-- Dedup hanya untuk ID ekstraksi sama. Pembacaan ulang menghasilkan ID berbeda.
-- Timestamp impor bukan waktu asli DM. Belum ada pemantauan inbox terus-menerus
-  atau executor browser yang terikat draf Guard final.
+- Hanya pratinjau pesan terakhir per percakapan yang terbaca, bukan seluruh riwayat thread.
+- Nama pengirim dan isi pratinjau bergantung pada struktur snapshot Instagram. Parser aturan
+  hanya bisa memisahkan nama dari isi bila ada penanda balasan sendiri; selebihnya ID
+  percakapan dipakai sebagai identitas pengirim.
+- Dedup event OpenClaw memakai URL percakapan dan teks, ditambah pengecekan teks yang sama
+  dari pengirim yang sama dalam 72 jam.
+- Fallback ini belum diverifikasi dengan akun Instagram asli.
 
 ## Container dan cloud
 
@@ -145,9 +131,8 @@ dan arahkan proxy frontend ke backend tersebut. Jangan expose gateway/CDP.
 Named volume mengandung sesi login sensitif dan perlu perlindungan serta backup.
 
 Container non-root memakai Chromium `noSandbox=true` untuk lingkungan container
-yang membatasi sandbox Chromium. Isolasi OS/container tetap diperlukan. Planner
-tidak diberi akses shell atau JavaScript bebas. Backend wajib satu worker karena
-sesi tugas di memori. Batas empat profil bukan hasil pengukuran kapasitas.
+yang membatasi sandbox Chromium. Isolasi OS/container tetap diperlukan. Agen
+tidak diberi akses shell atau JavaScript bebas; agen hanya menerima teks snapshot.
 
 `tools/openclaw/cloud-run.yaml` adalah template **belum dideploy**: ganti placeholder
 image, service account, URL, dan Secret Manager. Service account perlu izin
@@ -165,15 +150,14 @@ Build image dan pengujian cloud fitur browser ini belum dilakukan.
 ## Batas keamanan dan verifikasi
 
 - Opt-in, login dan scope bisnis wajib, demo publik ditolak.
-- Konten layar tidak dipercaya. Login menghentikan planner visual; input rahasia melewati kartu login
-  langsung ke browser. Screenshot tetap dapat memuat percakapan pribadi.
+- Isi snapshot tidak dipercaya dan diperlakukan sebagai data, bukan instruksi. Halaman login
+  menghentikan sinkronisasi; password hanya diketik pemilik di jendela browser.
 - OpenClaw evaluate dimatikan dan navigasi private network diblokir kebijakan SSRF.
   Backend meneruskan operasi terbatas, bukan proxy browser umum.
-- Screenshot JPEG hanya dibaca dari direktori media runtime, lalu dihapus dari disk
-  setelah dibaca dan disimpan sementara dalam memori. Profil login tetap persisten.
+- Tidak ada screenshot yang dibuat atau dikirim ke model. Profil login tetap persisten.
 - CAPTCHA, pembatasan platform, dan perubahan UI dapat menghentikan tugas.
-- Instalasi/health runtime lokal diperiksa; login akun asli, kirim pesan, model
-  visual, dan kontrol jarak jauh belum diverifikasi end-to-end. Lihat TESTING.md.
+- Instalasi/health runtime lokal diperiksa; sinkronisasi Meta API dan fallback OpenClaw
+  belum diverifikasi dengan akun Instagram asli. Lihat TESTING.md.
 
 Rujukan: [OpenClaw browser](https://docs.openclaw.ai/tools/browser-control),
 [OpenClaw Docker](https://docs.openclaw.ai/install/docker),

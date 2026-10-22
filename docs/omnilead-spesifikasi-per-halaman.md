@@ -60,6 +60,8 @@ Skor **bukan** jaminan bahwa pelanggan akan membeli dan bukan probabilitas konve
 | Tenggat/urgensi | Seberapa dekat tenggat yang dinyatakan pelanggan atau kebutuhan respons | Membutuhkan pesanan untuk acara besok; meminta penawaran hari ini |
 | Kebutuhan tindak lanjut | Apakah ada pertanyaan belum dijawab, janji follow-up, atau percakapan yang melewati target waktu respons | Pesan belum dibalas; seller menjanjikan penawaran tetapi belum mengirimkannya |
 
+Rubrik awal yang dipakai agen (`rubrik-awal-v1`): nilai order besar +30, menengah +18, kecil +8; tenggat 14 hari atau kurang +20, 30 hari atau kurang +10; reseller +15; korporat +20; sudah sering berinteraksi +12, pernah menghubungi +8; meminta penawaran atau memesan +15, menanyakan harga +12; menyebut jumlah pesanan +8; spam menjadi 0.
+
 Bobot dan ambang skor perlu ditetapkan berdasarkan rubrik bisnis dan diuji pada contoh kasus. Jangan menampilkan bobot sebagai hasil empiris jika belum divalidasi. Untuk demo, dokumentasikan bahwa skor berasal dari **rubrik awal/heuristik**.
 
 ### Label awal
@@ -192,6 +194,27 @@ Setiap item menampilkan:
 
 ### E. Langkah agen
 Log reasoning agen ditampilkan terstruktur: Tujuan, Rencana (bernomor), Log eksekusi (nama alat dalam bahasa awam, masukan, dan hasil), lalu Pengecekan keamanan dengan ikon lolos atau ditahan.
+
+Saat agen bekerja, panel menampilkan langkah yang digerakkan oleh progres nyata dari service agen (bukan animasi tetap):
+
+| Langkah | Fase agen | Detail yang ditampilkan |
+|---|---|---|
+| [Mencari pengguna…] | `context` | Pelanggan dikenal atau baru, jumlah pesan di riwayat |
+| [Mencari pesan yang belum dibalas…] | `context` | Jumlah pesan masuk sejak balasan terakhir |
+| [Chunking pengetahuan bisnis…] | `knowledge` | Jumlah dokumen, potongan, dan produk |
+| [Memastikan pesan tergolong lead…] | `triage_done` | Maksud pesan dan urgensi, atau "Bukan lead" untuk spam |
+| [Mencari status tambahan…] | `tool` | Alat yang dipakai (riwayat, katalog, jendela kanal) |
+| [Menyusun balasan…] | `proposal` | Jumlah usulan tindakan |
+| [Menghitung potensi lead…] | `score` | Skor, label, dan alasan |
+| [Pengecekan keamanan…] | `complete` | Ringkasan hasil pengecekan |
+
+Langkah yang tidak dijalankan untuk pesan tertentu ditandai dicoret dengan keterangan "Tidak diperlukan untuk pesan ini".
+
+### F. Halaman Agen
+Pemicu agen tidak ada di Workspace. Halaman **Agen** menampilkan daftar kanal; saat ini hanya Instagram yang aktif, kanal lain tampil nonaktif dengan keterangan "Segera hadir". Di detail Instagram ada status webhook, waktu baca terakhir, dan tombol **Mulai baca**. Agen membaca DM dan komentar baru, lalu menjawab pesan yang belum diproses satu per satu sambil menampilkan langkahnya. Setelah selesai, halaman menampilkan ringkasan jumlah pesan dan tombol **Buka Workspace** untuk meninjau hasilnya. Workspace tidak menampilkan badge sumber data.
+
+### G. Hasil analisis yang diisi ke lead
+Setiap analisis mengisi: ringkasan AI, Priority Score dan label, 1 sampai 3 alasan, kebutuhan pelanggan (produk, jumlah, tenggat, lokasi, anggaran), potensi nilai (hanya bila jumlah dan harga katalog diketahui), langkah berikutnya, waktu perhitungan, dan versi rubrik. Field yang tidak disebut pelanggan tampil "Belum diketahui". Perubahan skor dicatat di Audit dengan nilai sebelum dan sesudah. Tahap pipeline tetap berubah lewat usulan agen yang mengikuti izin agen, bukan diubah langsung.
 
 ### Status utama
 - **Perlu dibalas:** pesan baru yang belum diproses agen.
