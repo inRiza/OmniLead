@@ -120,3 +120,19 @@ def test_llm_triage_keeps_rule_intents():
     assert "minta_penawaran" in merge(rule, llm).intents
     spam = TriageOut(intents=["spam"], urgency="rendah", urgency_reason="", sentiment="netral")
     assert merge(rule, spam).intents == ["spam"]
+
+
+def test_payment_confirmation_proposes_deal_without_claiming_receipt(ani_lead):
+    req = make_req("kak sudah transfer DP 50% ya buat pesanan 60 pax tgl 30", lead=ani_lead)
+    assert "konfirmasi_bayar" in triage(req).intents
+    r = analyze(req)
+    crm = [p for p in r.proposals if p.kind == "crm_update"]
+    assert crm and crm[0].payload["stage"] == "deal"
+    reply = " ".join(p.text for p in r.proposals if p.kind in ("send_message", "reply_comment"))
+    assert "kami cek" in reply and "sudah kami terima" not in reply
+
+
+def test_cancellation_proposes_batal_and_dp_question_is_not_payment(ani_lead):
+    r = analyze(make_req("maaf kak ga jadi pesan ya, acaranya diundur", lead=ani_lead))
+    assert [p.payload["stage"] for p in r.proposals if p.kind == "crm_update"] == ["batal"]
+    assert "konfirmasi_bayar" not in triage(make_req("DP-nya berapa persen kak?")).intents

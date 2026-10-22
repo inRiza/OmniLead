@@ -30,6 +30,14 @@ MAX_STEPS = 8
 PRIVATE_REPLY_CHANNELS = ("instagram", "facebook")
 # Batas panjang pesan pribadi per kanal (Instagram 1.000 byte, Messenger 2.000 karakter).
 MESSAGE_LIMITS = {"instagram": 1000, "facebook": 2000}
+CLOSING_INTENTS = {"konfirmasi_bayar", "batal_pesan"}
+
+
+def wants_quote(intents: list[str]) -> bool:
+    # Pelanggan yang sudah membayar atau membatalkan tidak perlu dikirimi penawaran lagi.
+    return bool({"tanya_harga", "minta_penawaran", "order"} & set(intents)) and not CLOSING_INTENTS & set(intents)
+
+
 HONORIFICS = {"pak", "bapak", "bu", "ibu", "kak", "mas", "mbak", "bpk", "sdr", "sdri"}
 
 
@@ -233,7 +241,7 @@ class TemplateDrafter:
             )
         parts.append(self._greet(ctx, st) + (", terima kasih sudah menghubungi " + ctx.catalog.business + "." if "komplain" not in ctx.tri.intents else ""))
 
-        wants_price = bool({"tanya_harga", "minta_penawaran", "order"} & set(ctx.tri.intents))
+        wants_price = wants_quote(ctx.tri.intents)
         stock_text = self._stock_text(ctx, pkg)
         from omnilead_agent.knowledge import fallback_answer
         faq = ctx.catalog.faq_answer(ctx.req.event.text) or fallback_answer(ctx.req.business_context, ctx.req.event.text)
@@ -278,7 +286,14 @@ class TemplateDrafter:
             if faq and faq not in "\n".join(parts):
                 parts.append(faq)
         else:
-            if faq:
+            if "konfirmasi_bayar" in ctx.tri.intents:
+                # Pembayaran belum diverifikasi agen: jangan menyatakan sudah diterima.
+                parts.append("Terima kasih atas pembayarannya. Kami cek dulu dan segera kami konfirmasi." if st.formal
+                             else "Terima kasih kak, pembayarannya kami cek dulu ya, segera kami konfirmasi.")
+            elif "batal_pesan" in ctx.tri.intents:
+                parts.append("Baik, pesanan Anda kami batalkan. Terima kasih sudah menghubungi kami." if st.formal
+                             else "Baik kak, pesanannya kami batalkan ya. Semoga lain waktu bisa pesan lagi.")
+            elif faq:
                 parts.append(faq)
             elif not stock_text:
                 parts.append("Terima kasih, pesan kakak sudah kami terima. Kami cek dulu ya kak.")
@@ -309,7 +324,7 @@ class TemplateDrafter:
 
         try:
             ctx.tools.get_timeline()
-            wants_price = bool({"tanya_harga", "minta_penawaran", "order"} & set(tri.intents))
+            wants_price = wants_quote(tri.intents)
             hits = ctx.tools.search_catalog_faq(ev.text)
             if not (wants_price or "tanya_stok" in tri.intents):
                 hits = []
@@ -357,7 +372,11 @@ class TemplateDrafter:
         # Update CRM (perlu persetujuan)
         cur = req.lead.stage if req.lead else "baru"
         target = None
-        if {"minta_penawaran", "order"} & set(tri.intents) and cur in ("baru", "tertarik"):
+        if "batal_pesan" in tri.intents and cur != "batal":
+            target = "batal"
+        elif "konfirmasi_bayar" in tri.intents and cur not in ("deal", "batal"):
+            target = "deal"
+        elif {"minta_penawaran", "order"} & set(tri.intents) and cur in ("baru", "tertarik"):
             target = "penawaran"
         elif "tanya_harga" in tri.intents and cur == "baru":
             target = "tertarik"

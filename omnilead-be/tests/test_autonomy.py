@@ -89,3 +89,16 @@ def test_pause_returns_auto_actions_to_the_owner(store, queue, ig):
                            sender={"handle": "@ani", "name": "Ani"}, text="bisa kirim?", post_ref="p1", comment_ref="c1"))
     assert all(a.status == ActionStatus.PENDING and a.decided_at is None for a in store.list_actions())
     assert ig.posted == [] and any(e.event == "auto_held" for e in store.list_audit())
+
+
+def test_hybrid_keeps_deal_and_batal_for_the_owner():
+    from omnilead.autonomy import is_low_risk
+    from omnilead.models import Action, ActionKind
+    from datetime import datetime, timezone
+
+    def crm(stage):
+        return Action(id="a", kind=ActionKind.CRM_UPDATE, channel="whatsapp", payload={"stage": stage},
+                      status=ActionStatus.PENDING, created_at=datetime.now(timezone.utc))
+
+    assert is_low_risk(crm("tertarik"), None)
+    assert not is_low_risk(crm("deal"), None) and not is_low_risk(crm("batal"), None)
