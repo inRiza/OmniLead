@@ -23,17 +23,21 @@ halaman Integrasi. Panduan pengelola: [account-connections.md](../docs/account-c
 
 | Rute | Isi |
 |---|---|
-| `/` | Landing page: kanal MVP (WhatsApp, Instagram, Facebook, email), demo interaktif alur agen, fitur, kendali, FAQ |
+| `/` | Landing page: kanal MVP (WhatsApp, Instagram, Facebook, email), demo interaktif alur agen dengan usulan, prioritas lead, dan persetujuan pemilik sebelum balasan terkirim, fitur, kendali, FAQ |
 | `/login` | Masuk atau daftar bisnis; sesi pengguna dan pemisahan data per bisnis |
 | `/dashboard` | Beranda: hal yang perlu ditangani hari ini, statistik, volume pesan 7 hari, kanal |
 | `/dashboard/inbox` | Workspace: aktivitas berprioritas, filter kanal dan jenis, **Tempel pesan** (teks/screenshot), panel detail dengan rencana, langkah agen, hasil Guard, dan antrean persetujuan |
 | `/dashboard/leads`, `/dashboard/leads/[id]` | Daftar lead dan profil: timeline lintas kanal, skor + alasan, bukti penggabungan, tombol **Pisahkan** untuk merge yang salah |
-| `/dashboard/integrasi` | Hubungkan/ganti/putuskan akun (Instagram, Facebook Page, Gmail, WhatsApp), pilih nomor WhatsApp atau Page Facebook, profil bisnis, keluar, jeda kanal, mode latihan |
+| `/dashboard/integrasi` | Hubungkan/ganti/putuskan akun (Instagram, Facebook Page, Gmail, WhatsApp), pilih nomor WhatsApp atau Page Facebook, hubungkan nomor uji WhatsApp, profil bisnis, keluar, jeda kanal, mode latihan |
 | `/dashboard/knowledge` | Editor/impor Markdown, produk dan harga, pemilihan sumber pengetahuan serta tone per kanal |
 | `/dashboard/audit` | Jejak aksi: pelaksana, kanal, hasil |
 | `/dashboard/konten` | Ide konten dari pertanyaan yang sering muncul (draf caption, salin; tidak ada publikasi) |
 
 Tombol **Jeda agen** selalu terlihat di header; saat aktif banner merah muncul dan aksi ditahan.
+
+Tampilan aplikasi memakai design system yang sama dengan landing (`.rc-brand` di `globals.css`: navy, cobalt,
+saffron) dan satu logo (`components/brand/Logo.tsx`). Konten tiap halaman berada di tengah dengan lebar maksimum
+yang sama. Di HP, sidebar diganti navigasi bawah (Beranda, Workspace, Agen, Lead, Menu).
 
 Pendaftaran cukup nama/email/kata sandi. Bisnis ditambah dari dashboard dan dapat
 diganti lewat dropdown header. Panduan: [knowledge-base.md](../docs/knowledge-base.md).

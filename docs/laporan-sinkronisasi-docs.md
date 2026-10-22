@@ -9,7 +9,7 @@ updated: 2026-10-21
 Hasil audit 21 Okt 2026 atas semua file di `docs/`, `plan.md`, `TESTING.md`, dan README (root, agen, BE, FE),
 dibandingkan satu sama lain dan dengan kode. Dokumen ini daftar kerjanya.
 
-**Pembaruan 21 Okt 2026 (PRD 3.0).** PRD diganti nama menjadi `crm-agentic-multikanal-5.0.md`;
+**Pembaruan 21 Okt 2026 (PRD 3.0).** PRD diganti nama menjadi `crm-agentic-multikanal-5.1.md`;
 `deploy.md` dan `validasi-yc-dan-mcp.md` digabung ke Lampiran B dan A PRD lalu dihapus.
 Sudah diperbaiki: **#1, #2, #3, #4, #15, #16, #17, #18, #19, #20, #21, #26**.
 Selesai karena filenya dihapus (sudah tidak dipakai): **#6, #22, #23, #24, #25**
@@ -39,7 +39,7 @@ Prioritas: **T** = tinggi (bisa menyesatkan juri atau tim), **S** = sedang, **R*
 
 | # | P | Dokumen | Bagian | Masalah | Perbaikan |
 |---|---|---|---|---|---|
-| 1 | T | PRD (`crm-agentic-multikanal-5.0.md`) | Nyata vs simulasi; Batas demo | Gmail, CRM (Firestore), dan Gemini ditulis **Nyata** | Gmail: target, API belum aktif. CRM: SQLite lokal, adapter Firestore siap tapi belum aktif. Gemini: terverifikasi di `global`, 14/18 pass^3, 41 dtk |
+| 1 | T | PRD (`crm-agentic-multikanal-5.1.md`) | Nyata vs simulasi; Batas demo | Gmail, CRM (Firestore), dan Gemini ditulis **Nyata** | Gmail: target, API belum aktif. CRM: SQLite lokal, adapter Firestore siap tapi belum aktif. Gemini: terverifikasi di `global`, 14/18 pass^3, 41 dtk |
 | 2 | T | PRD | Status Implementasi | "Gemini belum dipanggil sama sekali"; Dockerfile "belum dibangun" | Perbarui dengan hasil eval Gemini dan status Docker (FE gagal) |
 | 3 | T | `deploy.md` | Status, §1–4, §6, §8 | Dockerfile "belum diuji"; `GOOGLE_CLOUD_LOCATION=asia-southeast2`; SA `omnilead-run`; langkah enable API/Firestore/Scheduler/Pub/Sub yang tidak bisa dijalankan tim; `run deploy --source` butuh repo AR; BE `OMNILEAD_STORE=firestore` | Isi project ID, pisahkan region Cloud Run dari Vertex (`global`), pakai SA `hackathon-runtime`, tandai langkah yang butuh panitia, jadikan demo lokal jalur utama |
 | 4 | T | `deploy.md` | §7 FE | `gcloud builds submit --tag … --substitutions` tidak meneruskan build-arg, jadi `NEXT_PUBLIC_API_URL` kosong; `npm ci` gagal | `docker build --build-arg …` atau `cloudbuild.yaml`; sinkronkan lockfile atau pakai image bun |
@@ -80,4 +80,20 @@ Prioritas: **T** = tinggi (bisa menyesatkan juri atau tim), **S** = sedang, **R*
 1. **Sebelum deck dibuat:** #1, #2, #5, #9 (klaim yang akan dibaca atau didengar juri).
 2. **Luaran wajib TOR:** #7 (SOURCES.md termasuk bagian bantuan AI) dan kontribusi anggota di README (belum ada di dokumen mana pun).
 3. **Untuk tim:** #3, #4, #6, #8, #10–#12.
-4. **Kerapian:** sisanya, bisa setelah freeze bila waktu mepet (dokumentasi boleh diperbarui pukul 13.00–15.00).
+4. **Kerapian:** sisanya, bisa setelah freeze bila waktu mepet.
+
+## Pembaruan 22 Okt 2026 (pagi)
+
+Dokumen disinkronkan ulang dengan kode di branch `feat/app-design-hitl` dan deploy Cloud Run:
+
+| Dokumen | Yang diperbarui |
+|---|---|
+| PRD | Naik ke **5.1** (`crm-agentic-multikanal-5.1.md`): deploy berjalan, engine `adk` default, akun demo, nomor uji WA, Guard, design system, freeze 15.00, perintah deploy yang dipakai |
+| README, plan.md, HANDOFF.md | Status 22 Okt, link juri https://omnilead-fgbrqs2gfq-et.a.run.app, angka tes BE 162, agen 57, FE 23 |
+| TESTING.md | Verifikasi deploy, temuan audit UI, tabel ringkasan terbaru |
+| tiket-kanban.md | TSK-27 dan TSK-34 selesai, TSK-28 jam 15.00, catatan deploy |
+| account-connections.md | Koneksi nomor uji WhatsApp |
+| demo-nyata.md, rencana-deck-demo-top10.md | Angka evalset terbaru, URL deploy, freeze 15.00 |
+
+Catatan: baris lama di laporan ini (misalnya angka tes BE 72, agen 38) adalah kondisi saat laporan pertama
+ditulis dan sengaja tidak diubah.

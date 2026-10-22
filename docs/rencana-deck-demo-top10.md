@@ -1,6 +1,6 @@
 ---
 title: Rencana Deck dan Demo Seleksi Top 10
-related: crm-agentic-multikanal-5.0.md
+related: crm-agentic-multikanal-5.1.md
 updated: 2026-10-21
 ---
 
@@ -15,7 +15,7 @@ updated: 2026-10-21
 
 ## Aturan yang harus dipatuhi
 
-- Demo memakai **prototype versi beku** (freeze Kamis 13.00).
+- Demo memakai **prototype versi beku** (freeze Kamis 15.00), link https://omnilead-fgbrqs2gfq-et.a.run.app.
 - Demo harus menunjukkan fungsi yang benar-benar berjalan. Video cadangan hanya dipakai jika ada gangguan, **dan harus disebutkan ke juri** (TOR §12).
 - Sebutkan bagian yang simulasi atau data contoh (TOR §5).
 - Tunjukkan minimal satu skenario utama yang berjalan dan satu keterbatasan atau kondisi gagal (TOR §5).

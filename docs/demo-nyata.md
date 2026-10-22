@@ -8,7 +8,7 @@ dan katalog katering. Kondisi per 22 Okt 2026 dini hari.
 
 | Lapis | Status | Bukti |
 |---|---|---|
-| Agen Gemini (`adk`) | **Siap.** `thinking_level=low` + tanpa giliran ringkasan: rata-rata **13,1 dtk** per kasus (sebelumnya 40,9 dtk); kualitas tetap **14/18 pass^3**, kasus gagal sama (H1, H3, H6, S3), 6/7 kasus berbahaya tertangani | Evalset 18 kasus x 3, Vertex `global`, 22 Okt 03.17 WIB |
+| Agen Gemini (`adk`) | **Siap dan live di Cloud Run.** `thinking_level=low` dan tanpa giliran ringkasan: rata-rata **13,3 dtk** per kasus (sebelumnya 40,9 dtk); **17/18 pass^3** (gagal S3), 6/7 kasus berbahaya tertangani | Evalset 18 kasus x 3, Vertex `global`, 22 Okt 05.09 WIB |
 | Gemini di Cloud Run | **Siap.** Service account `hackathon-runtime` punya `roles/aiplatform.user` | `gcloud projects get-iam-policy`, 22 Okt |
 | Gmail API | **Aktif** di `hackathon-primestep-03` (diaktifkan 22 Okt) | `gcloud services list --enabled` |
 | Gmail OAuth client | **Belum ada.** Harus dibuat di Console (tidak bisa lewat gcloud) | - |
@@ -36,7 +36,7 @@ penahan otomatis untuk klaim seperti ini adalah usulan TSK-24.
    email yang akan dipakai juri sebagai **test users**.
 2. Credentials lalu Create OAuth client ID lalu **Web application**. Authorized redirect URI:
    - lokal: `http://localhost:3000/api/backend/auth/oauth/gmail/callback`
-   - deploy: `https://<url-omnilead-fe>/api/backend/auth/oauth/gmail/callback`
+   - deploy: `https://omnilead-439767898975.asia-southeast2.run.app/api/backend/auth/oauth/gmail/callback`
 3. Isi `OMNILEAD_GMAIL_CLIENT_ID` dan `OMNILEAD_GMAIL_CLIENT_SECRET` di `omnilead-be/.env` (lokal) atau
    Secret Manager (deploy). Jangan di-commit.
 4. Login OmniLead lalu Integrasi lalu Hubungkan Gmail lalu setujui `gmail.readonly` dan `gmail.send`.
@@ -61,7 +61,7 @@ penahan otomatis untuk klaim seperti ini adalah usulan TSK-24.
 
 1. App Meta lalu Instagram lalu Webhooks: callback `https://<url-omnilead-api>/webhooks/instagram`, verify token =
    `OMNILEAD_META_VERIFY_TOKEN`, field `messages` dan `comments`.
-2. Redirect OAuth: `https://<url-omnilead-fe>/api/backend/auth/oauth/instagram/callback`.
+2. Redirect OAuth: `https://omnilead-439767898975.asia-southeast2.run.app/api/backend/auth/oauth/instagram/callback`.
 3. App Roles lalu tambahkan akun Instagram pengirim uji sebagai **Instagram Tester** dan terima undangannya.
 4. Isi `OMNILEAD_META_APP_SECRET`, `OMNILEAD_META_VERIFY_TOKEN`, dan kredensial app Instagram di env BE.
 5. Hubungkan dari halaman Integrasi, kirim DM dari akun tester, cek `/dashboard/agent`.
@@ -80,3 +80,27 @@ Buka `/dashboard/agent` di layar agar langkah Gemini terlihat saat berjalan (sek
 
 Cadangan bila Vertex bermasalah: `OMNILEAD_AGENT_ENGINE=rule` (sekitar 0,4 dtk, draf templat). Sebutkan terus terang
 bahwa itu mode cadangan.
+
+## Catatan deploy (22 Okt 2026, pagi)
+
+Project `hackathon-primestep-03`, region `asia-southeast2`, kode dari branch `feat/app-design-hitl`.
+
+| Service | Isi | URL |
+|---|---|---|
+| `omnilead` | FE (link juri) | https://omnilead-fgbrqs2gfq-et.a.run.app (URL panjang https://omnilead-439767898975.asia-southeast2.run.app untuk OAuth) |
+| `omnilead-api` | BE, SQLite, min=max=1 | https://omnilead-api-439767898975.asia-southeast2.run.app |
+| `omnilead-agent` | Agen, engine `adk` (Gemini, thinking low) | https://omnilead-agent-439767898975.asia-southeast2.run.app |
+| `omnilead-fe` | FE lama, **tidak diperbarui lagi** | menunggu keputusan hapus |
+
+- Akun demo: `juri@omnilead.id`; kata sandi di Secret Manager `demo-password`
+  (`gcloud secrets versions access latest --secret demo-password --project hackathon-primestep-03`).
+- Saat akun demo dibuat, 4 pesan contoh (WA, IG, FB, email) dianalisis agen sungguhan; hasilnya 12 usulan menunggu persetujuan.
+- Secret lain: `omnilead-agent-key`, `oauth-encryption-key`, `meta-verify-token`, `scheduler-token`. App Secret Meta dan OAuth Gmail belum diisi.
+- Redeploy BE menghapus data SQLite dan koneksi kanal (akun demo dan pesan contoh dibuat ulang otomatis). Hubungkan kanal setelah deploy BE terakhir.
+
+Menunggu keputusan tim:
+1. Hapus service lama `omnilead-fe` (tidak bisa dibatalkan).
+2. Alias lebih pendek: `s.id`/`bit.ly` dari akun tim, atau domain sendiri.
+3. Kredensial kanal nyata: App Secret Meta, nomor uji WA (Phone Number ID, WABA ID, token), Page Facebook, OAuth client Gmail.
+4. Merge `feat/app-design-hitl` ke `develop`, lalu screenshot halaman Revisions untuk form submission.
+5. Usulan MVP tambahan dari kanban: TSK-24 (penahan klaim di luar knowledge base), TSK-3 (opt-out), TSK-23 (fakta vs dugaan AI).

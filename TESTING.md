@@ -3,6 +3,25 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Deploy Cloud Run dan audit UI (22 Okt 2026, pagi)
+
+**Deploy:** agen (`adk`), BE (SQLite), dan FE berjalan di Cloud Run `asia-southeast2`. Diperiksa dari luar lewat
+https://omnilead-fgbrqs2gfq-et.a.run.app: halaman `/`, `/login`, `/dashboard` 200; login akun demo 200; `/agent/health` melaporkan engine `adk`;
+satu pesan WhatsApp yang ditempel dianalisis Gemini dari Cloud Run dalam 11,7 detik dengan harga dari katalog.
+Akun demo yang baru dibuat berisi 12 usulan menunggu persetujuan dari 4 pesan contoh (WhatsApp, Instagram,
+Facebook, email).
+
+**Temuan dari audit UI di versi deploy, sudah diperbaiki:**
+
+| Temuan | Akibat | Perbaikan |
+|---|---|---|
+| Guard mencocokkan nama pelanggan lain sebagai potongan kata ("Ani" di "melayani") | Draf aman ditahan sebagai "data pihak lain" | Nama dicocokkan sebagai kata utuh; tes regresi |
+| Ringkasan lead dan audit memakai istilah internal (`minta_penawaran`, `crm_update`, `skor=48`) | Sulit dibaca pemilik | Label bahasa awam; tes adapter audit |
+| Tidak ada navigasi di HP; tabel Workspace terpotong | Halaman lain tidak bisa dibuka dari HP | Navigasi bawah, tabel ringkas di HP |
+
+Tes otomatis setelah perubahan: BE **162**, agen **57**, FE **23** lulus; `tsc --noEmit` dan `eslint` bersih.
+Tampilan diperiksa dengan screenshot Chromium headless (desktop 1440 px dan HP 390 px), bukan uji pengguna.
+
 ## Uji E2E lokal, Gemini lebih cepat, dan koneksi nomor uji WhatsApp (22 Okt 2026)
 
 **Uji E2E lokal** (agen, BE, FE lewat proxy `/api/backend`, akun demo, engine `rule`, database sementara): 36 cek
@@ -238,7 +257,7 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 - Connector WhatsApp, Gmail, Instagram, dan Facebook Page diuji dengan transport HTTP tiruan. **Belum ada panggilan ke platform
   sungguhan**, jadi format permintaan yang benar-benar diterima Meta/Google belum terverifikasi.
 - Adapter Firestore diuji dengan fake in-memory, bukan Firestore atau emulator.
-- Image Docker agen dan BE sudah dibangun dan dijalankan lokal; build FE gagal di `npm ci`. Perintah deploy belum dijalankan.
+- Ketiga service sudah di-deploy ke Cloud Run dan diperiksa dari luar (22 Okt 2026). Cloud Scheduler belum dibuat.
 - Evalset dipakai juga untuk memperbaiki aturan (lihat "Hasil awal vs sesudah perbaikan"), jadi ia dev-set, bukan
   ukuran independen. Angka sempurna sesudah perbaikan tidak boleh dibaca sebagai akurasi di data nyata.
 - Belum ada pengujian dengan pemilik UMKM nyata, jadi kolom intervensi manusia tidak terisi dari data lapangan.
@@ -247,12 +266,12 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 98 lulus (72 sebelum login bisnis dan Facebook) |
-| Agen `omnilead-agent` | `uv run pytest` | 43 lulus (38 sebelum knowledge base dan Facebook) |
+| Backend `omnilead-be` | `uv run pytest` | 162 lulus (22 Okt) |
+| Agen `omnilead-agent` | `uv run pytest` | 57 lulus (22 Okt) |
 | Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
-| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 14/18 pass^3, ±41 detik per kasus |
+| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 17/18 pass^3, 13,3 detik per kasus (21 Okt: 14/18, 40,9 detik) |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |
-| Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 22 tes lulus; tsc dan eslint bersih |
+| Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 23 tes lulus (22 Okt); tsc dan eslint bersih |
 | Evalset persona P2 (fashion, 6 kasus x 3) | `python -m omnilead_agent.eval --set eval/omnilead-fashion.evalset.json` | 6/6 pass^3 (dev-set yang ditulis bersama kode; bukan ukuran independen) |
 | Latensi event → draf (HTTP BE→agen, engine rule, lokal) | 5 percobaan `POST /events` | 0,34 – 0,40 detik |
 

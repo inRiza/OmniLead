@@ -23,7 +23,7 @@ BE ──POST /v1/analyze──► Triage ─► Orchestrator (ADK) ─► Guard
 `OMNILEAD_AGENT_ENGINE`:
 
 - `rule` (default): deterministik, tanpa LLM dan tanpa kredensial. Dipakai untuk dev dan tes.
-- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model default `gemini-3.8-flash` (orchestrator, ekstraksi screenshot) dan `gemini-3.5-flash-lite` (triage), terverifikasi 21 Okt 2026 di Vertex **location `global`**; ganti lewat `OMNILEAD_AGENT_MODEL` / `OMNILEAD_AGENT_TRIAGE_MODEL`.
+- `adk`: orchestrator `LlmAgent` (Google ADK 2.x). Perlu `GOOGLE_API_KEY` atau Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=1`). Model default `gemini-3.8-flash` (orchestrator, ekstraksi screenshot) dan `gemini-3.5-flash-lite` (triage), terverifikasi 21 Okt 2026 di Vertex **location `global`**; ganti lewat `OMNILEAD_AGENT_MODEL` / `OMNILEAD_AGENT_TRIAGE_MODEL`. Level thinking Gemini default `low` (sekitar 1 detik per giliran, 13,3 detik per pesan); `OMNILEAD_AGENT_THINKING=default` memakai bawaan model.
 
 Kanal: `instagram`, `facebook`, `whatsapp`, `email`. Komentar Instagram atau Facebook yang menanyakan harga
 menghasilkan balasan publik tanpa harga ditambah private reply berisi harga. Batas panjang: DM Instagram 1.000

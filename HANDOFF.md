@@ -2,6 +2,17 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
+## Status terbaru (22 Okt 2026, pagi)
+
+- Freeze kode Kamis 22 Okt **15.00**.
+- Branch kerja `feat/app-design-hitl` (dari `develop` setelah PR #10). Belum di-merge.
+- Live di Cloud Run `hackathon-primestep-03` / `asia-southeast2`: FE `omnilead` (https://omnilead-fgbrqs2gfq-et.a.run.app), BE `omnilead-api`
+  (SQLite, min=max=1), agen `omnilead-agent` (engine `adk`). Service lama `omnilead-fe` menunggu keputusan hapus.
+- Akun demo `juri@omnilead.id`, kata sandi di Secret Manager `demo-password`. Redeploy BE menghapus data dan
+  koneksi kanal; akun demo dan pesan contoh dibuat ulang otomatis.
+- Kanal belum diuji ke akun asli; kredensial Meta dan OAuth Gmail belum diisi. Langkahnya di `docs/demo-nyata.md`.
+- Komentar kode singkat, hanya di bagian penting, tanpa simbol atau emoji. Commit tanpa jejak AI.
+
 ## Penyelesaian konflik PR #3 (21 Okt 2026)
 
 - PR `refactor/canal-entry` diselaraskan dengan `develop` setelah PR #4 digabungkan.
@@ -49,7 +60,7 @@ Dari `~/.claude/CLAUDE.md` pengguna dan percakapan:
 ## 2. Apa proyek ini
 
 **OmniLead**: CRM agentic multi-kanal untuk UMKM Indonesia (hackathon). Agen menyiapkan balasan dan tindak lanjut,
-**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-5.0.md`
+**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-5.1.md`
 (versi isi 2.4; nama file tetap). Status terkini ada di PRD bagian "Status Implementasi" dan di `plan.md`.
 
 Tiga bagian di satu repo (`github.com/inRiza/OmniLead`, remote `origin`):

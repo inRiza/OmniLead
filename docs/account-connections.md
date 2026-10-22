@@ -139,7 +139,7 @@ Rujukan: [Private Replies](https://developers.facebook.com/docs/messenger-platfo
 - Refresh token diperoleh otomatis melalui offline access; tidak perlu mengisi
   `OMNILEAD_GMAIL_REFRESH_TOKEN` dalam mode login bisnis.
 - Untuk pembaruan inbox, aktifkan job `/scheduler/gmail-poll`. Jika memakai push,
-  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud).
+  konfigurasikan Pub/Sub, topic, push token, dan job watch sesuai [Lampiran B PRD](crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud).
 - Mode Testing dan penggunaan publik memiliki ketentuan masa berlaku serta verifikasi
   scope Google. Koneksi menampilkan **Hubungkan ulang** bila grant tidak lagi dapat dipakai.
 
@@ -147,6 +147,16 @@ Rujukan: [OAuth web server](https://developers.google.com/identity/protocols/oau
 [scope Gmail](https://developers.google.com/workspace/gmail/api/auth/scopes).
 
 ### WhatsApp
+
+**Cara cepat untuk demo: nomor uji Meta.** Di Akun & Integrasi, kartu WhatsApp menampilkan
+**Hubungkan nomor uji** bila `OMNILEAD_META_APP_SECRET` sudah diisi. Pemilik menempel Phone Number ID,
+WhatsApp Business Account ID, dan access token dari halaman API Setup Meta. Backend memeriksa ke Meta bahwa
+token itu dapat membaca daftar nomor WABA dan nomor tersebut ada di dalamnya, menolak nomor yang sudah
+dipakai bisnis lain, lalu berlangganan webhook WABA. Token disimpan terenkripsi dan tidak dikirim kembali ke
+browser. Token sementara berlaku 24 jam; untuk demo lebih aman memakai token System User. Diuji dengan HTTP
+tiruan (`tests/test_whatsapp_manual.py`), belum ke Meta sungguhan.
+
+**Alur lengkap untuk nomor bisnis: Embedded Signup.**
 
 - Siapkan aplikasi Meta, produk WhatsApp, dan konfigurasi **Embedded Signup / Facebook Login for Business**.
 - Isi `OMNILEAD_META_APP_ID`, `OMNILEAD_META_APP_SECRET`,

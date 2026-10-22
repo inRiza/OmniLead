@@ -1,12 +1,29 @@
 # Plan Implementasi OmniLead
 
+Pembaruan 22 Okt 2026 (freeze kode 15.00):
+
+- [x] Uji E2E lokal (agen, BE, FE lewat proxy, akun demo): 36 cek lulus setelah perbaikan crash katalog kosong,
+  akun demo tanpa knowledge base, dan draf aturan.
+- [x] Gemini lebih cepat: `thinking_level=low` dan tanpa giliran ringkasan; 40,9 menjadi 13,3 detik per kasus,
+  evalset 17/18 pass^3 (gagal S3).
+- [x] Guard: "DP 50%" bukan diskon; nama pelanggan lain dicocokkan sebagai kata utuh. Gabungan triage menjaga intent aturan.
+- [x] Koneksi nomor uji WhatsApp (Phone Number ID, WABA ID, token) diverifikasi ke Meta sebelum disimpan.
+- [x] Deploy Cloud Run: `omnilead` (link juri https://omnilead-fgbrqs2gfq-et.a.run.app), `omnilead-api`, `omnilead-agent` dengan engine `adk`.
+- [x] Akun demo berisi katalog di 4 kanal dan 4 pesan contoh yang dianalisis agen sungguhan.
+- [x] Landing menampilkan usulan agen, prioritas, dan persetujuan pemilik; aplikasi memakai design system landing,
+  satu logo, navigasi bawah di HP, dan teks tanpa istilah internal.
+- [x] Tes: BE 162, agen 57, FE 23 lulus.
+- [ ] Uji kanal nyata (Gmail, WhatsApp nomor uji, Instagram, Facebook): butuh kredensial dari tim.
+- [ ] Merge `feat/app-design-hitl` ke `develop`, deploy final, screenshot Revisions, tag `v1.0-freeze`.
+- [ ] README kontribusi anggota, bagian AI di SOURCES.md, deck seleksi, video cadangan.
+
 Pembaruan Facebook Page dan Gemini 21 Okt 2026:
 
 - [x] Kanal MVP ditetapkan (PRD 4.0): WhatsApp, email, Instagram, Facebook Page. LinkedIn/TikTok ke pengembangan lanjutan.
 - [x] Connector Facebook Page: komentar, Messenger, private reply; webhook `/webhooks/facebook`; Facebook Login dengan pemilihan Page; Facebook di dashboard dan landing.
 - [x] Gemini sungguhan: model terverifikasi (`gemini-3.8-flash`, `gemini-3.5-flash-lite`, location `global`); evalset engine `adk` 14/18 pass^3, ±41 detik per kasus.
 - [x] Image Docker agen dan BE dibangun dan jalan lokal. BE 98, agen 43, FE 22 tes lulus.
-- [ ] Percepat engine `adk` (jalur hybrid: aturan dulu, Gemini hanya bila perlu) dan perbaiki kasus gagal H3, H6, S3.
+- [x] Percepat engine `adk` dan perbaiki kasus gagal: selesai 22 Okt lewat `thinking_level=low` (13,3 detik, 17/18); jalur hybrid tidak diperlukan.
 - [ ] Uji Facebook Page dengan akun nyata (Facebook Login, webhook Page, Messenger).
 
 Pembaruan login/koneksi akun 21 Okt 2026:
@@ -25,8 +42,8 @@ Pembaruan login/koneksi akun 21 Okt 2026:
 - [ ] Aktivasi aplikasi dan kredensial provider oleh pengelola sekali, kemudian uji login/izin dengan akun nyata.
   Petunjuk: [docs/account-connections.md](docs/account-connections.md).
 
-Acuan: [PRD](docs/crm-agentic-multikanal-5.0.md) (bagian *Status Implementasi*), tiket di
-[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-5.0.md#lampiran-b-deploy-ke-google-cloud).
+Acuan: [PRD](docs/crm-agentic-multikanal-5.1.md) (bagian *Status Implementasi*), tiket di
+[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud).
 
 Per 21 Okt 2026 semua yang bisa dikerjakan tanpa kredensial platform **sudah ada di kode dan lulus tes** (BE 72,
 agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: tercatat di bawah.
