@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 6.0
+version: 6.1
 ---
 
 Label sumber data di dokumen ini:
@@ -17,6 +17,11 @@ Label sumber data di dokumen ini:
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
 - **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 6.1 (22 Okt 2026).** Tahap **Deal** dan **Batal** dari alur nyata: agen mengenali konfirmasi
+bayar atau DP dan pembatalan, lalu mengusulkan perubahan tahap (di izin Hybrid tetap menunggu pemilik karena
+berasal dari klaim pelanggan). Pemilik bisa mengubah tahap, nilai peluang, alasan batal, dan catatan lewat
+`PATCH /leads/{id}`; tanggal closing tersimpan. Label audit dilengkapi.
 
 **Versi 6.0 (22 Okt 2026).** Perubahan mayor pada prinsip kendali: **izin agen diatur pemilik**, seperti
 mode izin pada coding assistant. Tiga mode: **Selalu tanya** (default, setiap aksi menunggu persetujuan),
@@ -804,7 +809,7 @@ Bila Page belum berhasil dihubungkan saat demo, skenario ini dijalankan lewat
 | LinkedIn, TikTok, dan kanal lain | **Pengembangan lanjutan** | Kode dihapus 21 Okt 2026; lihat bagian Kanal |
 | CRM | **Nyata** | SQLite di instance Cloud Run `omnilead-api` (satu instance), cadangan SQLite di laptop. Adapter Firestore siap (diuji dengan fake), belum diuji ke Firestore sungguhan |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
-| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 17/18 pass^3, 13,3 detik per kasus (22 Okt); engine aturan 18/18, ±0,4 detik |
+| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 17/18 percobaan pertama, 15/18 sampai 17/18 pass^3 di dua run 22 Okt, 13–17 detik per kasus; engine aturan 18/18, ±0,4 detik |
 
 ## Keamanan dan Kendali Manusia
 
@@ -1490,7 +1495,7 @@ penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/
 akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
 pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
 dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
-Hasil pengujian terbaru (22 Okt 2026): BE 162, agen 57, FE 23; alur provider (termasuk Facebook dan
+Hasil pengujian terbaru (22 Okt 2026): BE 171, agen 60, FE 23; alur provider (termasuk Facebook dan
 nomor uji WhatsApp) diuji dengan HTTP tiruan. Uji E2E lokal lewat proxy FE: 36 cek lulus.
 
 Snapshot repo per 22 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
@@ -1499,7 +1504,7 @@ Snapshot repo per 22 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bu
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
 HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (22 Okt 2026), termasuk dari
 Cloud Run: evalset
-engine `adk` 17/18 pass^3, 13,3 detik per kasus (kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
+engine `adk` 17/18 percobaan pertama dan 15/18 sampai 17/18 pass^3 (dua run 22 Okt; kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
 check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 
 | Komponen | Prioritas | Status | Catatan |
@@ -1510,7 +1515,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Ingest + dedup + webhook WA/IG (signature) + push Gmail | Must | Selesai (tiruan) | Belum diuji ke Meta/Google sungguhan |
 | Executor WhatsApp, Gmail (thread), Instagram (DM, private reply) | Must/Should | Selesai (tiruan) | Jendela 24 jam, 7 hari, sekali per komentar dicek sebelum kirim |
 | Identitas: merge pasti otomatis, merge ambigu = usulan + bukti | Must | Selesai | Berbasis aturan (nama, perusahaan, handle), bukan LLM |
-| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 17/18, gagal di S3, 13,3 detik per kasus. Guard: "DP 50%" bukan diskon; nama pelanggan lain dicocokkan sebagai kata utuh |
+| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 17/18 percobaan pertama, pass^3 15/18 sampai 17/18, 7/7 kasus berbahaya pada run terbaru. Guard: "DP 50%" bukan diskon; nama pelanggan lain dicocokkan sebagai kata utuh |
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |
@@ -1522,6 +1527,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
 | Deploy Cloud Run (agen, BE, FE) | Must | Selesai | Berjalan di `asia-southeast2` dengan engine `adk`; link juri dan akun demo diuji dari luar. Cloud Scheduler belum dibuat |
 | Akun demo berisi katalog dan usulan nyata | Must | Selesai | Knowledge base katalog di 4 kanal; 4 pesan contoh dianalisis agen saat akun dibuat |
+| Tahap Deal/Batal dari percakapan dan ubah lead manual | Must | Selesai | Intent `konfirmasi_bayar` dan `batal_pesan`; `PATCH /leads/{id}`; `closed_at`; kartu Kelola lead; tes BE dan agen |
 | Izin agen: Selalu tanya, Hybrid, Percaya penuh | Must | Selesai | `autonomy.py`; pagar Guard, Jeda, dan batas platform di semua mode; 5 tes BE; pilihan di halaman Pengaturan, tombol Setujui/Edit/Salin & buka/Coba ulang di hasil kerja agen |
 | Koneksi nomor uji WhatsApp | Should | Selesai (tiruan) | Phone Number ID, WABA ID, token; diverifikasi ke Meta sebelum disimpan; 3 tes BE |
 | Persona P2 sebagai konfigurasi | Could | Selesai | `OMNILEAD_AGENT_PERSONA=fashion`: katalog, stok per ukuran, reseller, ambang skor; evalset 6 kasus |

@@ -173,8 +173,24 @@ class Lead(BaseModel):
     score: int | None = None
     label: str | None = None
     score_reason: str = ""
+    tags: list[str] = Field(default_factory=list)
+    notes: str = ""
+    estimated_value: int | None = None
+    lost_reason: str = ""
+    closed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+
+LEAD_STAGES = ("baru", "tertarik", "penawaran", "deal", "batal")
+CLOSED_STAGES = ("deal", "batal")
+
+
+def set_stage(lead: "Lead", stage: str, now: datetime) -> None:
+    """Ubah tahap lead; tanggal closing diisi saat masuk Deal atau Batal dan dikosongkan bila dibuka lagi."""
+    if stage != lead.stage:
+        lead.closed_at = now if stage in CLOSED_STAGES else None
+    lead.stage = stage
 
 
 class KnowledgeProduct(BaseModel):

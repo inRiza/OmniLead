@@ -1,6 +1,6 @@
 ---
 title: Tiket Kanban (salinan board 2ndbrain)
-related: ../plan.md, crm-agentic-multikanal-6.0.md
+related: ../plan.md, crm-agentic-multikanal-6.1.md
 updated: 2026-10-21
 ---
 
@@ -96,9 +96,9 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | Server MCP baca-saja + gateway | `omnilead-agent/src/omnilead_agent/mcp_server.py`, `gateway.py` |
 | Ekstraksi screenshot (Gemini multimodal) | `omnilead-agent/src/omnilead_agent/extract.py` |
 | Persona fashion wanita (P2) sebagai konfigurasi katalog | `omnilead-agent/data/catalog-fashion.json` |
-| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-6.0.md](crm-agentic-multikanal-6.0.md) |
+| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-6.1.md](crm-agentic-multikanal-6.1.md) |
 | Evalset 18 kasus + pass^3, evaluasi identitas | `omnilead-agent/eval/`, `omnilead-be/eval/` |
-| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-6.0.md#lampiran-b-deploy-ke-google-cloud) |
+| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-6.1.md#lampiran-b-deploy-ke-google-cloud) |
 | Landing page dan logo | `omnilead-fe/src/app/page.tsx`, `src/components/brand/Logo.tsx` |
 
 ## Usulan perubahan board

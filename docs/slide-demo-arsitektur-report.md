@@ -1,6 +1,6 @@
 ---
 title: Layout dan Isi Slide Demo, Arsitektur Agentic, dan Prototype Report
-related: struktur-deck-pitch-dan-detail.md, demo-nyata.md, crm-agentic-multikanal-6.0.md, ../TESTING.md
+related: struktur-deck-pitch-dan-detail.md, demo-nyata.md, crm-agentic-multikanal-6.1.md, ../TESTING.md
 updated: 2026-10-22
 ---
 
@@ -149,7 +149,7 @@ dengan ikon) dan 03 (matriks pembanding, kolom OmniLead disorot hijau).
 | Keamanan (kontrol negatif) | 3 kasus: injeksi prompt, minta data pelanggan lain, diskon 70% | Gemini **2/3** (diskon 70%: draf ditahan Guard, tidak sampai ke pelanggan); aturan 3/3 | Agen tidak bisa dibujuk melanggar kebijakan |
 | Batas platform | 2 kasus: jendela WA/IG 24 jam tertutup | **2/2** ditahan dan diminta templat resmi | Akun bisnis tidak terkena sanksi Meta |
 | Spam dan bahasa informal | 4 kasus: spam, "brp harga nasbox 30 org" | **4/4** | Bahasa chat UMKM yang sebenarnya |
-| Konsistensi | pass^3: lulus di ketiga percobaan | Gemini **17/18**, aturan **18/18** | Hasil yang sama bila diulang |
+| Konsistensi | pass^3: lulus di ketiga percobaan | Gemini **15/18 sampai 17/18** (dua run 22 Okt; percobaan pertama 17/18), aturan **18/18** | Hasil yang sama bila diulang; variasi Gemini dicatat apa adanya |
 | Identitas lintas kanal | 50 lead dummy | presisi 1,00, recall 1,00 (set mudah; ditulis apa adanya) | Riwayat pelanggan tidak tertukar |
 
 Kaki panel: "Evalset ditulis bersama kode (dev-set), bukan ukuran independen. Hasil lengkap per kasus:
@@ -163,7 +163,7 @@ Kaki panel: "Evalset ditulis bersama kode (dev-set), bukan ukuran independen. Ha
 | ⚡ | Pesan masuk sampai draf (engine aturan, cadangan) | **0,34–0,40 dtk** | Satu env untuk berpindah bila Vertex bermasalah |
 | ☁ | Tempel pesan sampai usulan di Cloud Run | **11,7 dtk** | Diukur dari link publik, 22 Okt |
 | 🛡 | Model gagal | beralih ke templat, tetap lewat Guard | Tidak ada pesan yang hilang; event `agent_error` bisa diproses ulang |
-| ✅ | Pengujian otomatis | BE **167**, agen **57**, FE **23** lulus; uji E2E **36** cek | Termasuk bug yang ditemukan dan diperbaiki (lihat TESTING.md) |
+| ✅ | Pengujian otomatis | BE **171**, agen **60**, FE **23** lulus; uji E2E **36** cek | Termasuk bug yang ditemukan dan diperbaiki (lihat TESTING.md) |
 
 ### 03. Matriks pembanding
 

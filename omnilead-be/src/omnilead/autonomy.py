@@ -21,7 +21,7 @@ RISKY_INTENTS = {"komplain", "minta_penawaran"}
 
 def is_low_risk(action: Action, event: Event | None) -> bool:
     if action.kind == ActionKind.CRM_UPDATE:
-        return True
+        return action.payload.get("stage") not in ("deal", "batal")
     if action.kind not in (ActionKind.SEND_MESSAGE, ActionKind.REPLY_COMMENT) or action.public:
         return False
     if MONEY.search(action.text):
