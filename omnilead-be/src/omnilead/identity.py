@@ -8,15 +8,56 @@ keyakinan yang harus disetujui manusia.
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 
 from omnilead.models import Lead
 
 THRESHOLD = 0.35
 _COMPANY_NOISE = re.compile(r"\b(pt|cv|ud|tbk)\b\.?", re.I)
+GMAIL_DOMAINS = {"gmail.com", "googlemail.com"}
+PLUS_DOMAINS = {"outlook.com", "hotmail.com", "live.com", "icloud.com", "me.com", "proton.me", "protonmail.com"}
+FREE_DOMAINS = GMAIL_DOMAINS | PLUS_DOMAINS | {"yahoo.com", "yahoo.co.id", "ymail.com", "aol.com", "mail.com"}
+
+
+def canon_email(raw: str | None) -> str | None:
+    if not raw or "@" not in raw:
+        return None
+    local, _, domain = raw.strip().lower().rpartition("@")
+    if not local or not domain:
+        return None
+    if domain in GMAIL_DOMAINS:
+        local, domain = local.split("+", 1)[0].replace(".", ""), "gmail.com"
+    elif domain in PLUS_DOMAINS:
+        local = local.split("+", 1)[0]
+    return f"{local}@{domain}"
+
+
+def email_domain(raw: str | None) -> str | None:
+    email = canon_email(raw)
+    if not email:
+        return None
+    domain = email.rpartition("@")[2]
+    return None if domain in FREE_DOMAINS else domain
+
+
+def identity_keys(lead: Lead) -> set[str]:
+    keys = {f"phone:{p}" for p in lead.phones if p}
+    keys |= {f"email:{e}" for e in (canon_email(x) for x in lead.emails) if e}
+    keys |= {f"handle:{h}" for h in lead.handles if h}
+    return keys
+
+
+HONORIFICS = {"kak", "kakak", "ka", "kk", "bu", "ibu", "pak", "bapak", "mbak", "mba", "mas", "bang", "abang",
+              "sis", "gan", "om", "tante", "dek", "adik", "bunda", "ayah", "teh", "aa", "kang", "uni", "uda",
+              "dr", "ir", "hj", "h"}
 
 
 def _tokens(name: str | None) -> list[str]:
-    return [t for t in re.findall(r"[a-z]+", (name or "").lower()) if len(t) >= 3]
+    return [t for t in re.findall(r"[a-z]+", (name or "").lower()) if len(t) >= 3 and t not in HONORIFICS]
+
+
+def _similar(a: str, b: str, ratio: float) -> bool:
+    return a == b or SequenceMatcher(None, a, b).ratio() >= ratio
 
 
 def _strip_dummy(name: str | None) -> str:
@@ -50,6 +91,19 @@ def score_pair(
         elif a[0] == b[0]:
             score += 0.35
             evidence.append(f"Nama depan sama: {a[0].title()}")
+        elif len(a) == len(b) and all(_similar(x, y, 0.8) for x, y in zip(a, b)):
+            score += 0.4
+            evidence.append(f"Nama mirip: {existing.name}")
+        elif _similar(a[0], b[0], 0.8):
+            score += 0.25
+            evidence.append(f"Nama depan mirip: {a[0].title()} dan {b[0].title()}")
+
+    domains_new = {d for d in (email_domain(e) for e in new.emails) if d}
+    domains_old = {d for d in (email_domain(e) for e in existing.emails) if d}
+    shared = domains_new & domains_old
+    if shared:
+        score += 0.3
+        evidence.append(f"Domain email kantor sama: {sorted(shared)[0]}")
 
     cmp_new = norm_company(company_hint or new.company)
     cmp_old = norm_company(existing.company)

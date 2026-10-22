@@ -18,8 +18,10 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from omnilead.identity import identity_keys
 from omnilead.models import (
     Action,
+    ActionKind,
     ActionStatus,
     AppSettings,
     AuditEntry,
@@ -72,7 +74,8 @@ class FirestoreStore:
         return query
 
     def reset(self) -> None:
-        for name in ("actions", "audit", "leads", "events", "event_keys", "settings", "knowledge"):
+        for name in ("actions", "audit", "leads", "events", "event_keys", "settings", "knowledge",
+                     "lead_identity", "jobs", "meta"):
             for doc in self._db.collection(name).stream():
                 doc.reference.delete()
 
@@ -83,17 +86,31 @@ class FirestoreStore:
             "data": action.model_dump_json(),
             "status": action.status.value,
             "created_at": action.created_at.isoformat(),
+            "lead_id": action.lead_id,
+            "kind": action.kind.value,
         })
 
     def get_action(self, action_id: str) -> Action | None:
         snap = self._db.collection("actions").document(action_id).get()
         return Action.model_validate_json(snap.to_dict()["data"]) if snap.exists else None
 
-    def list_actions(self, status: ActionStatus | None = None) -> list[Action]:
-        query = self._where("actions", status=status.value) if status else self._db.collection("actions")
+    def list_actions(
+        self,
+        status: ActionStatus | None = None,
+        *,
+        lead_id: str | None = None,
+        kind: ActionKind | None = None,
+        limit: int | None = None,
+    ) -> list[Action]:
+        equals = {k: v for k, v in (("status", status.value if status else None), ("lead_id", lead_id),
+                                    ("kind", kind.value if kind else None)) if v is not None}
+        first = next(iter(equals.items()), None)
+        query = self._where("actions", **dict([first])) if first else self._db.collection("actions")
         rows = [d.to_dict() for d in query.stream()]
-        rows.sort(key=lambda r: r["created_at"], reverse=True)
-        return [Action.model_validate_json(r["data"]) for r in rows]
+        actions = [Action.model_validate_json(r["data"]) for r in sorted(rows, key=lambda r: r["created_at"], reverse=True)]
+        actions = [a for a in actions if (status is None or a.status == status) and (lead_id is None or a.lead_id == lead_id)
+                   and (kind is None or a.kind == kind)]
+        return actions[:limit] if limit is not None else actions
 
     # --- audit ---
 
@@ -128,21 +145,61 @@ class FirestoreStore:
             channel=r["channel"], lead_id=r["lead_id"],
         )
 
-    def list_audit(self, limit: int = 100, channel: str | None = None) -> list[AuditEntry]:
-        query = self._where("audit", channel=channel) if channel else self._db.collection("audit")
+    def list_audit(
+        self,
+        limit: int = 100,
+        channel: str | None = None,
+        *,
+        lead_id: str | None = None,
+        event: str | None = None,
+        actor: str | None = None,
+        before_id: int | None = None,
+    ) -> list[AuditEntry]:
+        equals = {k: v for k, v in (("channel", channel), ("lead_id", lead_id), ("event", event), ("actor", actor))
+                  if v is not None}
+        query = self._where("audit", **equals) if equals else self._db.collection("audit")
         rows = [d.to_dict() for d in query.stream()]
+        if before_id is not None:
+            rows = [r for r in rows if r["seq"] < before_id]
         rows.sort(key=lambda r: r["seq"], reverse=True)
         return [self._audit_entry(r) for r in rows[:limit]]
 
     def count_audit_since(self, event: str, channel: str, since: timedelta) -> int:
         cutoff = (_now() - since).isoformat()
-        rows = (d.to_dict() for d in self._where("audit", event=event).stream())
-        return sum(1 for r in rows if r["channel"] == channel and r["ts"] >= cutoff)
+        rows = (d.to_dict() for d in self._where("audit", event=event, channel=channel).stream())
+        return sum(1 for r in rows if r["ts"] >= cutoff)
 
     # --- leads ---
 
     def save_lead(self, lead: Lead) -> None:
         self._db.collection("leads").document(lead.id).set({"data": lead.model_dump_json()})
+        self._index_lead(lead)
+
+    @staticmethod
+    def _identity_doc(key: str, lead_id: str) -> str:
+        return f"{key}|{lead_id}".replace("/", "_")
+
+    def _index_lead(self, lead: Lead) -> None:
+        col = self._db.collection("lead_identity")
+        keys = identity_keys(lead)
+        for doc in self._where("lead_identity", lead_id=lead.id).stream():
+            if doc.to_dict()["key"] not in keys:
+                doc.reference.delete()
+        for key in keys:
+            col.document(self._identity_doc(key, lead.id)).set({"key": key, "lead_id": lead.id})
+
+    def _ensure_identity_index(self) -> None:
+        marker = self._db.collection("meta").document("identity_index")
+        if marker.get().exists:
+            return
+        for doc in self._db.collection("leads").stream():
+            self._index_lead(Lead.model_validate_json(doc.to_dict()["data"]))
+        marker.set({"built_at": _now().isoformat()})
+
+    def find_leads_by_identity(self, key: str) -> list[Lead]:
+        self._ensure_identity_index()
+        ids = {d.to_dict()["lead_id"] for d in self._where("lead_identity", key=key).stream()}
+        return [lead for lead in (self.get_lead(i) for i in sorted(ids)) if lead is not None]
 
     def get_lead(self, lead_id: str) -> Lead | None:
         snap = self._db.collection("leads").document(lead_id).get()
@@ -150,6 +207,8 @@ class FirestoreStore:
 
     def delete_lead(self, lead_id: str) -> None:
         self._db.collection("leads").document(lead_id).delete()
+        for doc in self._where("lead_identity", lead_id=lead_id).stream():
+            doc.reference.delete()
 
     def list_leads(self) -> list[Lead]:
         leads = [Lead.model_validate_json(d.to_dict()["data"]) for d in self._db.collection("leads").stream()]
@@ -163,10 +222,9 @@ class FirestoreStore:
         for event in self.list_events(lead_id=old_id, limit=10_000):
             event.lead_id = new_id
             self.save_event(event)
-        for action in self.list_actions():
-            if action.lead_id == old_id:
-                action.lead_id = new_id
-                self.save_action(action)
+        for action in self.list_actions(lead_id=old_id):
+            action.lead_id = new_id
+            self.save_action(action)
 
     # --- events ---
 
@@ -200,11 +258,48 @@ class FirestoreStore:
             "ts": (event.ts or _now()).isoformat(),
         })
 
-    def list_events(self, lead_id: str | None = None, limit: int = 200) -> list[Event]:
+    def list_events(self, lead_id: str | None = None, limit: int = 200, *, before: datetime | None = None) -> list[Event]:
         query = self._where("events", lead_id=lead_id) if lead_id else self._db.collection("events")
         rows = [d.to_dict() for d in query.stream()]
+        if before is not None:
+            rows = [r for r in rows if r["ts"] < before.isoformat()]
         rows.sort(key=lambda r: r["ts"], reverse=True)
         return [Event.model_validate_json(r["data"]) for r in rows[:limit]]
+
+    def enqueue_job(self, job_id: str, payload: dict) -> bool:
+        now = _now().isoformat()
+        ref = self._db.collection("jobs").document(job_id.replace("/", "_"))
+        try:
+            ref.create({"id": job_id, "payload": json.dumps(payload), "status": "pending", "attempts": 0,
+                        "error": "", "created_at": now, "updated_at": now})
+            return True
+        except self._already_exists:
+            return False
+
+    def get_job(self, job_id: str) -> dict | None:
+        snap = self._db.collection("jobs").document(job_id.replace("/", "_")).get()
+        if not snap.exists:
+            return None
+        row = snap.to_dict()
+        return {**row, "payload": json.loads(row["payload"])}
+
+    def list_jobs(self, statuses: tuple[str, ...], older_than: timedelta | None = None, limit: int = 100) -> list[dict]:
+        cutoff = (_now() - (older_than or timedelta(0))).isoformat()
+        rows = []
+        for status in statuses:
+            rows += [d.to_dict() for d in self._where("jobs", status=status).stream()]
+        rows = sorted((r for r in rows if r["updated_at"] <= cutoff), key=lambda r: r["created_at"])[:limit]
+        return [{**r, "payload": json.loads(r["payload"])} for r in rows]
+
+    def update_job(self, job_id: str, status: str, error: str = "", attempt: bool = False) -> None:
+        ref = self._db.collection("jobs").document(job_id.replace("/", "_"))
+        snap = ref.get()
+        if not snap.exists:
+            return
+        row = snap.to_dict()
+        row.update(status=status, error=error[:500], updated_at=_now().isoformat(),
+                   attempts=row.get("attempts", 0) + (1 if attempt else 0))
+        ref.set(row)
 
     # --- settings ---
 

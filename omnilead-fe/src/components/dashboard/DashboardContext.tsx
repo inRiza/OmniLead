@@ -83,11 +83,19 @@ interface DashboardState {
   channels: ChannelStatus[];
   audit: AuditEntry[];
   summary: SummaryItem[];
+  /** aksi yang menunggu keputusan atau tindakan manual pengguna */
+  pendingCount: number;
   refresh: () => Promise<void>;
   togglePause: () => Promise<void>;
   setChannelEnabled: (channel: string, enabled: boolean) => Promise<void>;
   setDryRun: (value: boolean) => Promise<void>;
+  autonomy: "manual" | "hybrid" | "auto";
+  setAutonomy: (value: "manual" | "hybrid" | "auto") => Promise<void>;
+  approve: (id: string, editedText?: string) => Promise<void>;
   reject: (id: string, reason: string) => Promise<void>;
+  feedback: (id: string, rating: "good" | "bad", reason?: string) => Promise<void>;
+  retry: (id: string) => Promise<void>;
+  markSent: (id: string) => Promise<void>;
 }
 
 const Ctx = createContext<DashboardState | null>(null);
@@ -175,6 +183,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       channels: raw.channels.map(adaptChannel),
       audit: raw.audit.map(adaptAudit),
       summary: raw.summary.map(adaptSummary),
+      pendingCount: raw.actions.filter((a) => ACTIONABLE.has(a.status)).length,
     };
   }, [raw]);
 
@@ -204,7 +213,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setChannelEnabled: (channel, enabled) =>
       mutate(() => api.setChannelEnabled(channel, enabled)),
     setDryRun: (v) => mutate(() => api.patchSettings({ dry_run: v })),
+    autonomy: raw.settings?.autonomy ?? "manual",
+    setAutonomy: (v) => mutate(() => api.patchSettings({ autonomy: v })),
+    approve: (id, text) => mutate(() => api.approve(id, text)),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),
+    feedback: (id, rating, reason) => mutate(() => api.feedback(id, rating, reason)),
+    retry: (id) => mutate(() => api.retry(id)),
+    markSent: (id) => mutate(() => api.markSent(id)),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

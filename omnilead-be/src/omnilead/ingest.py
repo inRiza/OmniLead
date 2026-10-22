@@ -15,7 +15,9 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 from omnilead.agent_client import AgentClient, AgentResult, AgentUnavailable
+from omnilead.approvals.executor import ChannelDisabled, Paused, RateLimited
 from omnilead.approvals.queue import ApprovalQueue
+from omnilead.autonomy import auto_approvable
 from omnilead.models import (
     Action,
     ActionKind,
@@ -25,7 +27,8 @@ from omnilead.models import (
     Lead,
     ProposedAction,
 )
-from omnilead.identity import find_candidates
+from omnilead.dedup import excluded_pairs, propose_merge, scan_duplicates
+from omnilead.identity import canon_email
 from omnilead.store import Store
 from omnilead.analysis_state import visible_analysis_state
 
@@ -68,11 +71,69 @@ def identifiers(ev: EventIn) -> dict[str, str | None]:
     }
 
 
+LABEL = {"phone": "Nomor HP", "email": "Email", "handle": "Akun"}
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+PHONE_RE = re.compile(r"(?<![\d+])(?:\+?62|0)8[\d\s.-]{7,14}\d")
+
+
+def _item(kind: str, value: str | None) -> tuple[str, str, str] | None:
+    if not value:
+        return None
+    key = f"email:{canon_email(value)}" if kind == "email" else f"{kind}:{value}"
+    return kind, value, key
+
+
+def identity_items(ev: EventIn) -> list[tuple[str, str, str]]:
+    ids = identifiers(ev)
+    items = [_item("phone", ids["phone"]), _item("email", ids["email"]), _item("handle", ids["handle"])]
+    username = ev.meta.get("username") if isinstance(ev.meta, dict) else None
+    alias = handle_key(ev.channel, username) if username else None
+    if alias and alias != ids["handle"]:
+        items.append(_item("handle", alias))
+    seen: set[str] = set()
+    out = []
+    for item in items:
+        if item and item[2] not in seen:
+            seen.add(item[2])
+            out.append(item)
+    return out
+
+
+def mentioned_contacts(text: str) -> list[tuple[str, str, str]]:
+    out: list[tuple[str, str, str]] = []
+    for raw in EMAIL_RE.findall(text or ""):
+        item = _item("email", norm_email(raw))
+        if item:
+            out.append(item)
+    for raw in PHONE_RE.findall(text or ""):
+        item = _item("phone", norm_phone(raw))
+        if item and len(item[1]) >= 10:
+            out.append(item)
+    return list({i[2]: i for i in out}.values())
+
+
 class IngestService:
-    def __init__(self, store: Store, queue: ApprovalQueue, agent: AgentClient):
+    def __init__(
+        self,
+        store: Store,
+        queue: ApprovalQueue,
+        agent: AgentClient,
+        executor=None,
+        on_proposed: Callable[[Action, Event], Action] | None = None,
+        profile: Callable[[], dict] | None = None,
+    ):
         self._store = store
         self._queue = queue
         self._agent = agent
+        self._executor = executor
+        self._on_proposed = on_proposed
+        self._profile = profile
+        self._conflicts: list[tuple[Lead, list[str]]] = []
+        self._identity_added = False
+
+    @property
+    def store(self) -> Store:
+        return self._store
 
     # --- public ---
 
@@ -90,10 +151,12 @@ class IngestService:
             return existing, True
 
         lead, created = self._resolve_lead(ev)
+        identity_added = self._identity_added
         event = Event(**ev.model_dump(), id=str(uuid.uuid4()), lead_id=lead.id)
         if event.ts is None:
             event.ts = datetime.now(timezone.utc)
         self._store.save_event(event)
+        self._merge_conflicts(event)
         self._store.audit(
             "event_received",
             f"{event.kind} dari {event.sender.handle or event.sender.email or event.sender.phone or '-'}",
@@ -103,15 +166,15 @@ class IngestService:
         )
         if defer_analysis:
             event = self.prepare(event)
-            defer_analysis(event, created)
+            defer_analysis(event, created or identity_added)
             return event, False
-        event = self.process_created(event, created)
+        event = self.process_created(event, created, identity_added)
         return event, False
 
-    def process_created(self, event: Event, created: bool) -> Event:
+    def process_created(self, event: Event, created: bool, identity_added: bool = False) -> Event:
         expected_run = (event.trace or {}).get("run_id")
         event = self.process(event, expected_run_id=expected_run)
-        if (created and event.status in ("analyzed", "review")
+        if ((created or identity_added) and event.status in ("analyzed", "review")
                 and (not expected_run or (event.trace or {}).get("run_id") == expected_run)):
             self._propose_merges(event)
         return event
@@ -216,6 +279,16 @@ class IngestService:
             )
             return event
 
+    def _autopilot(self, action, event: Event) -> None:
+        mode = self._store.get_settings().autonomy
+        if self._executor is None or not auto_approvable(action, event, mode):
+            return
+        approved = self._queue.auto_approve(action.id, mode)
+        try:
+            self._executor.execute(approved)
+        except (Paused, ChannelDisabled, RateLimited) as exc:
+            self._queue.return_to_owner(action.id, str(exc))
+
     def reprocess_held(self) -> list[Event]:
         held = [e for e in self._store.list_events(limit=1000) if e.status == "held"]
         return [self.process(e) for e in reversed(held)]
@@ -223,30 +296,26 @@ class IngestService:
     # --- identity ---
 
     def _resolve_lead(self, ev: EventIn) -> tuple[Lead, bool]:
-        """Mengembalikan (lead, baru_dibuat)."""
-        ids = identifiers(ev)
-        matched: Lead | None = None
-        matched_by: str | None = None
-        for lead in self._store.list_leads():
-            for kind, value in ids.items():
-                pool = {"phone": lead.phones, "email": lead.emails, "handle": lead.handles}[kind]
-                if value and value in pool:
-                    matched, matched_by = lead, kind
-                    break
-            if matched:
-                break
+        items = identity_items(ev)
+        owners: dict[str, Lead] = {}
+        owned_by: dict[str, set[str]] = {}
+        for kind, value, key in items:
+            for found in self._store.find_leads_by_identity(key):
+                owners.setdefault(found.id, found)
+                owned_by.setdefault(key, set()).add(found.id)
 
         now = datetime.now(timezone.utc)
-        if matched is None:
+        self._conflicts = []
+        self._identity_added = False
+        if not owners:
             lead = Lead(
                 id=str(uuid.uuid4()),
                 name=ev.sender.name or ev.sender.handle or None,
-                phones=[ids["phone"]] if ids["phone"] else [],
-                emails=[ids["email"]] if ids["email"] else [],
-                handles=[ids["handle"]] if ids["handle"] else [],
                 created_at=now,
                 updated_at=now,
             )
+            for kind, value, key in items:
+                self._attach(lead, kind, value, key, "created", 1.0, ev.channel, now)
             self._store.save_lead(lead)
             self._store.audit(
                 "lead_created", lead.name or lead.id, actor="ingest",
@@ -254,17 +323,27 @@ class IngestService:
             )
             return lead, True
 
+        ranked = [lid for kind, value, key in items for lid in sorted(owned_by.get(key, ()))]
+        matched = owners[ranked[0]]
+        matched_by = next(kind for kind, value, key in items if matched.id in owned_by.get(key, ()))
+        others = [owners[lid] for lid in dict.fromkeys(ranked) if lid != matched.id]
+        for other in others:
+            shared = [f"{LABEL[kind]} sama: {value}" for kind, value, key in items if other.id in owned_by.get(key, ())]
+            self._conflicts.append((other, shared))
+
         added: list[str] = []
-        for kind, value in ids.items():
-            pool = {"phone": matched.phones, "email": matched.emails, "handle": matched.handles}[kind]
-            if value and value not in pool:
-                pool.append(value)
+        for kind, value, key in items:
+            holders = owned_by.get(key, set())
+            if holders and holders != {matched.id}:
+                continue
+            if self._attach(matched, kind, value, key, "exact", 1.0, ev.channel, now):
                 added.append(f"{kind}={value}")
         if ev.sender.name and not matched.name:
             matched.name = ev.sender.name
         if added:
             matched.updated_at = now
             self._store.save_lead(matched)
+            self._identity_added = True
             self._store.audit(
                 "identity_merged",
                 f"Cocok pasti lewat {matched_by}; identitas baru ditambahkan: {', '.join(added)}",
@@ -272,42 +351,63 @@ class IngestService:
                 channel=ev.channel.value,
                 lead_id=matched.id,
             )
+        if others:
+            self._store.audit(
+                "identity_conflict",
+                f"Identitas pesan ini juga tercatat di {', '.join(o.name or o.id for o in others)}; usulan gabung dibuat",
+                actor="ingest",
+                channel=ev.channel.value,
+                lead_id=matched.id,
+            )
         return matched, False
 
+    @staticmethod
+    def _attach(lead: Lead, kind: str, value: str, key: str, source: str, confidence: float,
+                channel: Channel, now: datetime) -> bool:
+        pool = {"phone": lead.phones, "email": lead.emails, "handle": lead.handles}[kind]
+        if kind == "email":
+            present = any(canon_email(e) == canon_email(value) for e in pool)
+        else:
+            present = value in pool
+        if not present:
+            pool.append(value)
+        if key not in lead.identity_sources:
+            lead.identity_sources[key] = {"source": source, "confidence": confidence,
+                                          "channel": channel.value, "at": now.isoformat()}
+        return not present
+
+    def _merge_conflicts(self, event: Event) -> None:
+        lead = self._store.get_lead(event.lead_id) if event.lead_id else None
+        if lead is None:
+            return
+        excluded = excluded_pairs(self._store)
+        for other, shared in getattr(self, "_conflicts", []):
+            current = self._store.get_lead(other.id)
+            if current is None:
+                continue
+            propose_merge(self._store, self._queue, current, lead, 0.97, shared, event.channel,
+                          event_id=event.id, trace=event.trace, excluded=excluded, on_proposed=self._on_proposed)
+        mentioned = mentioned_contacts(event.text)
+        if mentioned:
+            event.meta = {**event.meta, "mentioned_contacts": [v for _, v, _ in mentioned]}
+            self._store.save_event(event)
+        for kind, value, key in mentioned:
+            for owner in self._store.find_leads_by_identity(key):
+                if owner.id == lead.id:
+                    continue
+                propose_merge(self._store, self._queue, lead, owner, 0.85,
+                              [f"{LABEL[kind]} {value} disebut di pesan dan tercatat di profil {owner.name or owner.id}"],
+                              event.channel, event_id=event.id, trace=event.trace, excluded=excluded,
+                              on_proposed=self._on_proposed)
+
     def _propose_merges(self, event: Event) -> None:
-        """Identitas ambigu: usulkan merge beserta bukti. Tidak pernah menggabung sendiri."""
         lead = self._store.get_lead(event.lead_id) if event.lead_id else None
         if lead is None:
             return
         company = ((event.triage or {}).get("entities") or {}).get("company")
-        others = self._store.list_leads()
-        pending = {
-            (a.payload.get("source_lead_id"), a.payload.get("target_lead_id"))
-            for a in self._store.list_actions()
-            if a.kind == ActionKind.MERGE and a.status.value == "pending"
-        }
-        for cand in find_candidates(lead, others, company):
-            if (lead.id, cand.lead.id) in pending:
-                continue
-            self._queue.propose(
-                ProposedAction(
-                    channel=event.channel,
-                    kind=ActionKind.MERGE,
-                    reason=(
-                        f"Kemungkinan orang yang sama dengan {cand.lead.name} "
-                        f"(keyakinan {int(cand.confidence * 100)}%)"
-                    ),
-                    payload={
-                        "source_lead_id": lead.id,
-                        "target_lead_id": cand.lead.id,
-                        "confidence": cand.confidence,
-                        "evidence": cand.evidence,
-                    },
-                    lead_id=lead.id,
-                    event_id=event.id,
-                    trace=event.trace,
-                )
-            )
+        scan_duplicates(self._store, self._queue, lead_ids=[lead.id], company_hint=company,
+                        channel=event.channel, event_id=event.id, trace=event.trace,
+                        on_proposed=self._on_proposed)
 
     # --- agent I/O ---
 
@@ -355,7 +455,8 @@ class IngestService:
         }
         if self._queue.account_bindings is not None or settings.agent_channels:
             from omnilead.knowledge import build_context
-            payload["business_context"] = build_context(self._store, event.channel.value, event.text)
+            payload["business_context"] = build_context(self._store, event.channel.value, event.text,
+                                                        profile=self._profile() if self._profile else None)
         return payload
 
     def _lead_context(self, event: Event, lead: Lead) -> dict:
@@ -368,8 +469,8 @@ class IngestService:
                 {"ts": e.ts.isoformat() if e.ts else None, "channel": e.channel.value,
                  "direction": "in", "text": e.text},
             ))
-        for a in self._store.list_actions():
-            if a.lead_id == lead.id and a.result_ref and a.text:
+        for a in self._store.list_actions(lead_id=lead.id):
+            if a.result_ref and a.text:
                 items.append((
                     a.created_at.isoformat(),
                     {"ts": a.created_at.isoformat(), "channel": a.channel.value,
@@ -420,19 +521,23 @@ class IngestService:
                 lead_id=event.lead_id,
             )
 
-        queued = 0
+        queued: list[Action] = []
         for p in result.proposals:
             action = self._to_action(p, event)
             if action is None:
                 continue
-            self._queue.propose(action)
-            queued += 1
+            proposed = self._queue.propose(action)
+            queued.append(proposed)
+            if self._on_proposed:
+                self._on_proposed(proposed, event)
+            else:
+                self._autopilot(proposed, event)
 
         event.status = "review" if result.flagged_for_review else "analyzed"
         self._store.save_event(event)
         self._store.audit(
             "event_analyzed",
-            f"{queued} usulan masuk antrean; {result.trace.get('guard_summary', '')}".strip("; "),
+            f"{len(queued)} usulan masuk antrean; {result.trace.get('guard_summary', '')}".strip("; "),
             actor="agent",
             channel=event.channel.value,
             lead_id=event.lead_id,

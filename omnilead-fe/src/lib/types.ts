@@ -145,6 +145,8 @@ export interface ProposedAction {
   internal: boolean;
   isPublic: boolean;
   error?: string;
+  deliveryStatus?: "sent" | "delivered" | "read" | "failed" | null;
+  feedback?: { rating: "good" | "bad"; reason: string; at: string }[];
   /** Data tambahan dari agen (mis. merge: source/target, bukti, keyakinan). */
   payload: Record<string, unknown>;
 }
@@ -157,7 +159,16 @@ export interface TimelineEntry {
 }
 
 export interface LeadDetail {
-  lead: LeadProfile & { phones: string[]; emails: string[]; handles: string[]; scoreReason: string };
+  lead: LeadProfile & {
+    phones: string[];
+    emails: string[];
+    handles: string[];
+    scoreReason: string;
+    notes?: string;
+    estimatedValue?: number | null;
+    lostReason?: string;
+    tags?: string[];
+  };
   timeline: TimelineEntry[];
   mergeEvidence: { id: number; ts: string; detail: string }[];
   /** Merge yang sudah dieksekusi dan masih bisa dipisah. */

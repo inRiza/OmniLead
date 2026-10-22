@@ -28,6 +28,8 @@ from omnilead.connectors.base import (
     ChannelConnector,
     ConnectorError,
     NotConnected,
+    TransientError,
+    error_for_status,
 )
 from omnilead.models import Capability, Channel, ChannelStatus, Comment, EventIn, Post, Sender
 
@@ -105,7 +107,7 @@ class GmailConnector(ChannelConnector):
                 },
             )
         except httpx.HTTPError as exc:
-            raise ConnectorError(f"Google OAuth tidak terjangkau: {exc}") from exc
+            raise TransientError(f"Google OAuth tidak terjangkau: {exc}") from exc
         body = _json(resp)
         if resp.status_code >= 400 or "access_token" not in body:
             # refresh token mode Testing kedaluwarsa ±7 hari
@@ -126,7 +128,7 @@ class GmailConnector(ChannelConnector):
                 **kw,
             )
         except httpx.HTTPError as exc:
-            raise ConnectorError(f"Gmail API tidak terjangkau: {exc}") from exc
+            raise TransientError(f"Gmail API tidak terjangkau: {exc}") from exc
         body = _json(resp)
         if resp.status_code == 401:
             self._access_token = ""
@@ -134,7 +136,7 @@ class GmailConnector(ChannelConnector):
         if resp.status_code >= 400:
             err = body.get("error", {})
             msg = err.get("message", body) if isinstance(err, dict) else err
-            raise ConnectorError(f"Gmail API error {resp.status_code}: {msg}")
+            raise error_for_status(resp.status_code, f"Gmail API error {resp.status_code}: {msg}")
         return body
 
     # --- kirim ---

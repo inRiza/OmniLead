@@ -27,6 +27,12 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
         "tidak sesuai", "ga sesuai", "mengecewakan", "zonk", "parah", "refund",
     ),
     "follow_up": ("follow up", "gimana kabar", "belum dibalas", "sudah dua kali", "udah 2x", "kok belum"),
+    # Konfirmasi bayar memakai frasa lengkap: "DP-nya berapa?" adalah pertanyaan, bukan pembayaran.
+    "konfirmasi_bayar": (
+        "sudah transfer", "udah transfer", "sudah tf", "udah tf", "sudah ditransfer", "bukti transfer",
+        "sudah bayar", "udah bayar", "sudah dp", "udah dp", "dp sudah", "dp udah", "sudah lunas", "udah lunas",
+    ),
+    "batal_pesan": ("ga jadi", "gak jadi", "nggak jadi", "tidak jadi", "batal pesan", "batalin", "cancel pesanan"),
 }
 NOT_PRICE = re.compile(r"\b(jam|pukul)\s+(berapa|brp)\b|\b(berapa|brp)\s+(lama|hari|jam|menit)\b")
 SPAM_KEYWORDS = (

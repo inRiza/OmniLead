@@ -121,6 +121,8 @@ export interface BeAction {
   error: string | null;
   reject_reason: string | null;
   result_ref: string | null;
+  delivery_status?: "sent" | "delivered" | "read" | "failed" | null;
+  feedback?: { rating: "good" | "bad"; reason: string; at: string }[];
 }
 
 export interface BeLead {
@@ -135,9 +137,16 @@ export interface BeLead {
   score: number | null;
   label: string | null;
   score_reason: string;
+  tags?: string[];
+  notes?: string;
+  estimated_value?: number | null;
+  lost_reason?: string;
+  closed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type LeadPatch = Partial<{ stage: string; notes: string; estimated_value: number; lost_reason: string; tags: string[] }>;
 
 export interface BeCapability {
   action: string;
@@ -199,6 +208,8 @@ export interface BeSettings {
   dry_run: boolean;
   preferences: string[];
   rate_limit_per_hour: number;
+  autonomy?: "manual" | "hybrid" | "auto";
+  auto_merge_threshold?: number;
 }
 
 export interface BeAgentHealth {
@@ -345,6 +356,8 @@ export const api = {
   settings: () => request<BeSettings>("/settings"),
   agentHealth: () => request<BeAgentHealth>("/agent/health"),
   leadDetail: (id: string) => request<BeLeadDetail>(`/leads/${id}`),
+  updateLead: (id: string, patch: LeadPatch) =>
+    request<BeLead>(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   summary: () => request<BeSummaryItem[]>("/summary/today"),
   contentIdeas: () => request<BeContentIdeas>("/content-ideas"),
   pasteText: (body: { channel: string; text: string; handle?: string; name?: string }) =>
@@ -357,6 +370,11 @@ export const api = {
   reject: (id: string, reason: string) =>
     post<BeAction>(`/actions/${id}/reject`, { reason }),
   retry: (id: string) => post<BeAction>(`/actions/${id}/retry`),
+  feedback: (id: string, rating: "good" | "bad", reason = "") =>
+    post<BeAction>(`/actions/${id}/feedback`, { rating, reason }),
+  mergeLeads: (targetId: string, sourceId: string) =>
+    post<BeAction>(`/leads/${targetId}/merge`, { source_lead_id: sourceId }),
+  findDuplicates: () => post<{ proposed: number; merged: number }>("/leads/find-duplicates"),
   undoMerge: (id: string) => post<BeAction>(`/actions/${id}/undo-merge`),
   markSent: (id: string) => post<BeAction>(`/actions/${id}/sent`),
   handoff: (id: string) => request<HandoffPackage>(`/actions/${id}/handoff`),
@@ -371,7 +389,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ enabled }),
     }),
-  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences">>) =>
+  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences" | "autonomy" | "auto_merge_threshold">>) =>
     request<BeSettings>("/settings", {
       method: "PATCH",
       body: JSON.stringify(patch),

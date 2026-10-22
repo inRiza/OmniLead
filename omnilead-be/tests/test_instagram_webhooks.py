@@ -93,7 +93,7 @@ def signed_post(client, payload):
 
 
 @pytest.mark.parametrize("shape", ["changes", "messaging"])
-def test_signed_message_routes_only_to_own_workspace(app, monkeypatch, shape):
+def test_signed_message_routes_only_to_own_workspace(app, monkeypatch, shape, tmp_path):
     client = TestClient(app)
     user = signup(client)
     deps.get_accounts().claim_asset("instagram", "123", user["workspace_id"])
@@ -101,7 +101,11 @@ def test_signed_message_routes_only_to_own_workspace(app, monkeypatch, shape):
     get_settings.cache_clear()
     received = []
 
+    from omnilead.store import Store as JobStore
+
     class Ingest:
+        store = JobStore(tmp_path / "jobs.db")
+
         def ingest(self, event):
             received.append(event)
 

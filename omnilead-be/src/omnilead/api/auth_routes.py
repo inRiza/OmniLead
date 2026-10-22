@@ -1,21 +1,20 @@
+import logging
 import re
 import time
-from collections import defaultdict, deque
-from threading import Lock
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from omnilead.accounts import COOKIE, digest, hash_password, password_matches
+from omnilead.accounts import COOKIE, MANAGERS, ROLES, digest, hash_password, password_matches
 from omnilead.api.deps import current_user, get_accounts, get_oauth, store_for_workspace
 from omnilead.config import get_settings
 from omnilead.oauth import OAuthError, PROVIDERS
 
 router = APIRouter(tags=["accounts"])
-_attempts: dict[str, deque] = defaultdict(deque)
-_attempt_lock = Lock()
+log = logging.getLogger(__name__)
+_attempts: dict = {}
 
 
 def check_origin(request: Request) -> None:
@@ -29,20 +28,9 @@ def check_origin(request: Request) -> None:
 
 
 def _rate_limit(request: Request, email: str) -> None:
-    now = time.time()
-    keys = ["ip:" + (request.client.host if request.client else "local"), "email:" + digest(email.lower())]
-    with _attempt_lock:
-        # Bound memory even when random emails are submitted.
-        for key in list(_attempts):
-            while _attempts[key] and _attempts[key][0] <= now - 60:
-                _attempts[key].popleft()
-            if not _attempts[key]:
-                del _attempts[key]
-        for key in keys:
-            if len(_attempts[key]) >= (30 if key.startswith("ip:") else 8):
-                raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Tunggu satu menit.")
-        for key in keys:
-            _attempts[key].append(now)
+    limits = {"ip:" + (request.client.host if request.client else "local"): 30, "email:" + digest(email.lower()): 8}
+    if get_accounts().rate_limited(limits):
+        raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Tunggu satu menit.")
 
 
 class Login(BaseModel):
@@ -68,8 +56,36 @@ def _email(value: str) -> str:
 
 
 def public_user(user: dict) -> dict:
+    accounts = get_accounts()
     return {**{key: user[key] for key in ("id", "workspace_id", "email", "name", "business")},
-            "workspaces": get_accounts().spaces(user)}
+            "workspaces": accounts.spaces(user), "plan": accounts.plan(user),
+            "workspace_limit": accounts.workspace_limit(user), "owned_workspaces": accounts.owned(user),
+            "email_verified": user.get("email_verified", True)}
+
+
+def _password(value: str) -> str:
+    if len(value) < 12:
+        raise HTTPException(status_code=422, detail="Gunakan kata sandi minimal 12 karakter")
+    return value
+
+
+def _clear_cookie(response: Response) -> None:
+    response.delete_cookie(COOKIE, path="/", secure=get_settings().frontend_url.startswith("https://"), httponly=True, samesite="lax")
+
+
+def _role(user: dict, workspace: str, allowed: tuple = ROLES) -> str:
+    member = any(w["id"] == workspace for w in user["workspaces"])
+    role = get_accounts().role_for(user["email"], workspace) if member else None
+    if not role:
+        raise HTTPException(status_code=404, detail="Bisnis tidak ditemukan")
+    if role not in allowed:
+        raise HTTPException(status_code=403, detail="Anda tidak memiliki izin untuk tindakan ini")
+    return role
+
+
+def _link(label: str, param: str, token: str) -> None:
+    if get_settings().reset_link_log:
+        log.warning("Tautan %s: %s", label, get_settings().frontend_url.rstrip("/") + "/login?" + urlencode({param: token}))
 
 
 def set_session(response: Response, user: dict) -> None:
@@ -80,11 +96,15 @@ def set_session(response: Response, user: dict) -> None:
 
 
 @router.get("/auth/session")
-def session(request: Request) -> dict:
+def session(request: Request, response: Response) -> dict:
     s = get_settings()
     if not s.auth_enabled:
         return {"enabled": False, "user": None, "registration_enabled": False}
-    user = get_accounts().user_for_session(request.cookies.get(COOKIE, ""))
+    token = request.cookies.get(COOKIE, "")
+    user = get_accounts().user_for_session(token)
+    if user:
+        response.set_cookie(COOKIE, token, max_age=max(0, int(user["session_expires"] - time.time())),
+                            httponly=True, secure=s.frontend_url.startswith("https://"), samesite="lax", path="/")
     return {"enabled": True, "user": public_user(user) if user else None,
             "registration_enabled": s.registration_enabled}
 
@@ -95,8 +115,7 @@ def register(body: Register, request: Request, response: Response) -> dict:
         raise HTTPException(status_code=403, detail="Pendaftaran belum dibuka")
     email = _email(body.email)
     _rate_limit(request, email)
-    if len(body.password) < 12:
-        raise HTTPException(status_code=422, detail="Gunakan kata sandi minimal 12 karakter")
+    _password(body.password)
     name, business = body.name.strip(), body.business.strip()
     if not name or not business:
         raise HTTPException(status_code=422, detail="Nama dan nama bisnis wajib diisi")
@@ -131,7 +150,7 @@ def logout(request: Request, response: Response) -> dict:
     token = request.cookies.get(COOKIE, "")
     if token:
         get_accounts().delete("session-" + digest(token))
-    response.delete_cookie(COOKIE, path="/", secure=get_settings().frontend_url.startswith("https://"), httponly=True, samesite="lax")
+    _clear_cookie(response)
     return {"ok": True}
 
 
@@ -139,16 +158,145 @@ def logout(request: Request, response: Response) -> dict:
 def update_profile(body: Profile, request: Request, user=Depends(current_user)) -> dict:
     if not body.name.strip() or not body.business.strip():
         raise HTTPException(status_code=422, detail="Nama dan nama bisnis wajib diisi")
+    if body.business.strip() != user["business"]:
+        _role(user, user["workspace_id"], MANAGERS)
     get_accounts().update_profile(user["email"], user["workspace_id"], body.name.strip(), body.business.strip())
     return public_user(get_accounts().user_for_session(request.cookies[COOKIE]))
 
 
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=1, max_length=256)
+
+
+class ResetRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+
+class PasswordReset(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+    new_password: str = Field(min_length=1, max_length=256)
+
+
+class EmailToken(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+
+
+class AccountDeletion(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+
+
+@router.post("/auth/password")
+def change_password(body: PasswordChange, request: Request, user=Depends(current_user)) -> dict:
+    _password(body.new_password)
+    _rate_limit(request, user["email"])
+    try:
+        get_accounts().change_password(user["email"], body.current_password, body.new_password, request.cookies[COOKIE])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    return {"ok": True}
+
+
+@router.post("/auth/sessions/revoke")
+def revoke_sessions(request: Request, user=Depends(current_user)) -> dict:
+    get_accounts().revoke_sessions(user["email"], keep=request.cookies[COOKIE])
+    return {"ok": True}
+
+
+@router.post("/auth/password/reset-request", status_code=202)
+def reset_request(body: ResetRequest, request: Request) -> dict:
+    email = _email(body.email)
+    _rate_limit(request, email)
+    if get_settings().auth_enabled:
+        token = get_accounts().reset_token(email)
+        if token:
+            _link("atur ulang kata sandi", "reset", token)
+    return {"ok": True}
+
+
+@router.post("/auth/password/reset")
+def reset_password(body: PasswordReset, request: Request, response: Response) -> dict:
+    _password(body.new_password)
+    try:
+        get_accounts().reset_password(body.token, body.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    _clear_cookie(response)
+    return {"ok": True}
+
+
+@router.post("/auth/verify-email/request")
+def verify_email_request(user=Depends(current_user)) -> dict:
+    if user.get("email_verified", True):
+        return {"ok": True, "email_verified": True}
+    _link("verifikasi email", "verify", get_accounts().verify_token(user["email"]))
+    return {"ok": True, "email_verified": False}
+
+
+@router.post("/auth/verify-email")
+def verify_email(body: EmailToken) -> dict:
+    try:
+        get_accounts().verify_email(body.token)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    return {"ok": True}
+
+
+def _release_channels(workspace: str) -> None:
+    for provider in PROVIDERS:
+        try:
+            get_oauth().disconnect(workspace, provider)
+        except ValueError:
+            get_accounts().delete(f"connection-{workspace}-{provider}")
+
+
+@router.delete("/auth/account")
+def delete_account(body: AccountDeletion, request: Request, response: Response, user=Depends(current_user)) -> dict:
+    _rate_limit(request, user["email"])
+    if not get_accounts().check_password(user["email"], body.password):
+        raise HTTPException(status_code=400, detail="Kata sandi salah")
+    for workspace in get_accounts().delete_account(user["email"]):
+        _release_channels(workspace)
+    get_accounts().delete("session-" + digest(request.cookies[COOKIE]))
+    _clear_cookie(response)
+    return {"ok": True}
+
+
+class BusinessProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    category: str = Field(default="", max_length=60)
+    description: str = Field(default="", max_length=2000)
+    service_area: str = Field(default="", max_length=200)
+    hours: str = Field(default="", max_length=120)
+
+
+def _profile(profile: BusinessProfile | None, *, partial: bool = False) -> dict | None:
+    if profile is None:
+        return None
+    return {key: value.strip() for key, value in profile.model_dump(exclude_unset=partial).items()}
+
+
 class WorkspaceName(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    profile: BusinessProfile | None = None
+
+
+class WorkspaceUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    profile: BusinessProfile | None = None
 
 
 class WorkspaceSelection(BaseModel):
     workspace_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+
+
+class MemberInvite(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    role: str = Field(pattern=r"^(admin|staff)$")
+
+
+class MemberRole(BaseModel):
+    role: str = Field(pattern=r"^(admin|staff)$")
 
 
 @router.get("/workspaces")
@@ -162,7 +310,7 @@ def add_workspace(body: WorkspaceName, request: Request, user=Depends(current_us
     if not name:
         raise HTTPException(status_code=422, detail="Nama bisnis wajib diisi")
     try:
-        workspace = get_accounts().add_workspace(user["email"], name)
+        workspace = get_accounts().add_workspace(user["email"], name, _profile(body.profile))
         get_accounts().select_workspace(request.cookies[COOKIE], workspace["id"])
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
@@ -175,6 +323,80 @@ def select_workspace(body: WorkspaceSelection, request: Request, user=Depends(cu
         get_accounts().select_workspace(request.cookies[COOKIE], body.workspace_id)
     except ValueError:
         raise HTTPException(status_code=403, detail="Anda tidak memiliki akses ke bisnis ini") from None
+    return {"ok": True}
+
+
+def _workspace_payload(workspace: str, role: str) -> dict:
+    record = get_accounts().workspace(workspace)
+    return {"id": workspace, "name": record["name"], "role": role, "profile": dict(record.get("profile") or {})}
+
+
+@router.get("/workspaces/{workspace_id}")
+def workspace_detail(workspace_id: str, user=Depends(current_user)) -> dict:
+    return _workspace_payload(workspace_id, _role(user, workspace_id))
+
+
+@router.patch("/workspaces/{workspace_id}")
+def update_workspace(workspace_id: str, body: WorkspaceUpdate, user=Depends(current_user)) -> dict:
+    role = _role(user, workspace_id, MANAGERS)
+    name = body.name.strip() if body.name is not None else None
+    if name == "":
+        raise HTTPException(status_code=422, detail="Nama bisnis wajib diisi")
+    try:
+        get_accounts().update_workspace(workspace_id, name=name, profile=_profile(body.profile, partial=True))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from None
+    return _workspace_payload(workspace_id, role)
+
+
+@router.delete("/workspaces/{workspace_id}")
+def delete_workspace(workspace_id: str, request: Request, user=Depends(current_user)) -> dict:
+    _role(user, workspace_id, ("owner",))
+    if len(user["workspaces"]) <= 1:
+        raise HTTPException(status_code=409, detail="Bisnis terakhir tidak bisa dihapus. Buat bisnis lain terlebih dahulu.")
+    _release_channels(workspace_id)
+    store_for_workspace(workspace_id).audit("workspace_archived", get_accounts().workspace(workspace_id)["name"], actor=user["email"])
+    get_accounts().archive_workspace(workspace_id)
+    current = get_accounts().user_for_session(request.cookies[COOKIE])
+    return {"ok": True, "active": current["workspace_id"] if current else None}
+
+
+@router.get("/workspaces/{workspace_id}/members")
+def list_members(workspace_id: str, user=Depends(current_user)) -> dict:
+    _role(user, workspace_id)
+    return {"members": get_accounts().members(workspace_id)}
+
+
+def _member_error(exc: Exception) -> HTTPException:
+    return HTTPException(status_code=404 if isinstance(exc, LookupError) else 409, detail=str(exc))
+
+
+@router.post("/workspaces/{workspace_id}/members")
+def invite_member(workspace_id: str, body: MemberInvite, user=Depends(current_user)) -> dict:
+    _role(user, workspace_id, MANAGERS)
+    try:
+        return get_accounts().invite(workspace_id, _email(body.email), body.role)
+    except (LookupError, ValueError) as exc:
+        raise _member_error(exc) from None
+
+
+@router.patch("/workspaces/{workspace_id}/members/{email}")
+def update_member(workspace_id: str, email: str, body: MemberRole, user=Depends(current_user)) -> dict:
+    _role(user, workspace_id, ("owner",))
+    try:
+        return get_accounts().set_role(workspace_id, _email(email), body.role)
+    except (LookupError, ValueError) as exc:
+        raise _member_error(exc) from None
+
+
+@router.delete("/workspaces/{workspace_id}/members/{email}")
+def remove_member(workspace_id: str, email: str, user=Depends(current_user)) -> dict:
+    email = _email(email)
+    _role(user, workspace_id, ROLES if email == user["email"] else MANAGERS)
+    try:
+        get_accounts().remove_member(workspace_id, email)
+    except (LookupError, ValueError) as exc:
+        raise _member_error(exc) from None
     return {"ok": True}
 
 
@@ -191,6 +413,7 @@ def connections(user=Depends(current_user)) -> list[dict]:
 
 @router.post("/connections/{provider}/start")
 def connect(provider: str, request: Request, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     try:
         return get_oauth().start(_provider(provider), user["workspace_id"], request.cookies[COOKIE])
     except OAuthError as exc:
@@ -230,6 +453,7 @@ class WhatsAppSelection(BaseModel):
 
 @router.post("/connections/whatsapp/exchange")
 def whatsapp_exchange(body: WhatsAppCode, request: Request, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     try:
         return get_oauth().whatsapp_exchange(user["workspace_id"], request.cookies[COOKIE], body.state, body.code)
     except ValueError as exc:
@@ -238,6 +462,7 @@ def whatsapp_exchange(body: WhatsAppCode, request: Request, user=Depends(current
 
 @router.post("/connections/whatsapp/select")
 def whatsapp_select(body: WhatsAppSelection, request: Request, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     try:
         get_oauth().whatsapp_select(user["workspace_id"], request.cookies[COOKIE], body.selection, body.account_id, body.pin)
     except ValueError as exc:
@@ -254,6 +479,7 @@ class WhatsAppManual(BaseModel):
 
 @router.post("/connections/whatsapp/manual")
 def whatsapp_manual(body: WhatsAppManual, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     try:
         get_oauth().whatsapp_manual(user["workspace_id"], body.phone_number_id, body.waba_id, body.access_token)
     except ValueError as exc:
@@ -276,6 +502,7 @@ def facebook_pages(request: Request, user=Depends(current_user)) -> dict:
 
 @router.post("/connections/facebook/select")
 def facebook_select(body: FacebookSelection, request: Request, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     try:
         get_oauth().facebook_select(user["workspace_id"], request.cookies[COOKIE], body.page_id)
     except ValueError as exc:
@@ -286,6 +513,7 @@ def facebook_select(body: FacebookSelection, request: Request, user=Depends(curr
 
 @router.delete("/connections/{provider}")
 def disconnect(provider: str, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
     get_oauth().disconnect(user["workspace_id"], _provider(provider))
     store_for_workspace(user["workspace_id"]).audit("channel_disconnected", provider, actor=user["email"], channel="email" if provider == "gmail" else provider)
     return {"ok": True}

@@ -74,7 +74,7 @@ def check_window(
             and a.channel == action.channel
             and a.comment_ref == action.comment_ref
             and a.status in SENT
-            for a in store.list_actions()
+            for a in store.list_actions(lead_id=action.lead_id, kind=ActionKind.SEND_MESSAGE)
         )
         if already:
             return WindowResult(False, "Private reply untuk komentar ini sudah pernah dikirim (batas satu kali)")

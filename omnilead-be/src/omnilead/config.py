@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     token_encryption_key: str = ""  # Fernet; lokal dibuat di .secrets/oauth.key
     session_days: int = 7
     registration_enabled: bool = True
+    default_plan: str = "free"
+    reset_link_log: bool = False
     # Akun demo untuk juri: dibuat dan diisi data demo saat server menyala (lihat demo.py).
     demo_email: str = ""
     demo_password: str = ""

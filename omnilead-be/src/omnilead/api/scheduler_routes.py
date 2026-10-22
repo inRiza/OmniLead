@@ -9,9 +9,14 @@ import hmac
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from omnilead.api.deps import (get_ingest, get_queue, get_registry, get_store, get_accounts,
-                               store_for_workspace, registry_for_workspace, ingest_for_workspace)
-from omnilead.api.webhooks import poll_gmail
+from omnilead.api.deps import (get_auto_sender, get_executor, get_ingest, get_queue, get_registry, get_store,
+                               get_accounts, auto_sender_for_workspace, store_for_workspace,
+                               registry_for_workspace, ingest_for_workspace)
+from omnilead.approvals.auto import AutoSender
+from omnilead.approvals.dispatch import dispatch
+from omnilead.approvals.executor import Executor
+from omnilead.api.webhooks import drain_inbox, poll_gmail
+from omnilead.dedup import scan_duplicates
 from omnilead.approvals.queue import ApprovalQueue
 from omnilead.config import Settings, get_settings
 from omnilead.connectors.base import ConnectorError
@@ -54,6 +59,44 @@ def followups(store: Store = Depends(get_store), queue: ApprovalQueue = Depends(
         return {"workspaces": {w: run_followups(store_for_workspace(w), ApprovalQueue(store_for_workspace(w)))
                                for w in get_accounts().workspace_ids()}}
     return run_followups(store, queue)
+
+
+@router.post("/dispatch")
+def dispatch_actions(
+    store: Store = Depends(get_store),
+    executor: Executor = Depends(get_executor),
+    auto: AutoSender = Depends(get_auto_sender),
+) -> dict:
+    if get_settings().auth_enabled:
+        results = {}
+        for w in get_accounts().workspace_ids():
+            sender = auto_sender_for_workspace(w)
+            results[w] = dispatch(store_for_workspace(w), sender.executor, sender)
+        return {"workspaces": results}
+    return dispatch(store, executor, auto)
+
+
+@router.post("/dedup")
+def dedup(
+    store: Store = Depends(get_store),
+    queue: ApprovalQueue = Depends(get_queue),
+    auto: AutoSender = Depends(get_auto_sender),
+) -> dict:
+    if get_settings().auth_enabled:
+        results = {}
+        for w in get_accounts().workspace_ids():
+            sender = auto_sender_for_workspace(w)
+            results[w] = len(scan_duplicates(store_for_workspace(w), sender.queue, on_proposed=sender.handle))
+        return {"workspaces": results}
+    return {"proposed": len(scan_duplicates(store, queue, on_proposed=auto.handle))}
+
+
+@router.post("/drain-inbox")
+def drain(registry: Registry = Depends(get_registry), ingest: IngestService = Depends(get_ingest)) -> dict:
+    if get_settings().auth_enabled:
+        return {"workspaces": {w: drain_inbox(ingest_for_workspace(w), registry_for_workspace(w))
+                               for w in get_accounts().workspace_ids()}}
+    return {"processed": drain_inbox(ingest, registry)}
 
 
 @router.post("/gmail-poll")

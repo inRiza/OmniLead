@@ -12,8 +12,8 @@ Tiga bagian, masing-masing dijalankan di terminal terpisah:
 | `omnilead-be` | webhook, identitas, antrean persetujuan, executor (satu-satunya yang mengirim) |
 | `omnilead-fe` | UI |
 
-Dokumen: [PRD](docs/crm-agentic-multikanal-5.1.md) · [plan.md](plan.md) (yang sudah dan belum) ·
-[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
+Dokumen: [PRD](docs/crm-agentic-multikanal-6.1.md) · [plan.md](plan.md) (yang sudah dan belum) ·
+[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-6.1.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
 
 **Agen browser OpenClaw:** `/dashboard/browser` memakai dependency resmi
 `openclaw@2026.10.5` untuk profil, screenshot, dan input browser tanpa token API
@@ -29,13 +29,15 @@ Status per 22 Okt 2026:
 - **Demo publik (Cloud Run):** https://omnilead-fgbrqs2gfq-et.a.run.app. Akun juri `juri@omnilead.id`; kata sandi ada di form
   submission (Secret Manager `demo-password`), tidak di repo. Akun demo sudah berisi katalog dan usulan nyata dari
   agen untuk WhatsApp, Instagram, Facebook, dan email.
-- Engine agen di Cloud Run: `adk` (Gemini, Vertex AI location `global`), lulus 17/18 kasus evalset secara konsisten,
-  sekitar 13 detik per kasus; engine aturan 18/18 sebagai cadangan. Rincian di `omnilead-agent/eval/results-adk.md`.
+- Engine agen di Cloud Run: `adk` (Gemini, Vertex AI location `global`), evalset 18 kasus: 17/18 lulus percobaan pertama,
+  15/18 sampai 17/18 konsisten di tiga percobaan (dua run 22 Okt), 13–17 detik per kasus; engine aturan 18/18 sebagai cadangan. Rincian di `omnilead-agent/eval/results-adk.md`.
 - Connector WhatsApp, Gmail, Instagram, dan Facebook Page sudah ada di kode, tetapi baru diuji dengan HTTP tiruan;
   belum diuji ke akun asli. WhatsApp bisa dihubungkan dengan nomor uji Meta lewat **Hubungkan nomor uji**. Selama
   kanal belum terhubung, pesan masuk lewat **Tempel pesan** dan dibalas lewat **Salin & buka**.
 - Penyimpanan SQLite (lokal maupun di instance Cloud Run). Adapter Firestore ada, belum diuji ke Firestore sungguhan.
-- Tes: BE 162, agen 57, FE 23 lulus; uji E2E lokal 36 cek lulus. Lihat [TESTING.md](TESTING.md).
+- **Izin agen** diatur pemilik di halaman Pengaturan: Selalu tanya (default), Hybrid, dan Percaya penuh. Usulan yang ditandai Guard selalu menunggu
+  manusia, dan agen tetap tidak memegang tombol kirim (executor yang mengirim).
+- Tes: BE 171, agen 60, FE 23 lulus; uji E2E 23 skenario API lulus (`omnilead-be/scripts/e2e_api.py`). Lihat [TESTING.md](TESTING.md).
 
 ## Backend
 

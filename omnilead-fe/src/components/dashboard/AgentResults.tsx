@@ -4,9 +4,17 @@ import { useState } from "react";
 import { CircleAlert, CircleCheck, CircleX, MessageSquareWarning, Sparkles } from "lucide-react";
 import type { ActionStatus, ProposedAction } from "@/lib/types";
 import { checkLabel } from "@/lib/adapt";
+import { api } from "@/lib/api";
 import { cap, channelLabel, type Tone } from "@/lib/ui";
 import { Button } from "@/components/action/button";
 import { Badge } from "@/components/primitives";
+
+const DELIVERY: Record<string, { label: string; tone: Tone }> = {
+  sent: { label: "Terkirim ke platform", tone: "gray" },
+  delivered: { label: "Diterima pelanggan", tone: "green" },
+  read: { label: "Dibaca pelanggan", tone: "green" },
+  failed: { label: "Gagal diantar", tone: "red" },
+};
 
 const STATUS: Record<ActionStatus, { label: string; tone: Tone }> = {
   pending: { label: "Disiapkan agen", tone: "blue" },
@@ -20,13 +28,14 @@ const STATUS: Record<ActionStatus, { label: string; tone: Tone }> = {
   sent_manually: { label: "Dikirim manual", tone: "green" },
 };
 
-export function AgentResults({
-  actions,
-  onFeedback,
-}: {
-  actions: ProposedAction[];
+type Handlers = {
   onFeedback: (id: string, reason: string) => Promise<void>;
-}) {
+  onApprove?: (id: string, editedText?: string) => Promise<void>;
+  onSent?: (id: string) => Promise<void>;
+  onRetry?: (id: string) => Promise<void>;
+};
+
+export function AgentResults({ actions, ...handlers }: { actions: ProposedAction[] } & Handlers) {
   if (actions.length === 0)
     return (
       <p className="rounded-xl border border-dashed border-rc-border-strong px-5 py-6 text-center text-sm text-rc-fg-muted">
@@ -37,19 +46,42 @@ export function AgentResults({
     <ol className="relative flex flex-col gap-3 pl-5">
       <span aria-hidden className="absolute top-3 bottom-3 left-[5px] w-px bg-rc-border" />
       {actions.map((a) => (
-        <ResultItem key={a.id} action={a} onFeedback={onFeedback} />
+        <ResultItem key={a.id} action={a} {...handlers} />
       ))}
     </ol>
   );
 }
 
-function ResultItem({ action, onFeedback }: { action: ProposedAction; onFeedback: (id: string, reason: string) => Promise<void> }) {
+function ResultItem({ action, onFeedback, onApprove, onSent, onRetry }: { action: ProposedAction } & Handlers) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(action.text);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const status = STATUS[action.status] ?? { label: action.status, tone: "gray" as Tone };
-  const reviewable = action.status === "pending" || action.status === "awaiting_manual_send";
+  const reviewable = !(action.feedback ?? []).some((f) => f.rating === "bad") && action.status !== "rejected";
+  const delivery = action.deliveryStatus ? DELIVERY[action.deliveryStatus] : null;
+
+  // Tombol keputusan untuk usulan yang belum dijalankan agen (mode Selalu tanya atau Hybrid).
+  async function act(fn: () => Promise<unknown>) {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+      setEditing(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Tindakan belum berhasil");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyAndOpen() {
+    const pkg = await api.handoff(action.id);
+    await navigator.clipboard?.writeText(pkg.copy_text).catch(() => undefined);
+    if (pkg.open_url) window.open(pkg.open_url, "_blank", "noopener,noreferrer");
+  }
 
   async function send() {
     if (!reason.trim()) return;
@@ -79,9 +111,12 @@ function ResultItem({ action, onFeedback }: { action: ProposedAction; onFeedback
             {action.target ? `, ${action.target}` : ""}
           </p>
         </div>
-        <Badge tone={status.tone} dot>
-          {status.label}
-        </Badge>
+        <span className="flex items-center gap-1.5">
+          {delivery && action.status === "executed" ? <Badge tone={delivery.tone}>{delivery.label}</Badge> : null}
+          <Badge tone={status.tone} dot>
+            {status.label}
+          </Badge>
+        </span>
       </div>
       {action.text ? <p className="mt-3 rounded-lg bg-rc-bg px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-rc-fg">{action.text}</p> : null}
       {(action.reason || action.guard.length > 0) && (
@@ -111,6 +146,44 @@ function ResultItem({ action, onFeedback }: { action: ProposedAction; onFeedback
         </div>
       )}
       {action.error ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{action.error}</p> : null}
+      {editing && (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={4}
+          aria-label="Ubah draf"
+          className="mt-3 w-full rounded-md border border-rc-border bg-rc-bg px-3 py-2 text-sm text-rc-fg outline-none focus:border-rc-accent"
+        />
+      )}
+      {action.status === "pending" && onApprove && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button purpose="action" style="primary" disabled={busy} onClick={() => void act(() => onApprove(action.id, editing ? draft : undefined))}>
+            {editing ? "Simpan dan setujui" : "Setujui"}
+          </Button>
+          {action.text && !editing ? (
+            <Button purpose="action" disabled={busy} onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+          ) : null}
+        </div>
+      )}
+      {action.status === "awaiting_manual_send" && onSent && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button purpose="action" style="primary" disabled={busy} onClick={() => void act(copyAndOpen)}>
+            Salin &amp; buka
+          </Button>
+          <Button purpose="action" disabled={busy} onClick={() => void act(() => onSent(action.id))}>
+            Sudah dikirim
+          </Button>
+        </div>
+      )}
+      {action.status === "failed" && onRetry && (
+        <div className="mt-3">
+          <Button purpose="action" disabled={busy} onClick={() => void act(() => onRetry(action.id))}>
+            Coba ulang
+          </Button>
+        </div>
+      )}
       {reviewable && !open && (
         <button
           type="button"

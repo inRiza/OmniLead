@@ -231,14 +231,18 @@ def test_whatsapp_discovers_number_and_does_not_trust_browser_assets(app):
     assert not any(path.endswith("/register") for path in calls)
 
 
-def test_webhook_routes_only_to_verified_recipient_workspace(app, monkeypatch):
+def test_webhook_routes_only_to_verified_recipient_workspace(app, monkeypatch, tmp_path):
     client = TestClient(app)
     user = signup(client)
     deps.get_accounts().claim_asset("instagram", "123", user["workspace_id"])
     monkeypatch.setenv("OMNILEAD_INSTAGRAM_CLIENT_SECRET", "ig-secret")
     get_settings.cache_clear()
     received = []
+    from omnilead.store import Store as JobStore
+
     class Ingest:
+        store = JobStore(tmp_path / "jobs.db")
+
         def ingest(self, event):
             received.append(event)
     import omnilead.api.webhooks as webhooks
@@ -294,6 +298,7 @@ def test_denied_callback_and_wrong_state_never_replace_existing_connection(app, 
 def test_personal_signup_multiple_businesses_and_stale_tab_protection(app):
     client = TestClient(app)
     result = client.post("/auth/register", json={"email": "personal@example.com", "password": "a long password 2026", "name": "Personal"})
+    deps.get_accounts().set_plan("personal@example.com", "pro")
     assert result.status_code == 200
     original = result.json()["workspace_id"]
     assert result.json()["business"] == "Pribadi"

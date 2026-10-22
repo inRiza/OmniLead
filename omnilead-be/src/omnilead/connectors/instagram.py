@@ -17,7 +17,7 @@ from datetime import datetime
 import httpx
 
 from omnilead.config import Settings
-from omnilead.connectors.base import ChannelConnector, ConnectorError, NotConnected
+from omnilead.connectors.base import ChannelConnector, ConnectorError, NotConnected, TransientError, error_for_status
 from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 
 
@@ -49,13 +49,19 @@ class InstagramConnector(ChannelConnector):
     def _get(self, path: str, params: dict) -> dict:
         self._require_token()
         params = {**params, "access_token": self._token}
-        resp = self._client.get(f"{self._base}/{path}", params=params)
+        try:
+            resp = self._client.get(f"{self._base}/{path}", params=params)
+        except httpx.HTTPError as exc:
+            raise TransientError(f"Graph API tidak terjangkau: {exc}") from exc
         return self._unwrap(resp)
 
     def _post(self, path: str, data: dict) -> dict:
         self._require_token()
         data = {**data, "access_token": self._token}
-        resp = self._client.post(f"{self._base}/{path}", data=data)
+        try:
+            resp = self._client.post(f"{self._base}/{path}", data=data)
+        except httpx.HTTPError as exc:
+            raise TransientError(f"Graph API tidak terjangkau: {exc}") from exc
         return self._unwrap(resp)
 
     @staticmethod
@@ -68,9 +74,10 @@ class InstagramConnector(ChannelConnector):
             err = body.get("error", {})
             if resp.status_code == 401 or err.get("code") == 190:
                 raise NotConnected("Akses Instagram berakhir atau dicabut")
-            raise ConnectorError(
+            raise error_for_status(
+                resp.status_code,
                 f"Graph API error {resp.status_code}: "
-                f"{err.get('message', body)} (code {err.get('code')})"
+                f"{err.get('message', body)} (code {err.get('code')})",
             )
         return body
 
@@ -108,6 +115,10 @@ class InstagramConnector(ChannelConnector):
         )
 
     # --- baca ---
+
+    def user_profile(self, user_id: str) -> dict:
+        body = self._get(user_id, {"fields": "name,username"})
+        return {"name": body.get("name"), "username": body.get("username")}
 
     def list_posts(self, limit: int = 10) -> list[Post]:
         data = self._get(

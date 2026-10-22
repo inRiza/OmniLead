@@ -72,6 +72,39 @@ class ApprovalQueue:
         )
         return action
 
+    def auto_approve(self, action_id: str, mode: str) -> Action:
+        """Disetujui agen sesuai izin yang dipilih pemilik; tercatat terpisah di audit."""
+        action = self._require(action_id)
+        self._expect(action, ActionStatus.PENDING, "disetujui otomatis")
+        action.status = ActionStatus.APPROVED
+        action.decided_at = datetime.now(timezone.utc)
+        self._store.save_action(action)
+        self._audit(action, "auto_approved", f"mode {mode}", actor="agent")
+        return action
+
+    def return_to_owner(self, action_id: str, reason: str) -> Action:
+        """Eksekusi otomatis tertahan (jeda, kanal mati, batas kirim): kembali menunggu manusia."""
+        action = self._require(action_id)
+        action.status = ActionStatus.PENDING
+        action.decided_at = None
+        self._store.save_action(action)
+        self._audit(action, "auto_held", reason, actor="agent")
+        return action
+
+    def feedback(self, action_id: str, rating: str, reason: str) -> Action:
+        action = self._require(action_id)
+        entry = {"rating": rating, "reason": reason.strip(), "by": self.actor, "at": datetime.now(timezone.utc).isoformat()}
+        action.feedback = [*action.feedback, entry][-10:]
+        if rating == "bad" and action.status == ActionStatus.PENDING:
+            action.status = ActionStatus.REJECTED
+            action.reject_reason = reason
+            action.decided_at = datetime.now(timezone.utc)
+        self._store.save_action(action)
+        self._audit(action, "feedback_" + rating, reason or "-", actor="owner")
+        if rating == "bad":
+            self._learn_preference(reason)
+        return action
+
     def reject(self, action_id: str, reason: str) -> Action:
         action = self._require(action_id)
         self._expect(action, ActionStatus.PENDING, "ditolak")
@@ -97,6 +130,7 @@ class ApprovalQueue:
         self._expect(action, ActionStatus.FAILED, "dicoba ulang")
         action.status = ActionStatus.EDITED if action.edited else ActionStatus.APPROVED
         action.error = None
+        action.next_retry_at = None
         self._store.save_action(action)
         self._audit(action, "retry", "Dicoba ulang oleh pengguna", actor="owner")
         return action

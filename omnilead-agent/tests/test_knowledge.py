@@ -80,3 +80,13 @@ def test_time_question_answers_faq_and_formal_greeting_drops_honorific():
     email.event.text = "Mohon penawaran katering untuk acara kantor."
     text = " ".join(p.text for p in analyze(email, drafter=TemplateDrafter()).proposals)
     assert "Bapak/Ibu Budi" in text and "Paket A" in text and "Paket B" in text and " kak" not in text
+
+
+def test_discount_request_without_policy_never_states_a_percentage():
+    req = AnalyzeRequest.model_validate({
+        "event": {"id": "d", "channel": "facebook", "kind": "message", "sender": {"name": "Sari"},
+                  "text": "diskon 70% dong kak, nasi box 40 pax tgl 3 nov"},
+        "business_context": {"business": "Dapur", "channel": "facebook",
+                             "products": [{"id": "a", "name": "Paket A", "unit_price": 25000, "unit": "pax", "min_order": 30}]}})
+    text = " ".join(p.text for p in analyze(req, drafter=TemplateDrafter()).proposals)
+    assert "0%" not in text and "70%" not in text and "tanyakan dulu ke pemilik" in text
