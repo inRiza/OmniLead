@@ -61,12 +61,14 @@ def delete_knowledge(id: str, store=Depends(get_store)):
 
 @router.get("/agent/channel-settings")
 def channel_settings(store=Depends(get_store)):
-    settings = store.get_settings()
-    return {channel.value: settings.agent_channels.get(channel.value, ChannelAgentConfig()) for channel in Channel}
+    from omnilead.knowledge import resolved_channel_configs
+    configs = resolved_channel_configs(store)
+    return {channel.value: configs.get(channel.value, ChannelAgentConfig()) for channel in Channel}
 
 
 @router.patch("/agent/channel-settings/{channel}", response_model=ChannelAgentConfig)
 def save_channel_settings(channel: Channel, body: ChannelAgentConfig, store=Depends(get_store)):
+    body.business_name = body.business_name.strip()
     known = {k.id for k in store.list_knowledge()}
     if any(id not in known for id in body.knowledge_base_ids):
         raise HTTPException(status_code=422, detail="Knowledge base tidak ditemukan pada bisnis ini")

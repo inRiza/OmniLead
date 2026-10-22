@@ -5,9 +5,9 @@ import re
 from omnilead.models import ChannelAgentConfig
 
 TONE = {
-    "friendly": "Bahasa Indonesia ramah, hangat, dan jelas; emoji secukupnya.",
+    "friendly": "Ramah dan natural seperti admin toko mengobrol. Jawab isi pesan dahulu, sapaan seperlunya, emoji opsional. Jangan mengulang perkenalan atau terima kasih.",
     "professional": "Gunakan bahasa formal dan profesional, tanpa emoji, sapa dengan Bapak/Ibu atau Anda.",
-    "casual": "Gunakan bahasa Indonesia santai dan akrab, sopan, boleh menyapa kak.",
+    "casual": "Bahasa Indonesia percakapan yang santai dan sopan. Gunakan kalimat pendek dan natural; boleh menyapa kak seperlunya. Ikuti alur chat, jangan ulang salam atau nama toko. Emoji opsional, maksimal satu.",
     "concise": "Jawab singkat dan langsung ke inti, paling banyak 3 kalimat, tanpa emoji.",
     "custom": "",
 }
@@ -18,6 +18,28 @@ PROFILE_LABELS = {
     "service_area": "Area layanan",
     "hours": "Jam operasional",
 }
+
+
+def channel_business_name(store, config: ChannelAgentConfig) -> str:
+    if config.business_name.strip():
+        return config.business_name.strip()
+    names = set()
+    pattern = re.compile(r"(?:nama\s+(?:bisnis|toko|usaha|merek|brand)|business\s+name|namanya)\s*(?::|\||adalah)?\s*([^\n|!?]{1,100}?)(?=\.(?:\s|$)|[!?\n|]|$)", re.I)
+    for key in config.knowledge_base_ids:
+        document = store.get_knowledge(key)
+        if not document:
+            continue
+        for match in pattern.finditer(document.content.replace("**", "")):
+            value = match[1].strip().strip('"\'` .')
+            if value:
+                names.add(value)
+    return next(iter(names)) if len(names) == 1 else ""
+
+
+def resolved_channel_configs(store):
+    settings = store.get_settings()
+    return {channel: config.model_copy(update={"business_name": channel_business_name(store, config)})
+            for channel, config in settings.agent_channels.items()}
 
 
 def profile_document(profile: dict | None) -> dict | None:
@@ -60,7 +82,7 @@ def build_context(store, channel: str, query: str, profile: dict | None = None) 
             budget -= len(text)
         for index, product in enumerate(knowledge.products):
             products.append({"id": f"{id}-{index}", **product.model_dump()})
-    return {"business": settings.business_name, "channel": channel,
+    return {"business": settings.business_name, "public_business_name": channel_business_name(store, config), "channel": channel,
             "tone": config.tone, "tone_instruction": config.custom_tone if config.tone == "custom" else TONE[config.tone],
             "documents": documents[:10], "products": products,
             "business_profile": {key: profile.get(key, "") for key in PROFILE_LABELS} if summary else None}

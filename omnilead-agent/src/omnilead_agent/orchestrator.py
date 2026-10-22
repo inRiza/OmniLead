@@ -239,7 +239,7 @@ class TemplateDrafter:
                 if not st.formal
                 else "Mohon maaf atas ketidaknyamanan yang terjadi. Kami akan segera memeriksa dan mengabari Anda."
             )
-        parts.append(self._greet(ctx, st) + (", terima kasih sudah menghubungi " + ctx.catalog.business + "." if "komplain" not in ctx.tri.intents else ""))
+        parts.append(self._greet(ctx, st) + (", terima kasih sudah menghubungi " + ctx.catalog.business + "." if ctx.catalog.business and "komplain" not in ctx.tri.intents else "."))
 
         wants_price = wants_quote(ctx.tri.intents)
         stock_text = self._stock_text(ctx, pkg)
@@ -296,7 +296,9 @@ class TemplateDrafter:
             elif faq:
                 parts.append(faq)
             elif not stock_text:
-                parts.append("Terima kasih, pesan kakak sudah kami terima. Kami cek dulu ya kak.")
+                parts.append("Ada yang bisa kami bantu?" if st.formal else "Ada yang bisa kami bantu, kak?")
+                if not any(intent in ctx.tri.intents for intent in ("sapaan", "salam")):
+                    ctx.notes.append("Info belum tersedia: pesan belum dapat dijawab dari knowledge base; tinjau konteks sebelum membalas")
         if stock_text:
             parts.append(stock_text)
         reseller = self._reseller_text(ctx)

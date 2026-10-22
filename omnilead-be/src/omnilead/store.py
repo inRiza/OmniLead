@@ -7,6 +7,7 @@ produksi cukup mengimplementasikan metode yang sama.
 
 import json
 import sqlite3
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -26,9 +27,20 @@ from omnilead.models import (
 class Store:
     def __init__(self, db_path: Path):
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(db_path, check_same_thread=False)
-        self._db.row_factory = sqlite3.Row
+        self._db_path = db_path
+        self._connections = threading.local()
         self._init()
+        self._db.execute("PRAGMA journal_mode=WAL")
+
+    @property
+    def _db(self):
+        # Polling, chat tools, and analysis workers must never share a connection:
+        # concurrent commits on one SQLite connection can raise SystemError.
+        if not hasattr(self._connections, "db"):
+            connection = sqlite3.connect(self._db_path, timeout=30, check_same_thread=False)
+            connection.row_factory = sqlite3.Row
+            self._connections.db = connection
+        return self._connections.db
 
     def _init(self) -> None:
         self._db.executescript(
@@ -84,6 +96,16 @@ class Store:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS agent_tasks (
+                id TEXT PRIMARY KEY,
+                revision INTEGER NOT NULL,
+                data TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                id TEXT PRIMARY KEY,
+                revision INTEGER NOT NULL,
+                data TEXT NOT NULL
+            );
             """
         )
         # DB lama (sebelum kolom audit diperluas)
@@ -124,11 +146,46 @@ class Store:
 
     def reset(self) -> None:
         """Hapus semua data (dipakai skrip seed)."""
-        for table in ("actions", "audit", "leads", "events", "settings", "knowledge", "lead_identity", "jobs"):
+        for table in ("actions", "audit", "leads", "events", "settings", "knowledge", "lead_identity", "jobs", "agent_tasks", "chat_sessions"):
             self._db.execute(f"DELETE FROM {table}")
         self._db.commit()
 
     # --- actions ---
+
+    def list_conversations(self) -> list[dict]:
+        rows = [json.loads(row["data"]) for row in self._db.execute("SELECT data FROM chat_sessions").fetchall()]
+        return sorted(rows, key=lambda c: c["updated_at"], reverse=True)
+
+    def get_conversation(self, session_id: str) -> dict | None:
+        row = self._db.execute("SELECT data FROM chat_sessions WHERE id = ?", (session_id,)).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def save_conversation(self, session: dict, expected_revision: int | None = None) -> bool:
+        data = json.dumps(session, ensure_ascii=False)
+        if expected_revision is None:
+            cur = self._db.execute("INSERT OR IGNORE INTO chat_sessions VALUES (?, ?, ?)", (session["id"], session["revision"], data))
+        else:
+            cur = self._db.execute("UPDATE chat_sessions SET data = ?, revision = ? WHERE id = ? AND revision = ?",
+                                   (data, session["revision"], session["id"], expected_revision))
+        self._db.commit()
+        return cur.rowcount == 1
+
+    def list_agent_tasks(self) -> list[dict]:
+        return [json.loads(row["data"]) for row in self._db.execute("SELECT data FROM agent_tasks ORDER BY rowid DESC").fetchall()]
+
+    def get_agent_task(self, task_id: str) -> dict | None:
+        row = self._db.execute("SELECT data FROM agent_tasks WHERE id = ?", (task_id,)).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def save_agent_task(self, task: dict, expected_revision: int | None = None) -> bool:
+        data = json.dumps(task, ensure_ascii=False)
+        if expected_revision is None:
+            cur = self._db.execute("INSERT OR IGNORE INTO agent_tasks VALUES (?, ?, ?)", (task["id"], task["revision"], data))
+        else:
+            cur = self._db.execute("UPDATE agent_tasks SET data = ?, revision = ? WHERE id = ? AND revision = ?",
+                                   (data, task["revision"], task["id"], expected_revision))
+        self._db.commit()
+        return cur.rowcount == 1
 
     def save_action(self, action: Action) -> None:
         self._db.execute(

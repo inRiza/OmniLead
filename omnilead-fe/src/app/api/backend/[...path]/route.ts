@@ -23,7 +23,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     const response = await fetch(`${backend}/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, {
       method: request.method, headers, cache: "no-store", redirect: "manual",
       body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(),
-      signal: AbortSignal.timeout(path[0] === "instagram" ? 180_000 : 120_000),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(path[0] === "agent" && path[1] === "chat" ? 600_000 : path[0] === "instagram" ? 180_000 : 120_000)]),
     });
     const outgoing = new Headers({ "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
     for (const name of ["content-type", "location"]) {

@@ -11,7 +11,8 @@ def business_catalog(context: BusinessContext) -> Catalog:
         id=p.id, name=p.name, keywords=tuple({p.name.lower(), *re.findall(r"\w{3,}", p.name.lower())}),
         unit_price=p.unit_price, unit=p.unit, min_order=p.min_order, notes="Harga dari knowledge base pemilik",
     ) for p in context.products)
-    return Catalog(business=context.business, packages=packages, policies={}, faq=(),
+    brand = context.public_business_name if context.public_business_name is not None else context.business
+    return Catalog(business=brand, packages=packages, policies={}, faq=(),
                    default_package_id=packages[0].id if len(packages) == 1 else "")
 
 

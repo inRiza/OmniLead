@@ -197,7 +197,8 @@ class IngestService:
         self._store.save_event(event)
         return event
 
-    def process(self, event: Event, *, expected_run_id: str | None = None) -> Event:
+    def process(self, event: Event, *, expected_run_id: str | None = None, instruction: str | None = None,
+                draft_only: bool = False) -> Event:
         """Jalankan agen untuk event. Dipanggil juga saat memproses ulang event tertahan."""
         if expected_run_id:
             current = self._store.get_event(event.id)
@@ -253,7 +254,7 @@ class IngestService:
             self._store.save_event(event)
 
         try:
-            payload = self._payload(event, lead)
+            payload = self._payload(event, lead, instruction)
             if hasattr(self._agent, "analyze_stream"):
                 result = self._agent.analyze_stream(payload, on_progress)
             else:
@@ -262,7 +263,7 @@ class IngestService:
             if current and (current.trace or {}).get("run_id") != run_id:
                 raise AnalysisSuperseded()
             result.trace.update(lease)
-            return self._apply(event, lead, result)
+            return self._apply(event, lead, result, draft_only=draft_only)
         except AnalysisSuperseded:
             return self._store.get_event(event.id) or event
         except AgentUnavailable as exc:
@@ -414,7 +415,7 @@ class IngestService:
 
     # --- agent I/O ---
 
-    def _payload(self, event: Event, lead: Lead | None) -> dict:
+    def _payload(self, event: Event, lead: Lead | None, instruction: str | None = None) -> dict:
         settings = self._store.get_settings()
         windows: dict[str, bool] = {}
         if event.channel in WINDOWED_CHANNELS and event.kind in ("message", "dm") and event.ts:
@@ -452,7 +453,7 @@ class IngestService:
                 "comment_ref": event.comment_ref,
             },
             "lead": self._lead_context(event, lead) if lead else None,
-            "preferences": settings.preferences,
+            "preferences": settings.preferences + ([f"Instruksi pemilik untuk balasan ini: {instruction}"] if instruction else []),
             "windows": windows,
             "protected_terms": protected[:PROTECTED_LIMIT],
         }
@@ -500,7 +501,7 @@ class IngestService:
             "timeline": timeline[-TIMELINE_LIMIT:],
         }
 
-    def _apply(self, event: Event, lead: Lead | None, result: AgentResult) -> Event:
+    def _apply(self, event: Event, lead: Lead | None, result: AgentResult, *, draft_only: bool = False) -> Event:
         event.triage = result.triage
         event.trace = result.trace
         event.review_reason = result.review_reason
@@ -556,9 +557,14 @@ class IngestService:
             action = self._to_action(p, event)
             if action is None:
                 continue
+            hold_draft = draft_only and action.kind in (ActionKind.SEND_MESSAGE, ActionKind.REPLY_COMMENT, ActionKind.COMMENT_POST)
+            if hold_draft:
+                action.payload = {**action.payload, "_auto_held": True}
             proposed = self._queue.propose(action)
             queued.append(proposed)
-            if self._on_proposed:
+            if hold_draft:
+                self._store.audit("owner_draft_only", "Pemilik meminta draf untuk ditinjau; tidak dikirim otomatis", proposed.id, actor="agent", channel=event.channel.value)
+            elif self._on_proposed:
                 self._on_proposed(proposed, event)
             else:
                 self._autopilot(proposed, event)

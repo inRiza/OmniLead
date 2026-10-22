@@ -177,11 +177,25 @@ def analyze(
             review_reason="Pesan terdeteksi sebagai spam atau promosi",
         )
 
+    if req.business_context and req.business_context.public_business_name is not None:
+        missing = []
+        if not req.business_context.public_business_name.strip():
+            missing.append("nama bisnis yang tampil ke pelanggan")
+        if not req.business_context.documents and not req.business_context.products:
+            missing.append("knowledge base bisnis untuk kanal ini")
+        if missing:
+            note = "Lengkapi " + " dan ".join(missing) + " di Pengetahuan & Tone sebelum menyiapkan balasan."
+            trace.status = "Konteks bisnis belum lengkap"
+            trace.guard_summary = note
+            return done(flagged_for_review=True, review_reason=note)
+
     ctx = DraftContext(req=req, tri=tri, catalog=catalog, tools=Tools(req, tri, catalog, trace))
+    used_fallback = False
     emit("drafting", "Menyusun usulan dengan konteks bisnis", engine=engine_name())
     try:
         proposals = drafter.draft(ctx)
     except Exception as exc:  # LLM/jaringan gagal: jatuh ke templat deterministik
+        used_fallback = True
         trace.steps.clear()
         ctx.score = None
         ctx.notes.append(f"Agen LLM gagal ({type(exc).__name__}); memakai templat")
@@ -220,6 +234,11 @@ def analyze(
                 n.status = "warn"
                 n.note += " (belum terselesaikan setelah 2 revisi; tinjau manual)"
     trace.revisions = revisions
+    if used_fallback:
+        for proposal in proposals:
+            if proposal.kind in ("send_message", "reply_comment", "comment_post"):
+                proposal.guard.append(GuardNote(check="model_fallback", status="warn",
+                    note="Model utama gagal; draf templat perlu diperiksa pemilik dan tidak dikirim otomatis."))
 
     flagged = bool(dropped)
     reason = "; ".join(sorted({n.note for n in dropped}))

@@ -66,6 +66,8 @@ class BusinessProduct(BaseModel):
 
 class BusinessContext(BaseModel):
     business: str = Field(max_length=100)
+    # None keeps compatibility with older clients; empty means explicitly unconfigured.
+    public_business_name: str | None = Field(default=None, max_length=100)
     channel: Channel
     tone: Literal["friendly", "professional", "casual", "concise", "custom"] = "friendly"
     tone_instruction: str = Field(default="", max_length=500)

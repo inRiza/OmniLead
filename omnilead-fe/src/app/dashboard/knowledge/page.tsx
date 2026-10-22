@@ -234,6 +234,7 @@ export default function KnowledgePage() {
                       <ChannelIcon channel={channel} size="md" />
                       <div className="min-w-0">
                         <p className="text-base font-semibold text-rc-fg">{channelLabel[channel]}</p>
+                        <p className="mt-1 text-sm font-medium text-rc-fg">Bisnis: {c.business_name?.trim() || "Belum diatur"}</p>
                         <p className="mt-1 truncate text-sm text-rc-fg-muted" title={sources.map((s) => s.name).join(", ")}>
                           {sources.length ? sources.map((s) => s.name).join(", ") : "Belum ada sumber pengetahuan"}
                           {c.tone === "custom" && c.custom_tone ? `. Gaya: ${c.custom_tone}` : ""}
@@ -250,7 +251,7 @@ export default function KnowledgePage() {
                           setSourcesFor(channel);
                         }}
                       >
-                        Sumber ({sources.length})
+                        Atur bisnis & sumber ({sources.length})
                       </Button>
                       <Select
                         label={`Tone ${channelLabel[channel]}`}
@@ -389,10 +390,15 @@ export default function KnowledgePage() {
           open
           onOpenChange={(open) => !open && setSourcesFor(null)}
           busy={busy === "sources"}
-          title={`Sumber pengetahuan ${channelLabel[sourcesFor]}`}
-          description="Pilih pengetahuan yang boleh dipakai agen saat membalas di kanal ini."
+          title={`Bisnis & pengetahuan ${channelLabel[sourcesFor]}`}
+          description={`Pengaturan kanal untuk workspace ${business}. Nama bisnis ini yang boleh dipakai dalam balasan pelanggan.`}
         >
           <div className="flex flex-col gap-5">
+            <label className="block text-sm font-medium">Nama bisnis untuk pelanggan
+              <input value={draft.business_name ?? ""} maxLength={100} onChange={(e) => setDraft({ ...draft, business_name: e.target.value })} placeholder="Contoh: Hola Derry" className={field} />
+              <span className="mt-2 block text-xs font-normal leading-relaxed text-rc-fg-muted">Gunakan nama toko atau merek. Nama pemilik dan label workspace tidak otomatis menjadi nama bisnis di balasan.</span>
+            </label>
+            <p className="text-sm font-medium">Knowledge base untuk bisnis ini</p>
             {knowledge.length ? (
               <div className="divide-y divide-rc-border rounded-lg border border-rc-border">
                 {knowledge.map((document) => {

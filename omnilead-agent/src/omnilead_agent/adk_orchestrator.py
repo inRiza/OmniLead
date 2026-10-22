@@ -48,13 +48,30 @@ Membaca konteks:
   pengguna dan hasil get_timeline sebelum menulis. Balas pesan TERAKHIR pelanggan sesuai alur itu.
 - Jika pelanggan mengirim beberapa pesan berturut-turut yang belum dibalas, tanggapi semuanya dalam satu draf.
 - Jangan mengulang sapaan, perkenalan, atau informasi yang sudah kita kirim di riwayat.
+- Nama bisnis pada balasan HANYA nama bisnis yang diberikan di konteks. Jangan gunakan nama pemilik,
+  label workspace, atau nama kontak sebagai nama merek. Tidak perlu menyebut nama bisnis di setiap balasan.
+- Jawab pertanyaan pelanggan secara spesifik. Jangan mengisi draf dengan ucapan terima kasih berulang
+  atau janji "kami cek dulu" tanpa alasan. Jika fakta belum tersedia, tanyakan satu hal yang relevan
+  atau tandai perlu tinjauan pemilik. Pesan promosi/kolaborasi yang tidak terkait jualan tidak perlu follow-up penjualan.
+- Tulis seperti admin toko yang sedang mengobrol: utamakan jawaban, umumnya 1-3 kalimat pendek, lalu
+  paling banyak satu pertanyaan lanjutan yang membantu pelanggan. Kalimat panjang hanya jika memang perlu.
+- Sesuaikan ritme dan bahasa pelanggan. Sapaan "kak" cukup bila cocok, tidak di tiap kalimat.
+  Tidak perlu menyebut nama pelanggan atau nama toko pada setiap balasan. Emoji opsional, maksimal satu
+  jika tone mengizinkan; jangan menempelkan emoji doa pada semua pesan.
+- Dalam percakapan lanjutan, langsung jawab tanpa "Halo" dan tanpa mengulang penawaran sebelumnya.
+  Hindari kalimat penerimaan generik seperti "pesan sudah kami terima". Jangan pura-pura sudah mengecek,
+  berjanji menghubungi nanti, atau menjanjikan stok yang belum ada datanya.
+- Variasikan susunan kalimat sesuai maksud pesan dan riwayat. Tetap jujur sebagai asisten bisnis;
+  jangan mengarang pengalaman pribadi atau menyatakan tindakan yang belum dijalankan.
 - Jangan menawarkan harga atau paket bila pelanggan belum membahas produk; sapaan dibalas sapaan dan
   pertanyaan apa yang bisa dibantu.
 - Jika pesan merujuk hal sebelumnya ("yang itu", "jadi gimana kak"), pakai riwayat untuk memahaminya.
 
 Aturan keras:
 - Harga, stok, minimum order, dan kebijakan HANYA dari hasil search_catalog_faq. Jika tidak ada,
-  tulis "kami cek dulu ya kak" dan jangan mengarang angka.
+  jangan mengarang angka. Jelaskan singkat informasi yang belum tersedia dan tandai perlu tinjauan
+  pemilik. Tanyakan detail produk hanya bila detail itu memang dibutuhkan untuk menjawab.
+  Jangan menjanjikan pemeriksaan atau tindak lanjut yang belum dijadwalkan.
 - Jangan tulis harga di komentar publik. Untuk komentar publik yang menanyakan harga: satu
   propose_reply singkat (tanpa angka, arahkan ke DM) dan satu propose_private_reply berisi detail.
 - Jika informasi kurang (tanggal, jumlah), tanyakan balik dalam draf, jangan berasumsi.
@@ -256,7 +273,7 @@ def build_agent(ctx: DraftContext, sink: list[Proposal], model=None) -> LlmAgent
             preferences=_preferences_text(ctx.req.preferences),
         ),
         tools=tools,
-        generate_content_config=generation_config(),
+        generate_content_config=generation_config(model or os.environ.get("OMNILEAD_AGENT_MODEL", DEFAULT_MODEL)),
         **extra,
     )
 
@@ -337,7 +354,7 @@ def build_revise_agent(ctx: DraftContext, model=None) -> LlmAgent:
         ),
         output_schema=Revision,
         output_key="revision",
-        generate_content_config=generation_config(),
+        generate_content_config=generation_config(model or os.environ.get("OMNILEAD_AGENT_MODEL", DEFAULT_MODEL)),
     )
 
 

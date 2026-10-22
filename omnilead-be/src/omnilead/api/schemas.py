@@ -75,3 +75,17 @@ class PasteImageRequest(BaseModel):
     channel: Channel
     image_base64: str = Field(min_length=1)
     mime_type: str = "image/png"
+
+
+class ChatHistoryItem(BaseModel):
+    role: Literal["user", "agent", "assistant"]
+    text: str = Field(max_length=2000)
+
+
+class ChatRequest(BaseModel):
+    """Satu pesan pemilik ke agen, beserta riwayat singkat (dipegang FE)."""
+
+    message: str = Field(min_length=1, max_length=1000)
+    conversation_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
+    channel: Literal["instagram", "whatsapp", "facebook", "email"] | None = None
+    history: list[ChatHistoryItem] = Field(default_factory=list, max_length=20)

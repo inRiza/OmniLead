@@ -139,6 +139,31 @@ class AgentClient:
         except (httpx.HTTPError, ValueError) as exc:
             raise AgentUnavailable(f"{type(exc).__name__}: {exc}") from exc
 
+    def chat_step(self, payload: dict) -> dict:
+        """Satu langkah chat pemilik: agen memilih tool atau menjawab (tool dijalankan BE)."""
+        try:
+            resp = self._http.post("/v1/chat/step", json=payload, headers=self._auth())
+            resp.raise_for_status()
+            return resp.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise AgentUnavailable(f"{type(exc).__name__}: {exc}") from exc
+
+    def chat_step_stream(self, payload: dict):
+        try:
+            with self._http.stream("POST", "/v1/chat/stream", json=payload, headers=self._auth()) as resp:
+                if resp.status_code in (404, 405):
+                    yield {"type": "decision", "data": self.chat_step(payload)}
+                    return
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if line.strip():
+                        event = json.loads(line)
+                        if event.get("type") == "error":
+                            raise AgentUnavailable(event.get("message", "Model chat gagal"))
+                        yield event
+        except (httpx.HTTPError, ValueError) as exc:
+            raise AgentUnavailable(f"{type(exc).__name__}: {exc}") from exc
+
     def content_ideas(self, payload: dict) -> dict:
         try:
             resp = self._http.post("/v1/content-ideas", json=payload, headers=self._auth())

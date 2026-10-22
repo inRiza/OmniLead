@@ -222,6 +222,7 @@ class KnowledgeBase(BaseModel):
 
 
 class ChannelAgentConfig(BaseModel):
+    business_name: str = Field(default="", max_length=100)
     knowledge_base_ids: list[str] = Field(default_factory=list, max_length=10)
     tone: Literal["friendly", "professional", "casual", "concise", "custom"] = "friendly"
     custom_tone: str = Field(default="", max_length=500)

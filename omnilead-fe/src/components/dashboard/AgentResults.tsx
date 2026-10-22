@@ -59,6 +59,7 @@ function ResultItem({ action, onFeedback, onApprove, onSent, onRetry }: { action
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const status = STATUS[action.status] ?? { label: action.status, tone: "gray" as Tone };
+  const fallback = action.guard.some((g) => g.check === "model_fallback");
   const reviewable = !(action.feedback ?? []).some((f) => f.rating === "bad") && action.status !== "rejected";
   const delivery = action.deliveryStatus ? DELIVERY[action.deliveryStatus] : null;
 
@@ -108,10 +109,11 @@ function ResultItem({ action, onFeedback, onApprove, onSent, onRetry }: { action
         </div>
         <span className="flex items-center gap-1.5">
           {delivery && action.status === "executed" ? <Badge tone={delivery.tone}>{delivery.label}</Badge> : null}
-          <Badge tone={status.tone}>{status.label}</Badge>
+          <Badge tone={fallback && action.status === "pending" ? "amber" : status.tone}>{fallback && action.status === "pending" ? "Draf cadangan · perlu tinjauan" : status.label}</Badge>
         </span>
       </div>
       {action.text ? <p className="mt-3 rounded-lg bg-rc-bg px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-rc-fg">{action.text}</p> : null}
+      {fallback && <p className="mt-2 text-xs leading-relaxed text-amber-800">Model utama gagal pada proses ini. Draf templat ditahan untuk diperiksa pemilik.</p>}
       {(action.reason || action.guard.length > 0) && (
         <div className="mt-3 rounded-lg bg-rc-accent-soft/60 p-3.5">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-rc-accent">

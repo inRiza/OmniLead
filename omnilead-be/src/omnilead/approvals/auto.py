@@ -3,6 +3,7 @@ from omnilead.approvals.queue import ApprovalQueue, InvalidTransition
 from omnilead.autonomy import auto_approvable
 from omnilead.models import Action, ActionKind, ActionStatus, Event
 from omnilead.store import Store
+from omnilead.message_freshness import browser_reply_hold
 
 HOLD_STATUSES = ("block", "warn")
 
@@ -30,6 +31,10 @@ class AutoSender:
             if float(action.payload.get("confidence") or 0) < settings.auto_merge_threshold:
                 return action
             return self._approve_and_run(action, mode)
+        if action.kind in (ActionKind.SEND_MESSAGE, ActionKind.REPLY_COMMENT, ActionKind.COMMENT_POST):
+            event = event or (self._store.get_event(action.event_id) if action.event_id else None)
+            if reason := browser_reply_hold(event):
+                return self._hold(action, reason)
         held = [g for g in action.guard if g.status in HOLD_STATUSES]
         if held:
             detail = "; ".join(f"{g.check}: {g.note or g.status}" for g in held)

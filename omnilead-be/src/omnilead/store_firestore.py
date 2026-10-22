@@ -75,7 +75,7 @@ class FirestoreStore:
 
     def reset(self) -> None:
         for name in ("actions", "audit", "leads", "events", "event_keys", "settings", "knowledge",
-                     "lead_identity", "jobs", "meta"):
+                     "lead_identity", "jobs", "meta", "agent_tasks", "chat_sessions"):
             for doc in self._db.collection(name).stream():
                 doc.reference.delete()
 
@@ -300,6 +300,62 @@ class FirestoreStore:
         row.update(status=status, error=error[:500], updated_at=_now().isoformat(),
                    attempts=row.get("attempts", 0) + (1 if attempt else 0))
         ref.set(row)
+
+    def list_agent_tasks(self) -> list[dict]:
+        return sorted((d.to_dict() for d in self._db.collection("agent_tasks").stream()),
+                      key=lambda t: t["created_at"], reverse=True)
+
+    def get_agent_task(self, task_id: str) -> dict | None:
+        snap = self._db.collection("agent_tasks").document(task_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def save_agent_task(self, task: dict, expected_revision: int | None = None) -> bool:
+        ref = self._db.collection("agent_tasks").document(task["id"])
+        if expected_revision is None:
+            try:
+                ref.create(task)
+                return True
+            except self._already_exists:
+                return False
+        from google.cloud import firestore
+
+        @firestore.transactional
+        def update(transaction):
+            snap = ref.get(transaction=transaction)
+            if not snap.exists or snap.to_dict()["revision"] != expected_revision:
+                return False
+            transaction.set(ref, task)
+            return True
+
+        return update(self._db.transaction())
+
+    def list_conversations(self) -> list[dict]:
+        return sorted((d.to_dict() for d in self._db.collection("chat_sessions").stream()),
+                      key=lambda t: t["updated_at"], reverse=True)
+
+    def get_conversation(self, session_id: str) -> dict | None:
+        snap = self._db.collection("chat_sessions").document(session_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def save_conversation(self, session: dict, expected_revision: int | None = None) -> bool:
+        ref = self._db.collection("chat_sessions").document(session["id"])
+        if expected_revision is None:
+            try:
+                ref.create(session)
+                return True
+            except self._already_exists:
+                return False
+        from google.cloud import firestore
+
+        @firestore.transactional
+        def update(transaction):
+            snap = ref.get(transaction=transaction)
+            if not snap.exists or snap.to_dict()["revision"] != expected_revision:
+                return False
+            transaction.set(ref, session)
+            return True
+
+        return update(self._db.transaction())
 
     # --- settings ---
 
