@@ -37,6 +37,14 @@ class AppSettingsPatch(BaseModel):
     autonomy: Literal["manual", "hybrid", "auto"] | None = None
 
 
+class LeadPatch(BaseModel):
+    stage: Literal["baru", "tertarik", "penawaran", "deal", "batal"] | None = None
+    notes: str | None = Field(default=None, max_length=5000)
+    estimated_value: int | None = Field(default=None, ge=0, le=1_000_000_000_000)
+    lost_reason: str | None = Field(default=None, max_length=500)
+    tags: list[str] | None = Field(default=None, max_length=20)
+
+
 class PasteEventRequest(BaseModel):
     """Pesan dari Instagram, Facebook, WhatsApp, atau email yang ditempel pengguna."""
 

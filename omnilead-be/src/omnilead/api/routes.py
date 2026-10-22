@@ -31,6 +31,7 @@ from omnilead.api.deps import (
 from omnilead.agent_client import AgentClient, AgentUnavailable
 from omnilead.api.schemas import (
     AppSettingsPatch,
+    LeadPatch,
     PasteEventRequest,
     PasteImageRequest,
     ApproveRequest,
@@ -59,6 +60,7 @@ from omnilead.models import (
     Event,
     EventIn,
     Lead,
+    set_stage,
     Post,
     ProposedAction,
     Sender,
@@ -257,6 +259,28 @@ def reanalyze(
 @router.get("/leads", response_model=list[Lead])
 def list_leads(store: Store = Depends(get_store)) -> list[Lead]:
     return store.list_leads()
+
+
+@router.patch("/leads/{lead_id}", response_model=Lead)
+def update_lead(lead_id: str, patch: LeadPatch, store: Store = Depends(get_store)) -> Lead:
+    lead = store.get_lead(lead_id)
+    if lead is None:
+        raise NOT_FOUND
+    changes = patch.model_dump(exclude_none=True)
+    before = {k: getattr(lead, k) for k in changes}
+    now = datetime.now(timezone.utc)
+    for field, value in changes.items():
+        if field == "stage":
+            set_stage(lead, value, now)
+        elif field == "tags":
+            lead.tags = list(dict.fromkeys(t.strip() for t in value if t.strip()))
+        else:
+            setattr(lead, field, value)
+    lead.updated_at = now
+    store.save_lead(lead)
+    detail = ", ".join(f"{k}: {before[k]!s:.40} -> {getattr(lead, k)!s:.40}" for k in changes)
+    store.audit("lead_updated", detail or "tanpa perubahan", actor="owner", lead_id=lead.id)
+    return lead
 
 
 @router.get("/leads/{lead_id}")
