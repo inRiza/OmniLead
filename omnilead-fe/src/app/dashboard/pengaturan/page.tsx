@@ -15,10 +15,9 @@ import { useDashboard } from "@/components/dashboard/DashboardContext";
 
 const CHANNELS: Channel[] = ["whatsapp", "instagram", "facebook", "email"];
 
-const AUTONOMY_OPTIONS: { value: "manual" | "hybrid" | "auto"; label: string; detail: string }[] = [
-  { value: "auto", label: "Percaya penuh", detail: "Semua usulan yang lolos Guard dijalankan otomatis. Anda tetap bisa memberi masukan. (default)" },
-  { value: "hybrid", label: "Hybrid", detail: "Jawaban umum tanpa harga dan update CRM dijalankan otomatis. Penawaran, komplain, dan komentar publik tetap Anda periksa." },
-  { value: "manual", label: "Selalu tanya", detail: "Setiap balasan dan perubahan menunggu persetujuan Anda." },
+const AUTONOMY_OPTIONS: { value: "hybrid" | "auto"; label: string; detail: string }[] = [
+  { value: "auto", label: "Akses penuh", detail: "Agen membuka semua DM, menerima permintaan pesan, dan menjalankan usulan yang lolos Guard tanpa bertanya. (default)" },
+  { value: "hybrid", label: "Hybrid", detail: "Agen minta izin sebelum membuka DM yang belum dibaca dan menerima permintaan pesan. Jawaban umum dan update CRM berjalan otomatis; penawaran, komplain, dan komentar publik tetap Anda periksa." },
 ];
 
 function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: () => void; label: string; disabled?: boolean }) {
@@ -113,7 +112,7 @@ export default function SettingsPage() {
             <p className="mt-2 text-sm text-rc-fg-muted">
               Atur seberapa jauh agen boleh bertindak sendiri. Usulan yang ditandai Guard selalu menunggu Anda, dan Jeda agen menghentikan semuanya.
             </p>
-            <div role="radiogroup" aria-label="Izin agen" className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div role="radiogroup" aria-label="Izin agen" className="mt-5 grid gap-3 sm:grid-cols-2">
               {AUTONOMY_OPTIONS.map((o) => {
                 const on = d.autonomy === o.value;
                 return (

@@ -213,6 +213,14 @@ export interface BeAudit {
   lead_id: string | null;
 }
 
+export type BrowserPermission = "read_unread" | "accept_request";
+
+export interface PendingThread {
+  name: string;
+  preview: string;
+  folder: string;
+}
+
 export interface InstagramSync {
   last_run_at?: string;
   source?: "meta_api" | "openclaw_text" | "none";
@@ -226,6 +234,7 @@ export interface InstagramSync {
   api_error?: string;
   needs_login?: boolean;
   queued?: string[];
+  pending?: Partial<Record<BrowserPermission, PendingThread[]>>;
   webhook_last_at?: string;
   webhook_last_event_at?: string;
   webhook_stale: boolean;
@@ -237,7 +246,7 @@ export interface BeSettings {
   dry_run: boolean;
   preferences: string[];
   rate_limit_per_hour: number;
-  autonomy?: "manual" | "hybrid" | "auto";
+  autonomy?: "hybrid" | "auto";
   auto_merge_threshold?: number;
 }
 
@@ -407,10 +416,11 @@ export const api = {
   event: (eventId: string) => request<BeEvent>(`/events/${eventId}`),
   reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze?background=true`),
   instagramSyncStatus: () => request<InstagramSync>("/instagram/sync"),
-  instagramSync: (analyze = false, preferBrowser = false) => {
+  instagramSync: (analyze = false, preferBrowser = false, allow: BrowserPermission[] = []) => {
     const q = new URLSearchParams();
     if (analyze) q.set("analyze", "true");
     if (preferBrowser) q.set("prefer_browser", "true");
+    allow.forEach((kind) => q.append("allow", kind));
     const suffix = q.size ? `?${q}` : "";
     return post<InstagramSync>(`/instagram/sync${suffix}`);
   },

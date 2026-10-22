@@ -1,29 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Check, Loader2, Play } from "lucide-react";
-import { api, type InstagramSync } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { ArrowRight, Check, Loader2, MailCheck, MailOpen, Play, ShieldCheck } from "lucide-react";
+import { api, type BrowserPermission, type InstagramSync, type PendingThread } from "@/lib/api";
 import { Button } from "@/components/action/button";
 import { ChannelIcon } from "@/components/primitives";
 import { AgentRunPanel, useAgentRun } from "@/components/dashboard/AgentRun";
 
 type Phase = "idle" | "reading" | "answering" | "done";
+type Pending = Partial<Record<BrowserPermission, PendingThread[]>>;
+
+const PERMISSION_COPY: Record<BrowserPermission, { title: (n: number) => string; detail: string; icon: typeof MailOpen }> = {
+  read_unread: {
+    title: (n) => `Buka ${n} DM yang belum dibaca`,
+    detail: "Pengirim akan melihat pesannya sudah dibaca.",
+    icon: MailOpen,
+  },
+  accept_request: {
+    title: (n) => `Terima ${n} permintaan pesan`,
+    detail: "Percakapan pindah ke kotak masuk Utama sehingga agen bisa membalas.",
+    icon: MailCheck,
+  },
+};
+
+function waiting(pending?: Pending): Pending | null {
+  const kinds = (Object.keys(PERMISSION_COPY) as BrowserPermission[]).filter((k) => pending?.[k]?.length);
+  return kinds.length ? Object.fromEntries(kinds.map((k) => [k, pending![k]])) : null;
+}
+
+function names(threads: PendingThread[]): string {
+  const shown = threads.slice(0, 4).map((t) => t.name).join(", ");
+  return threads.length > 4 ? `${shown}, dan ${threads.length - 4} lainnya` : shown;
+}
 
 export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void> }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [read, setRead] = useState<InstagramSync | null>(null);
   const [answered, setAnswered] = useState(0);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState<Pending | null>(null);
   const agent = useAgentRun(onFinished);
 
-  async function start() {
+  useEffect(() => {
+    api.instagramSyncStatus().then((s) => setPending(waiting(s.pending))).catch(() => undefined);
+  }, []);
+
+  async function start(allow: BrowserPermission[] = []) {
     setError("");
     setRead(null);
     setAnswered(0);
+    setPending(null);
     setPhase("reading");
     try {
-      const synced = await api.instagramSync(true, true);
+      const synced = await api.instagramSync(true, true, allow);
       setRead(synced);
+      setPending(waiting(synced.pending));
       const queued = new Set(synced.queued ?? []);
       const events = await api.events();
       const targets = (synced.queued ?? [])
@@ -65,9 +96,9 @@ export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void>
             {phase === "reading" ? "Membaca…" : phase === "answering" ? "Menjawab…" : "Mulai baca"}
           </Button>
         </div>
-        <p className="mt-3 text-xs text-rc-fg-muted">
+        {/* <p className="mt-3 text-xs text-rc-fg-muted">
           Membuka Instagram lewat OpenClaw di komputer ini. Pastikan gateway sudah jalan (`tools/openclaw/start.sh`).
-        </p>
+        </p> */}
       </section>
 
       {phase === "reading" ? (
@@ -90,6 +121,49 @@ export function InstagramAgent({ onFinished }: { onFinished: () => Promise<void>
         <p role="alert" className="rounded-lg border border-rc-border bg-rc-surface px-4 py-2.5 text-sm text-rc-fg-muted">
           {read.error}
         </p>
+      ) : null}
+
+      {pending && !busy ? (
+        <section className="rounded-xl border border-rc-accent bg-rc-accent-soft p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-rc-accent" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-rc-fg">Agen butuh izin Anda</p>
+              <p className="mt-1 text-sm text-rc-fg-muted">Mode Hybrid aktif. Setelah diizinkan, agen langsung membaca dan menyiapkan balasan.</p>
+              <ul className="mt-4 flex flex-col gap-3">
+                {(Object.keys(pending) as BrowserPermission[]).map((kind) => {
+                  const copy = PERMISSION_COPY[kind];
+                  const Icon = copy.icon;
+                  const threads = pending[kind] ?? [];
+                  return (
+                    <li key={kind} className="flex items-start gap-3">
+                      <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-rc-fg-muted" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-rc-fg">{copy.title(threads.length)}</p>
+                        <p className="text-sm text-rc-fg-muted">{copy.detail}</p>
+                        <p className="mt-0.5 truncate text-xs text-rc-fg-muted">{names(threads)}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button
+                  purpose="action"
+                  style="primary"
+                  className="gap-1.5"
+                  onClick={() => void start(Object.keys(pending) as BrowserPermission[])}
+                >
+                  <Check aria-hidden className="h-4 w-4" />
+                  Izinkan dan baca
+                </Button>
+                <Button purpose="action" onClick={() => setPending(null)}>
+                  Nanti saja
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {phase === "answering" ? (

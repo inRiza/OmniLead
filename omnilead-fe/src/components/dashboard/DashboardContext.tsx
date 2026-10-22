@@ -89,8 +89,8 @@ interface DashboardState {
   togglePause: () => Promise<void>;
   setChannelEnabled: (channel: string, enabled: boolean) => Promise<void>;
   setDryRun: (value: boolean) => Promise<void>;
-  autonomy: "manual" | "hybrid" | "auto";
-  setAutonomy: (value: "manual" | "hybrid" | "auto") => Promise<void>;
+  autonomy: "hybrid" | "auto";
+  setAutonomy: (value: "hybrid" | "auto") => Promise<void>;
   approve: (id: string, editedText?: string) => Promise<void>;
   reject: (id: string, reason: string) => Promise<void>;
   feedback: (id: string, rating: "good" | "bad", reason?: string) => Promise<void>;
@@ -213,7 +213,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setChannelEnabled: (channel, enabled) =>
       mutate(() => api.setChannelEnabled(channel, enabled)),
     setDryRun: (v) => mutate(() => api.patchSettings({ dry_run: v })),
-    autonomy: raw.settings?.autonomy ?? "auto",
+    autonomy: raw.settings?.autonomy === "hybrid" ? "hybrid" : "auto",
     setAutonomy: (v) => mutate(() => api.patchSettings({ autonomy: v })),
     approve: (id, text) => mutate(() => api.approve(id, text)),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),

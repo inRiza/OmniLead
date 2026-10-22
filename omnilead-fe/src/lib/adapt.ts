@@ -380,12 +380,12 @@ function auditDetail(detail: string): string {
   const score = detail.match(/^skor=(\d+)\s*(\w*)$/);
   if (score) return `Skor ${score[1]}${score[2] ? ` (${score[2]})` : ""}`;
   const mode = detail.match(/^mode (manual|hybrid|auto)$/);
-  if (mode) return `Mode izin: ${AUTONOMY_LABEL[mode[1] as Autonomy]}`;
+  if (mode) return `Mode izin: ${AUTONOMY_LABEL[mode[1] as Autonomy] ?? AUTONOMY_LABEL.hybrid}`;
   return detail;
 }
 
-export type Autonomy = "manual" | "hybrid" | "auto";
-export const AUTONOMY_LABEL: Record<Autonomy, string> = { manual: "Selalu tanya", hybrid: "Hybrid", auto: "Percaya penuh" };
+export type Autonomy = "hybrid" | "auto";
+export const AUTONOMY_LABEL: Record<Autonomy, string> = { hybrid: "Hybrid", auto: "Akses penuh" };
 
 export function adaptAudit(a: BeAudit): AuditEntry {
   return {
