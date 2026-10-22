@@ -30,7 +30,7 @@ Status per 22 Okt 2026:
 - Penyimpanan SQLite (lokal maupun di instance Cloud Run). Adapter Firestore ada, belum diuji ke Firestore sungguhan.
 - **Izin agen** diatur pemilik di halaman Pengaturan: Selalu tanya (default), Hybrid, dan Percaya penuh. Usulan yang ditandai Guard selalu menunggu
   manusia, dan agen tetap tidak memegang tombol kirim (executor yang mengirim).
-- Tes: BE 171, agen 59, FE 23 lulus; uji E2E lokal 36 cek lulus. Lihat [TESTING.md](TESTING.md).
+- Tes: BE 171, agen 60, FE 23 lulus; uji E2E 23 skenario API lulus (`omnilead-be/scripts/e2e_api.py`). Lihat [TESTING.md](TESTING.md).
 
 ## Backend
 

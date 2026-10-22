@@ -1495,7 +1495,7 @@ penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/
 akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
 pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
 dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
-Hasil pengujian terbaru (22 Okt 2026): BE 171, agen 59, FE 23; alur provider (termasuk Facebook dan
+Hasil pengujian terbaru (22 Okt 2026): BE 171, agen 60, FE 23; alur provider (termasuk Facebook dan
 nomor uji WhatsApp) diuji dengan HTTP tiruan. Uji E2E lokal lewat proxy FE: 36 cek lulus.
 
 Snapshot repo per 22 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di

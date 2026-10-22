@@ -163,7 +163,7 @@ Kaki panel: "Evalset ditulis bersama kode (dev-set), bukan ukuran independen. Ha
 | ⚡ | Pesan masuk sampai draf (engine aturan, cadangan) | **0,34–0,40 dtk** | Satu env untuk berpindah bila Vertex bermasalah |
 | ☁ | Tempel pesan sampai usulan di Cloud Run | **11,7 dtk** | Diukur dari link publik, 22 Okt |
 | 🛡 | Model gagal | beralih ke templat, tetap lewat Guard | Tidak ada pesan yang hilang; event `agent_error` bisa diproses ulang |
-| ✅ | Pengujian otomatis | BE **171**, agen **59**, FE **23** lulus; uji E2E **36** cek | Termasuk bug yang ditemukan dan diperbaiki (lihat TESTING.md) |
+| ✅ | Pengujian otomatis | BE **171**, agen **60**, FE **23** lulus; uji E2E **36** cek | Termasuk bug yang ditemukan dan diperbaiki (lihat TESTING.md) |
 
 ### 03. Matriks pembanding
 
