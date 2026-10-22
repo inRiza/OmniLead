@@ -85,15 +85,17 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 STDOUT="$LOG_ROOT/openclaw-$STAMP.stdout.log"
 STDERR="$LOG_ROOT/openclaw-$STAMP.stderr.log"
 
-nohup node "$ENTRY" gateway run --port 18889 --bind loopback >"$STDOUT" 2>"$STDERR" &
+# Detach from the calling terminal/agent shell so the gateway survives after start.sh exits.
+nohup node "$ENTRY" gateway run --port 18889 --bind loopback >"$STDOUT" 2>"$STDERR" </dev/null &
 PID=$!
+disown "$PID" 2>/dev/null || true
 ready=0
-for _ in $(seq 1 90); do
+for _ in $(seq 1 120); do
   if ! kill -0 "$PID" 2>/dev/null; then
     echo "OpenClaw gagal start. Lihat $STDERR" >&2
     exit 1
   fi
-  if lsof -iTCP:18889 -sTCP:LISTEN >/dev/null 2>&1; then
+  if lsof -iTCP:18891 -sTCP:LISTEN >/dev/null 2>&1; then
     ready=1
     break
   fi
@@ -101,9 +103,11 @@ for _ in $(seq 1 90); do
 done
 if [[ "$ready" -ne 1 ]]; then
   echo "OpenClaw masih boot (PID $PID). Cek log $STDERR — startup bisa 1–3 menit." >&2
+  exit 1
 fi
 cat >"$LOG_ROOT/openclaw-runtime.json" <<EOF
 {"pid":$PID,"started_at":"$STAMP","state_dir":"$STATE_ROOT","config_path":"$CONFIG_PATH","version":"2026.10.5","gateway_port":18889,"browser_port":18891}
 EOF
-echo "OpenClaw gateway PID $PID — loopback :18889, browser control :18891"
+echo "OpenClaw gateway PID $PID — loopback :18889, browser control :18891 (siap)"
 echo "Log: $STDOUT"
+echo "Biarkan proses ini hidup di background. Cek: $TOOL_ROOT/status.sh"
