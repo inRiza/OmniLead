@@ -303,9 +303,13 @@ class TemplateDrafter:
         if reseller:
             parts.append(reseller)
         if "diskon_tidak_wajar" in ctx.tri.risk_flags:
-            parts.append(
-                f"Untuk diskon, batas yang bisa kami berikan maksimal {ctx.catalog.max_discount_percent}% sesuai kebijakan."
-            )
+            limit = ctx.catalog.max_discount_percent
+            if limit > 0:
+                parts.append(f"Untuk diskon, batas yang bisa kami berikan maksimal {limit}% sesuai kebijakan.")
+            else:
+                # Knowledge base tanpa kebijakan diskon terstruktur: jangan menyebut angka.
+                parts.append("Untuk diskon, kami belum bisa menjanjikan potongan. Kami tanyakan dulu ke pemilik ya kak."
+                             if not st.formal else "Untuk diskon, kami perlu memastikan dahulu kepada pemilik usaha.")
         text = "\n".join(parts)
         return text if st.emoji else text.replace("🙏", "").replace("  ", " ").strip()
 

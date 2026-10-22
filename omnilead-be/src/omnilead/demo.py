@@ -89,6 +89,10 @@ def ensure_demo_account(settings: Settings) -> bool:
     user = accounts.register(email, settings.demo_password, settings.demo_name, settings.demo_business)
     store = store_for_workspace(user["workspace_id"])
     result = seed(store)
+    # seed() mereset pengaturan; nama bisnis dipasang lagi sebelum pesan contoh dianalisis di background.
+    settings_store = store.get_settings()
+    settings_store.business_name = settings.demo_business
+    store.save_settings(settings_store)
     seed_demo_knowledge(store)
     log.info("Akun demo %s dibuat dan diisi data demo: %s", email, result)
     if settings.demo_samples:
