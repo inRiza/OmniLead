@@ -28,22 +28,32 @@ Dokumen ini mendaftar pekerjaan backend yang masih dibutuhkan agar UI dashboard 
 
 UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
-- [ ] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.**
+- [x] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.**
   - Sekarang: tidak ada auto-approve. Aksi hanya dieksekusi setelah `POST /actions/{id}/approve` (`approvals/queue.py`, `approvals/executor.py`). UI sudah menghapus tombol persetujuan, sehingga draf agen tertahan di status `pending` ("Disiapkan" di UI).
   - Perlu:
     - Langsung eksekusi setelah agen mengusulkan, bila semua guard lolos dan kanal terhubung.
     - Bila ada guard `block` atau `warn`, tandai Perlu tinjauan dan jangan kirim.
     - Tetap patuhi pause, `disabled_channels`, rate limit, jendela kanal, dan dry run.
     - Tambahkan setting `auto_send: bool` di `AppSettings` agar bisa dimatikan per bisnis, idealnya per kanal.
-- [ ] **1.2 (P0) Aksi macet di status EXECUTING.** Bila proses mati di tengah pengiriman, aksi tidak bisa dijalankan ulang maupun dianggap selesai. Perlu timeout, misalnya lebih dari 5 menit kembali ke `failed` dengan catatan, ditambah job pembersih.
-- [ ] **1.3 (P1) Masukan "Hasil kurang tepat" untuk aksi yang sudah terkirim.**
+  - **Selesai.**
+    - Setting `auto_send` (default mati) dan saklar "Kirim otomatis" di Pengaturan agen.
+    - `approvals/auto.py` `AutoSender` mengirim usulan agen bila semua guard `pass`. Usulan dengan guard `warn` atau `block`, atau pesan yang ditandai tinjauan, ditahan (audit `auto_send_held`) dan tidak dicoba lagi.
+    - Pause, kanal dimatikan, rate limit, jendela kanal, dan dry run tetap berlaku lewat executor.
+    - Aksi yang tertahan rate limit dijalankan ulang oleh `POST /scheduler/dispatch`.
+- [x] **1.2 (P0) Aksi macet di status EXECUTING.** Bila proses mati di tengah pengiriman, aksi tidak bisa dijalankan ulang maupun dianggap selesai. Perlu timeout, misalnya lebih dari 5 menit kembali ke `failed` dengan catatan, ditambah job pembersih.
+  - **Selesai.** `approvals/dispatch.py`: aksi EXECUTING lebih dari 5 menit diubah ke `failed` dengan catatan "status di platform tidak pasti", tanpa retry otomatis agar tidak terkirim ganda. Executor kini menangkap semua error, dan connector Instagram/Facebook kini membungkus error jaringan `httpx` (sebelumnya lolos dan meninggalkan aksi di EXECUTING).
+- [x] **1.3 (P1) Masukan "Hasil kurang tepat" untuk aksi yang sudah terkirim.**
   - Sekarang UI memakai `POST /actions/{id}/reject` yang hanya valid untuk `pending` atau `awaiting_manual_send`.
   - Perlu endpoint `POST /actions/{id}/feedback` dengan `{ rating, reason }` untuk semua status. Alasannya disimpan sebagai preferensi atau contoh negatif untuk agen.
-- [ ] **1.4 (P1) Status pengiriman nyata.**
+  - **Selesai.** `POST /actions/{id}/feedback` dengan `{ rating: "good" | "bad", reason }` untuk semua status. Masukan `bad` wajib beralasan, disimpan sebagai preferensi, dan membatalkan aksi yang masih pending. UI Hasil kerja agen sudah memakai endpoint ini.
+- [x] **1.4 (P1) Status pengiriman nyata.**
   - Status WhatsApp (`statuses`: sent, delivered, read, failed) diabaikan di `api/webhooks.py`.
   - Simpan status ini ke aksi agar UI bisa menampilkan Terkirim, Diterima, atau Dibaca.
-- [ ] **1.5 (P1) Retry otomatis dengan backoff** untuk kegagalan sementara (5xx, timeout). Sekarang retry hanya manual lewat `POST /actions/{id}/retry`.
-- [ ] **1.6 (P2) Rate limit menghitung dry run dan handoff** secara terpisah. Sekarang hanya menghitung baris audit `executed`.
+  - **Selesai.** `statuses` WhatsApp diproses di webhook (`apply_delivery_statuses`) dan disimpan di `action.delivery_status` (sent, delivered, read, failed) beserta `delivery_at`. Status hanya naik, kecuali `failed`. UI menampilkan Diterima atau Dibaca pelanggan.
+- [x] **1.5 (P1) Retry otomatis dengan backoff** untuk kegagalan sementara (5xx, timeout). Sekarang retry hanya manual lewat `POST /actions/{id}/retry`.
+  - **Selesai.** Error sementara (`TransientError`: jaringan, 5xx, 429) dicoba ulang otomatis dengan jeda 1, 5, dan 30 menit oleh `POST /scheduler/dispatch`. Field baru di aksi: `attempts`, `last_attempt_at`, `next_retry_at`. Error permanen tidak dicoba ulang.
+- [x] **1.6 (P2) Rate limit menghitung dry run dan handoff** secara terpisah. Sekarang hanya menghitung baris audit `executed`.
+  - **Selesai.** Batas kirim per jam kini menghitung `executed` dan `dry_run`, sehingga mode latihan mencerminkan batas sebenarnya. Handoff (kirim manual) tetap tidak dihitung.
 
 
 
@@ -79,26 +89,39 @@ UI terkait: Workspace (kategori, ringkasan AI, langkah agen), Lead, Konten.
 
 UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 
-- [ ] **3.1 (P0) Konflik pencocokan.**
+- [x] **3.1 (P0) Konflik pencocokan.**
   - Di `ingest.py` `_resolve_lead`, lead pertama yang cocok langsung dipakai. Bila nomor HP cocok dengan lead A dan email cocok dengan lead B, email ditempel ke A dan kini ada di dua lead.
   - Perlu deteksi konflik, lalu buat usulan merge A dengan B alih-alih menempel diam-diam.
-- [ ] **3.2 (P1) Pencocokan email lebih lengkap.**
+  - **Selesai.** `_resolve_lead` mengumpulkan semua lead yang cocok. Identitas milik lead lain tidak lagi ditempel. Sebagai gantinya dibuat usulan gabung berkeyakinan 0,97 dengan bukti, dan audit `identity_conflict`. Usulan yang sudah pending untuk pasangan yang sama diperkuat (keyakinan dan bukti diperbarui, audit `merge_strengthened`).
+- [x] **3.2 (P1) Pencocokan email lebih lengkap.**
   - Sekarang email dinormalisasi lowercase dan trim (`norm_email`). Belum menangani alias Gmail (titik dan `+tag`), domain perusahaan sebagai sinyal perusahaan yang sama, dan email di dalam isi pesan (misalnya "email saya ani@...").
   - Perlu ekstraksi email dan nomor HP dari teks pesan sebagai bukti tambahan.
-- [ ] **3.3 (P1) Instagram DM dan komentar tidak pernah tercocokkan.**
+  - **Selesai.**
+    - `identity.canon_email`: alias Gmail (titik dan `+tag`, googlemail) dan `+tag` untuk Outlook, iCloud, Proton.
+    - Domain email kantor yang sama menambah keyakinan (+0,3).
+    - Email dan nomor HP yang disebut di isi pesan disimpan di `event.meta.mentioned_contacts` dan memicu usulan gabung berkeyakinan 0,85 bila cocok dengan profil lain. Kontak itu tidak ditempel langsung, karena bisa saja milik orang lain.
+- [x] **3.3 (P1) Instagram DM dan komentar tidak pernah tercocokkan.**
   - Pengirim DM tercatat sebagai IGSID numerik, sedangkan komentar tercatat sebagai username.
   - Perlu lookup profil IGSID ke username lewat Graph API saat ingest. Hal serupa berlaku untuk PSID Facebook yang tidak membawa nama.
-- [ ] **3.4 (P1) Pencocokan nama lebih toleran.**
+  - **Selesai (perlu diuji dengan akun asli).** Saat job webhook diproses, `enrich_sender` mengambil profil lewat `user_profile` (Instagram: `name,username`, Facebook: `first_name,last_name`). IGSID tetap dipakai sebagai handle agar balasan DM tetap sampai. Username disimpan di `meta.username` dan ikut dicocokkan, sehingga DM dan komentar orang yang sama tergabung.
+- [x] **3.4 (P1) Pencocokan nama lebih toleran.**
   - `identity.py` `score_pair` hanya membandingkan token persis.
   - Tambahkan jarak edit atau fonetik (misalnya "Rina" dan "Rinna") serta normalisasi sapaan (Kak, Bu, Pak).
-- [ ] **3.5 (P1) Usulan merge juga untuk lead lama.**
+  - **Selesai.** Sapaan (Kak, Bu, Pak, Mbak, Mas, dan lain-lain) dibuang sebelum dibandingkan. Nama mirip dihitung dengan `difflib` (rasio 0,8 atau lebih, misalnya Rina dan Rinna). `eval/identity_eval.py` tetap presisi dan recall 1,00.
+- [x] **3.5 (P1) Usulan merge juga untuk lead lama.**
   - Usulan fuzzy hanya dibuat saat lead baru dan analisis agen sukses.
   - Perlu job batch "cari duplikat" dan pemicu saat lead lama mendapat identitas baru.
-- [ ] **3.6 (P1) Ingat penolakan merge.** Pasangan yang ditolak bisa diusulkan lagi. Simpan daftar "bukan orang yang sama".
-- [ ] **3.7 (P1) Endpoint merge manual.** Tambahkan `POST /leads/{id}/merge` dengan `{ source_lead_id }` agar pengguna bisa menggabungkan sendiri.
-- [ ] **3.8 (P1) Merge otomatis dengan ambang keyakinan.** Karena alur persetujuan dihapus, putuskan aturannya. Contoh: keyakinan 0,9 atau lebih langsung digabung dan tetap bisa dipisah, sedangkan di bawahnya masuk Perlu tinjauan.
-- [ ] **3.9 (P2) Status kecocokan per identitas.** Spesifikasi meminta indikator per identitas (pasti atau belum pasti). Simpan sumber dan keyakinan tiap identitas di lead.
-- [ ] **3.10 (P2) Performa.** `_resolve_lead` memindai semua lead per event. Perlu indeks per identitas.
+  - **Selesai.** `dedup.scan_duplicates`, dipanggil lewat `POST /leads/find-duplicates` (UI) dan `POST /scheduler/dedup` (terjadwal). Ingest juga memindai lead lama yang mendapat identitas baru.
+- [x] **3.6 (P1) Ingat penolakan merge.** Pasangan yang ditolak bisa diusulkan lagi. Simpan daftar "bukan orang yang sama".
+  - **Selesai.** `dedup.excluded_pairs`: pasangan dari merge yang ditolak atau diberi masukan `bad` tidak diusulkan lagi, ke arah mana pun.
+- [x] **3.7 (P1) Endpoint merge manual.** Tambahkan `POST /leads/{id}/merge` dengan `{ source_lead_id }` agar pengguna bisa menggabungkan sendiri.
+  - **Selesai.** `POST /leads/{id}/merge` langsung menggabungkan, tetap bisa dipisah lewat `undo-merge`. Mengembalikan 404 bila profil tidak ada dan 409 bila menggabungkan ke diri sendiri.
+- [x] **3.8 (P1) Merge otomatis dengan ambang keyakinan.** Karena alur persetujuan dihapus, putuskan aturannya. Contoh: keyakinan 0,9 atau lebih langsung digabung dan tetap bisa dipisah, sedangkan di bawahnya masuk Perlu tinjauan.
+  - **Selesai.** Setting `auto_merge_threshold` (default 0,9; pilihan di Pengaturan agen). Saat `auto_send` aktif, usulan gabung dengan keyakinan di atas ambang langsung dieksekusi, dicatat sebagai "Digabung otomatis oleh agen", dan tetap bisa dipisah. Di bawah ambang tetap menjadi usulan.
+- [x] **3.9 (P2) Status kecocokan per identitas.** Spesifikasi meminta indikator per identitas (pasti atau belum pasti). Simpan sumber dan keyakinan tiap identitas di lead.
+  - **Selesai.** Field `lead.identity_sources` per identitas berisi `source` (created, exact, merge), `confidence`, `channel`, dan waktu. Saat merge, sumber dari profil asal ikut dipindah dengan keyakinan merge-nya. UI belum menampilkannya.
+- [x] **3.10 (P2) Performa.** `_resolve_lead` memindai semua lead per event. Perlu indeks per identitas.
+  - **Selesai.** Indeks identitas `lead_identity` di SQLite (dengan backfill otomatis) dan koleksi `lead_identity` di Firestore (dibangun sekali saat pertama dipakai). `_resolve_lead` kini memakai `find_leads_by_identity`, bukan memindai semua lead.
 
 
 
@@ -214,24 +237,58 @@ UI terkait: Pengaturan agen (status, mode latihan, kanal, batas dan preferensi).
 
 UI terkait: Pilih bisnis, Buat bisnis baru, dropdown bisnis di topbar, Login dan daftar.
 
-- [ ] **11.1 (P1) Profil bisnis.** Jenis usaha dan deskripsi bisnis dari form Buat bisnis baru sekarang disimpan sebagai dokumen pengetahuan "Profil bisnis". Perlu field resmi di workspace: kategori, deskripsi, area layanan, jam operasional.
-- [ ] **11.2 (P2) Paket dan batas jumlah bisnis.** Hanya ada batas keras 50 bisnis per akun (`accounts.py` `add_workspace`). Belum ada konsep paket atau tier. UI baru menyebut "Jumlah bisnis mengikuti paket langganan Anda".
-- [ ] **11.3 (P2) Ubah nama dan hapus bisnis.** Belum ada endpoint arsip atau hapus workspace.
+- [x] **11.1 (P1) Profil bisnis.** Jenis usaha dan deskripsi bisnis dari form Buat bisnis baru sekarang disimpan sebagai dokumen pengetahuan "Profil bisnis". Perlu field resmi di workspace: kategori, deskripsi, area layanan, jam operasional.
+  - **Selesai.** Profil disimpan di record `workspace-<id>` (category, description, service_area, hours) lewat `GET` dan `PATCH /workspaces/{id}` dan `POST /workspaces` (`profile`). Profil dikirim ke agen sebagai dokumen "Profil bisnis" di `business_context`. Form Buat bisnis baru di UI masih menyimpannya sebagai dokumen pengetahuan dan perlu dipindah ke endpoint ini.
+- [x] **11.2 (P2) Paket dan batas jumlah bisnis.** Hanya ada batas keras 50 bisnis per akun (`accounts.py` `add_workspace`). Belum ada konsep paket atau tier. UI baru menyebut "Jumlah bisnis mengikuti paket langganan Anda".
+  - **Selesai.** Field `plan` di akun: free 1, pro 3, business 10 bisnis milik sendiri (batas mutlak 50). Default dari `OMNILEAD_DEFAULT_PLAN` (free). Akun lama tetap memegang bisnis yang sudah ada. `plan`, `workspace_limit`, dan `owned_workspaces` ada di `/auth/session`. Belum ada billing: paket diubah lewat `AccountStore.set_plan`.
+- [x] **11.3 (P2) Ubah nama dan hapus bisnis.** Belum ada endpoint arsip atau hapus workspace.
+  - **Selesai.** Ganti nama lewat `PATCH /workspaces/{id}`. Arsip lewat `DELETE /workspaces/{id}` (hanya pemilik; tidak bisa untuk bisnis terakhir): koneksi kanal diputus dan aset dilepas, bisnis hilang dari daftar semua anggota, dan data CRM tetap tersimpan.
 - [ ] **11.4 (P2) Multi pengguna per bisnis.** Belum ada undangan, peran, atau penanggung jawab percakapan.
+  - **Sebagian.** Sudah ada: peran owner, admin, staff; endpoint `GET`, `POST`, `PATCH`, `DELETE /workspaces/{id}/members`; undangan langsung masuk bila email sudah terdaftar, atau saat mendaftar bila belum; peran dicek di endpoint bisnis, anggota, dan koneksi kanal.
+  - **Alasan belum dicentang:**
+    - Penanggung jawab percakapan belum bisa dibuat karena belum ada entitas percakapan. Baris Workspace masih berupa event tunggal, dan model `Conversation` baru akan dibuat di 5.1 (Bimo). Field penanggung jawab sebaiknya ditempel ke model itu, bukan ke event, agar tidak perlu migrasi dua kali.
+    - Undangan belum punya masa berlaku dan belum dikirim lewat email, karena backend belum punya penyedia email (lihat 11.5).
 - [ ] **11.5 (P2) Keamanan akun.** Belum ada reset atau ganti kata sandi, verifikasi email, perpanjangan sesi otomatis, cabut semua sesi, dan hapus akun. Rate limit login masih di memori per instance.
+  - **Sebagian.** Sudah ada: `POST /auth/password` (ganti kata sandi, sesi lain dicabut), `POST /auth/sessions/revoke`, perpanjangan sesi otomatis saat sisa umur kurang dari setengah, reset kata sandi (`/auth/password/reset-request`, `/auth/password/reset`, token 30 menit sekali pakai), verifikasi email (`/auth/verify-email/request`, `/auth/verify-email`), `DELETE /auth/account`, dan rate limit login yang tersimpan di AccountStore sehingga berlaku lintas instance.
+  - **Alasan belum dicentang:**
+    - Reset kata sandi dan verifikasi email belum bisa dipakai pengguna sungguhan karena backend belum punya pengirim email. Tautan baru dicatat di log bila `OMNILEAD_RESET_LINK_LOG=true`. Perlu keputusan penyedia email (misalnya SendGrid, Resend, atau Gmail API milik OmniLead) beserta kredensialnya, dan itu di luar kode.
+    - Halaman `/login?reset=` dan `/login?verify=` di frontend belum dibuat.
 
 
 
 ## 12. Infrastruktur dan skala - Rizain
 
-- [ ] **12.1 (P2) Antrean webhook.** Webhook diproses dengan `BackgroundTasks` di proses yang sama, sehingga bisa hilang bila instance Cloud Run berhenti. Gunakan Cloud Tasks atau Pub/Sub.
+- [x] **12.1 (P2) Antrean webhook.** Webhook diproses dengan `BackgroundTasks` di proses yang sama, sehingga bisa hilang bila instance Cloud Run berhenti. Gunakan Cloud Tasks atau Pub/Sub.
+  - **Selesai, tanpa Cloud Tasks.** Setiap event webhook (WhatsApp, Instagram, Facebook) disimpan dulu sebagai job di tabel `jobs` sebelum respons dikembalikan, lalu diproses di background. `POST /scheduler/drain-inbox` memproses ulang job pending (lebih dari 2 menit) serta job processing atau failed (lebih dari 5 menit), maksimal 5 percobaan. Aman diulang karena ingest mendedup berdasarkan ID pesan.
 - [ ] **12.2 (P2) Pagination dan indeks.**
   - SQLite: `list_actions` dan `list_leads` tanpa limit, dan belum ada indeks `events.lead_id` maupun `audit(channel, event, ts)`.
   - Firestore: koleksi dibaca utuh lalu diurutkan di Python, dan `count_audit_since` membaca semua baris `executed` setiap pengiriman.
   - Belum ada definisi indeks Firestore di repo.
-- [ ] **12.3 (P2) Pemanggilan berulang.** `reassign_lead`, `_lead_context`, `get_lead`, dan `windows.check_window` memanggil `list_actions()` tanpa filter.
+  - **Sebagian.** Sudah ada: indeks SQLite (`events(lead_id, ts)`, `events(ts)`, `audit(event, channel, ts)`, `audit(lead_id)`, `actions(status, created_at)`, `actions(lead_id)`, `actions(kind)`); kolom `lead_id` dan `kind` di tabel aksi dengan migrasi otomatis; filter dan cursor `before_id` di `list_audit`, cursor `before` di `list_events`, filter `lead_id`, `kind`, dan `limit` di `list_actions`; `count_audit_since` Firestore memakai filter kesetaraan `event` dan `channel`. Query Firestore hanya memakai kesetaraan, jadi tidak butuh composite index.
+  - **Alasan belum dicentang:**
+    - Parameter cursor belum dibuka di endpoint REST (`GET /events`, `GET /audit`). Bentuk respons halaman (cursor berikutnya, filter) ditentukan bersama 5.3 dan 7.3 (Bimo dan Fayadh) agar frontend tidak berubah dua kali.
+    - Firestore masih membaca hasil query lalu mengurutkan di Python. Mengurutkan di server butuh `order_by` dan composite index per kombinasi filter, dan sebaiknya diuji di Firestore emulator atau proyek sungguhan. Test saat ini hanya memakai fake in-memory.
+- [x] **12.3 (P2) Pemanggilan berulang.** `reassign_lead`, `_lead_context`, `get_lead`, dan `windows.check_window` memanggil `list_actions()` tanpa filter.
+  - **Selesai.** `reassign_lead`, `_lead_context`, `get_lead`, `windows.check_window`, `build_snapshot`, `run_followups`, dan daftar merge di detail lead kini memakai `list_actions` atau `list_audit` yang difilter.
+- [ ] 12.4 Guardrails buat agent-nya coba resolve kalau ada prompt injection via chat dsb
+  - **Alasan belum dicentang:** item ini ditambahkan setelah pekerjaan bagian 12 selesai, jadi belum dikerjakan. Kondisi sekarang dan yang masih kurang:
+    - Sudah ada: `omnilead-agent` `triage.py` mendeteksi pola injection (misalnya "abaikan instruksi", "ignore previous", "system prompt", "kamu sekarang adalah", permintaan data pelanggan lain), `adk_triage.py` menambah deteksi oleh LLM, dan `pipeline.py` memblokir seluruh tugas bila terdeteksi, sehingga event menjadi Perlu tinjauan tanpa draf. Prompt ADK juga menegaskan isi pesan adalah data, bukan instruksi.
+    - Belum: pola masih sempit dan mudah dilewati (bahasa campuran, typo, teks tersembunyi di gambar atau email HTML); belum ada eval khusus injection; belum ada pengecekan bahwa draf keluaran tidak mengikuti instruksi pelanggan (misalnya harga diubah atau janji di luar kebijakan) selain guard harga yang sudah ada; dan sejak ada kirim otomatis (1.1), satu salah deteksi berarti pesan langsung terkirim.
+    - Kodenya ada di `omnilead-agent` (wilayah 2, Bimo), jadi perlu disepakati siapa yang mengerjakan: perluasan pola, eval set injection, dan guard keluaran yang membandingkan draf dengan aturan bisnis.
 
 
+
+## Catatan untuk deployment (dari pekerjaan Rizain)
+
+Endpoint scheduler baru yang perlu didaftarkan di Cloud Scheduler (autentikasi sama dengan endpoint scheduler lain):
+
+| Endpoint | Jadwal yang disarankan | Fungsi |
+|---|---|---|
+| `POST /scheduler/dispatch` | Tiap 1 menit | Retry otomatis, pemulihan aksi macet, kirim aksi tertahan, kirim otomatis usulan follow-up |
+| `POST /scheduler/drain-inbox` | Tiap 5 menit | Memproses ulang job webhook yang belum selesai |
+| `POST /scheduler/dedup` | Harian | Mencari dan mengusulkan profil duplikat |
+
+Setting baru: `auto_send`, `auto_merge_threshold` (di `PATCH /settings`), `OMNILEAD_DEFAULT_PLAN`, dan `OMNILEAD_RESET_LINK_LOG`.
 
 ## 13. Ketergantungan pada data seed
 
