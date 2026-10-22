@@ -34,11 +34,9 @@ def run_followups(
     created: list[str] = []
     skipped: list[str] = []
 
-    for action in store.list_actions():
+    for action in store.list_actions(ActionStatus.EXECUTED, kind=ActionKind.FOLLOWUP):
         if (
-            action.kind != ActionKind.FOLLOWUP
-            or action.status != ActionStatus.EXECUTED
-            or action.payload.get("fired")
+            action.payload.get("fired")
             or action.due_at is None
             or _aware(action.due_at) > now  # type: ignore[operator]
         ):

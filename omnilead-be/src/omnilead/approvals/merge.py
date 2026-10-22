@@ -21,7 +21,7 @@ def build_snapshot(store: Store, src: Lead, dst: Lead, action_id: str) -> dict:
         "target_before": dst.model_dump(mode="json"),
         "event_ids": [e.id for e in store.list_events(lead_id=src.id, limit=100_000)],
         "action_ids": [
-            a.id for a in store.list_actions() if a.lead_id == src.id and a.id != action_id
+            a.id for a in store.list_actions(lead_id=src.id) if a.id != action_id
         ],
     }
 

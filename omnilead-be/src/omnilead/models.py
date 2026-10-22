@@ -128,6 +128,12 @@ class Action(ProposedAction):
     result_ref: str | None = None
     error: str | None = None
     reject_reason: str | None = None
+    attempts: int = 0
+    last_attempt_at: datetime | None = None
+    next_retry_at: datetime | None = None
+    delivery_status: Literal["sent", "delivered", "read", "failed"] | None = None
+    delivery_at: datetime | None = None
+    feedback: list[dict] = Field(default_factory=list)
 
 
 class Sender(BaseModel):
@@ -175,6 +181,7 @@ class Lead(BaseModel):
     score_reason: str = ""
     created_at: datetime
     updated_at: datetime
+    identity_sources: dict[str, dict] = Field(default_factory=dict)
 
 
 class KnowledgeProduct(BaseModel):
@@ -206,6 +213,8 @@ class AppSettings(BaseModel):
     rate_limit_per_hour: int = 30
     business_name: str = "Bisnis Anda"
     agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
+    auto_send: bool = False
+    auto_merge_threshold: float = Field(default=0.9, ge=0.5, le=1.0)
 
 
 class AuditEntry(BaseModel):
