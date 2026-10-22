@@ -3,6 +3,9 @@
 from omnilead_agent.catalog import Catalog, rupiah
 from omnilead_agent.schemas import AnalyzeRequest, LeadScore, TriageResult
 
+HOT = 80
+WARM = 50
+
 
 def estimate_value(tri: TriageResult, catalog: Catalog, text: str = "") -> int:
     qty = tri.entities.get("qty")
@@ -66,16 +69,22 @@ def score_lead(req: AnalyzeRequest, tri: TriageResult, catalog: Catalog) -> Lead
 
     intents = set(tri.intents)
     if intents & {"order", "minta_penawaran"}:
-        score += 8
+        score += 15
         reasons.append("Meminta penawaran atau memesan")
     elif "tanya_harga" in intents:
-        score += 5
+        score += 12
         reasons.append("Menanyakan harga")
+
+    qty = tri.entities.get("qty")
+    if isinstance(qty, int) and qty > 0:
+        score += 8
+        reasons.append(f"Menyebut jumlah pesanan ({qty} {tri.entities.get('unit') or 'unit'})".replace("  ", " "))
 
     if "spam" in intents:
         score = 0
         reasons = ["Terdeteksi spam"]
 
     score = max(0, min(100, score))
-    label = "Hot" if score >= 70 else "Warm" if score >= 40 else "Cold"
-    return LeadScore(score=score, label=label, reasons=reasons or ["Belum cukup sinyal"])
+    label = "Hot" if score >= HOT else "Warm" if score >= WARM else "Cold"
+    return LeadScore(score=score, label=label, reasons=reasons or ["Belum cukup sinyal"],
+                     estimated_value=value or None)

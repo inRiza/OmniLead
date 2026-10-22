@@ -81,6 +81,40 @@ def _summary(req: AnalyzeRequest, tri: TriageResult, score: LeadScore) -> str:
     return "; ".join(bits) + "."
 
 
+NEED_KEYS = ("product", "qty", "unit", "date", "location", "budget", "company")
+
+
+def _needs(tri: TriageResult) -> dict[str, object]:
+    return {k: tri.entities[k] for k in NEED_KEYS if tri.entities.get(k) not in (None, "")}
+
+
+def _unanswered(history) -> int:
+    count = 0
+    for item in reversed(history):
+        if item.direction == "out":
+            break
+        count += 1
+    return count
+
+
+def _next_step(proposals: list[Proposal], tri: TriageResult, stage: str) -> str:
+    kinds = {p.kind for p in proposals}
+    followup = next((p for p in proposals if p.kind == "followup" and p.due_at), None)
+    if "komplain" in tri.intents:
+        return "Tangani keluhan pelanggan lebih dulu sebelum menawarkan produk."
+    if "konfirmasi_bayar" in tri.intents:
+        return "Cek mutasi pembayaran lalu konfirmasi pesanan ke pelanggan."
+    if stage == "penawaran" or "minta_penawaran" in tri.intents:
+        step = "Kirim penawaran sesuai kebutuhan yang disebut pelanggan."
+    elif kinds & {"send_message", "reply_comment", "comment_post"}:
+        step = "Kirim balasan yang sudah disiapkan agen."
+    else:
+        step = "Tunggu pesan berikutnya dari pelanggan."
+    if followup:
+        step += f" Follow-up dijadwalkan {followup.due_at.strftime('%d/%m')}."
+    return step
+
+
 def analyze(
     req: AnalyzeRequest,
     drafter: Drafter | None = None,
@@ -95,6 +129,13 @@ def analyze(
         catalog = catalog or default_catalog()
     drafter = drafter or default_drafter()
     triager = triager or default_triager()
+    history = req.lead.timeline if req.lead else []
+    emit("context", "Mencari data pelanggan", known=bool(req.lead), history=len(history),
+         unanswered=_unanswered(history))
+    if req.business_context:
+        chunks = sum(len([c for c in doc.content.split("\n\n") if c.strip()]) for doc in req.business_context.documents)
+        emit("knowledge", "Memecah pengetahuan bisnis menjadi potongan", documents=len(req.business_context.documents),
+             chunks=chunks, products=len(req.business_context.products))
     emit("triage", "Mengenali maksud dan urgensi pesan")
     tri = triager(req) if triager else triage(req)
     emit("triage_done", "Maksud pesan dikenali", intents=tri.intents,
@@ -148,6 +189,8 @@ def analyze(
         drafter = TemplateDrafter()
         proposals = drafter.draft(ctx)
     score = ctx.score or score_lead(req, tri, catalog)
+    emit("score", "Menghitung potensi lead", score=score.score, score_label=score.label, reasons=score.reasons,
+         estimated_value=score.estimated_value)
 
     # Guard + revisi
     revisions = 0
@@ -201,6 +244,11 @@ def analyze(
         score=score.score,
         label=score.label,
         score_reason="; ".join(score.reasons),
+        reasons=score.reasons[:3],
+        estimated_value=score.estimated_value,
+        needs=_needs(tri),
+        next_step=_next_step(proposals, tri, stage),
+        rubric=score.rubric,
     )
     return done(
         score=score,

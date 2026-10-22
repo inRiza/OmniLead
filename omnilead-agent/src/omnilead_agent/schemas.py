@@ -125,6 +125,8 @@ class LeadScore(BaseModel):
     score: int
     label: Literal["Hot", "Warm", "Cold"]
     reasons: list[str]
+    estimated_value: int | None = None
+    rubric: str = "rubrik-awal-v1"
 
 
 class CrmUpdate(BaseModel):
@@ -133,6 +135,11 @@ class CrmUpdate(BaseModel):
     score: int
     label: str
     score_reason: str
+    reasons: list[str] = Field(default_factory=list)
+    estimated_value: int | None = None
+    needs: dict[str, object] = Field(default_factory=dict)
+    next_step: str = ""
+    rubric: str = "rubrik-awal-v1"
 
 
 class TraceStep(BaseModel):
