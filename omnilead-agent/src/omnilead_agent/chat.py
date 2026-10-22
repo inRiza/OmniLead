@@ -40,6 +40,7 @@ TOOLS: dict[str, dict] = {
         "properties": {
             "query": {"type": "STRING", "description": "Nama, perusahaan, handle, atau nomor. Kosong = semua."},
             "label": {"type": "STRING", "description": "Hot, Warm, atau Cold. Kosong = semua."},
+            "mulai": {"type": "STRING", "description": "Urutan awal halaman berikutnya (angka). Pakai nilai `berikutnya` dari hasil sebelumnya."},
         },
         "required": [],
     },
@@ -50,7 +51,7 @@ TOOLS: dict[str, dict] = {
         "required": ["lead"],
     },
     "siapkan_balasan": {
-        "description": "Siapkan draf balasan untuk pesan terbaru seorang prospek. Draf melewati pemeriksaan "
+        "description": "Siapkan draf balasan untuk pesan terbaru SATU prospek. Untuk banyak prospek pakai siapkan_balasan_massal. Draf melewati pemeriksaan "
                        "keamanan dan menunggu persetujuan pemilik (kecuali mode otonomi memperbolehkan kirim "
                        "otomatis). Jangan memasukkan harga atau janji yang tidak disebut pemilik.",
         "properties": {
@@ -97,7 +98,18 @@ Aturan:
   Cek DM umum tidak memerlukan nama penerima. Tugas terjadwal tampil otomatis di Board dan Jadwal & cron.
 - Untuk menyusun promosi atau menyebut identitas/produk bisnis, baca lihat_konteks_bisnis terlebih dahulu.
   Jika belum diatur, arahkan pemilik ke Pengetahuan & Tone; jangan memakai nama workspace sebagai merek.
-  Jangan membuat promosi massal atau mengirim ke semua kontak tanpa sasaran dan konteks yang jelas.
+  Promosi ke banyak prospek hanya bila pemilik menyebut sasaran dan isi penawarannya; jangan mengarang tawaran.
+- Untuk permintaan ke BANYAK prospek ("semua lead", "semua yang belum dibalas"), pakai siapkan_balasan_massal, bukan
+  siapkan_balasan berulang. Jika hasilnya `masih_antre` > 0, panggil lagi dengan mulai=`berikutnya` sampai selesai.
+  Di akhir laporkan jumlah per status dan alasannya, jangan hanya bilang "selesai".
+- cari_lead menampilkan satu halaman. Jika hasil memuat `berikutnya`, panggil lagi dengan mulai itu sebelum
+  menyimpulkan jumlah prospek.
+- Kamu hanya bisa MEMBALAS pesan masuk. Kamu tidak bisa memulai percakapan baru, dan balasan untuk pesan yang
+  lebih dari 24 jam ditahan. Jika pemilik meminta menghubungi duluan atau menawarkan produk ke prospek yang tidak
+  punya DM masuk, katakan terus terang bagian mana yang belum bisa, lalu tawarkan jalan lain (dikirim manual dari
+  Workspace, atau menunggu mereka chat). Jangan menyamarkan balasan lama sebagai penawaran baru.
+- Jangan memanggil tool yang sama dengan argumen yang sama berulang kali; pakai hasil sebelumnya. Tidak ada batas
+  langkah yang kecil, jadi selesaikan pekerjaan sampai tuntas, tetapi hentikan dan laporkan bila tidak ada kemajuan.
 - Setelah tool selesai, rangkum hasilnya untuk pemilik dengan jelas: apa yang ditemukan dan apa langkah
   berikutnya. Jangan mengulang data mentah.
 - SEBELUM memanggil tool, tulis SATU kalimat singkat (maks. 20 kata) tentang apa yang akan kamu lakukan
@@ -106,6 +118,19 @@ Aturan:
 """
 
 TOOLS.update({
+    "siapkan_balasan_massal": {
+        "description": "Siapkan balasan untuk BANYAK prospek sekaligus dalam satu langkah, dengan kemajuan per prospek. "
+                       "Hanya membalas pesan masuk yang ada; prospek tanpa DM masuk dilaporkan, tidak dihubungi duluan. "
+                       "Hasil memuat jumlah per status dan `masih_antre`; bila > 0 panggil lagi dengan mulai=`berikutnya`. "
+                       "Tetap melewati pemeriksaan keamanan dan mode izin pemilik.",
+        "properties": {
+            "sasaran": {"type": "STRING", "enum": ["belum_dibalas", "semua_lead"],
+                        "description": "belum_dibalas = hanya yang pesan terakhirnya belum dibalas; semua_lead = semua prospek."},
+            "instruksi": {"type": "STRING", "description": "Arahan pemilik untuk isi balasan, mis. tawaran produk yang pemilik sebut."},
+            "label": {"type": "STRING", "description": "Hot, Warm, atau Cold. Kosong = semua."},
+            "mulai": {"type": "STRING", "description": "Urutan awal untuk melanjutkan batch (angka). Kosong = dari awal."},
+        },
+        "required": ["sasaran"]},
     "cari_akun_instagram": {
         "description": "Cari username di inbox browser Instagram dan verifikasi profilnya, lalu simpan alias username/nama tampilan. Pakai jika username tidak ditemukan di database. Tidak mengirim pesan.",
         "properties": {"username": {"type": "STRING", "description": "Username Instagram tanpa URL, misalnya @nama.akun."}},
