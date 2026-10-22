@@ -3,6 +3,65 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Agen browser OpenClaw (22 Okt 2026)
+
+- Kendala dari penggunaan nyata: inbox Instagram tampil, tetapi planner memilih
+  ref kosong/tidak valid dan tugas berhenti sebelum aksi pertama. **Masih terbuka**
+  dan dicatat sebagai prioritas handoff. Belum ada bukti balas DM sukses.
+- Perubahan terakhir membuat pembacaan layar aktif secara default serta menghapus
+  isian akun wajib dari chat. Ini perubahan UX/default, bukan perbaikan bug ref.
+  TypeScript, lint dua komponen frontend, parsing sintaks router Python, dan
+  pemeriksaan whitespace diff lulus; tidak menjalankan suite tes baru.
+
+- Pembaruan chat/login: TypeScript, lint tiga file frontend terkait, dan parsing
+  empat file Python lulus. Backend, agen, frontend browser, dan kontrol OpenClaw
+  merespons HTTP 200 sesudah layanan dimuat ulang. Chat, login aman, OTP,
+  respons saat `needs_user`, dan routing request tugas lama ditambahkan.
+  Belum dilakukan login menggunakan password akun nyata, pengiriman OTP/login,
+  panggilan model visual, atau pengiriman pesan melalui alur chat baru.
+  Tidak menambah/menjalankan suite tes untuk pembaruan ini.
+
+- Implementasi baru: planner visual Gemini, runtime resmi OpenClaw dengan profil per
+  bisnis/kanal, dashboard browser, persetujuan input, batas tugas, stop/close,
+  serta pembacaan pesan layar dan impor ke pipeline CRM/Guard setelah konfirmasi.
+  Dependency `openclaw@2026.10.5` berhasil terpasang; CLI melaporkan versi tersebut.
+  Gateway lokal `/health` port 18889 dan browser `/profiles` port 18891 merespons
+  HTTP 200 dengan token runtime. Ini bukan bukti operasi browser/account berhasil.
+- Perbaikan 22 Okt 2026 pukul 11.23: pengaturan awal memblokir hostname kanal;
+  izin domain eksplisit ditambahkan. Pembukaan tab diubah ke `about:blank` lalu
+  navigasi melalui OpenClaw agar pemeriksaan redirect berjalan pada Edge Windows.
+  Operasi profil Instagram lokal berhasil: start, open tab, resize, navigate,
+  focus, daftar tab, snapshot, dan screenshot semuanya HTTP 200. Halaman login
+  Instagram tampil; JPEG 80.489 byte dan 77 referensi elemen berhasil dibaca.
+  Screenshot ditinjau secara visual. Tidak memasukkan kredensial atau mengirim
+  pesan/model. Dashboard memperoleh tombol buka ulang untuk sesi gagal.
+- TypeScript, ESLint pada enam file frontend yang diubah, parsing sintaks Python/
+  PowerShell, dan `docker compose config --quiet` lulus. Lint seluruh frontend
+  dihentikan karena lambat, lalu pemeriksaan file yang diubah diselesaikan.
+  Pemeriksaan awal sempat
+  gagal karena import komponen dan properti context yang sudah dihapus pada
+  develop, serta dependensi `recharts` belum terpasang; diperbaiki/disinkronkan.
+  Satu pemeriksaan bersamaan dengan startup Next juga menemukan file tipe rute
+  yang belum selesai dihasilkan; pemeriksaan ulang sesudah startup lulus.
+- Backend dan service agen berhasil startup dengan health HTTP 200. Halaman
+  `/dashboard/browser` dikompilasi oleh server development dan merespons HTTP 200.
+  Ini pemeriksaan startup/kompilasi, bukan bukti alur browser sudah berhasil.
+- Tidak menambah atau menjalankan suite tes untuk fitur baru ini. Tidak ada
+  panggilan model visual, login kanal, kirim pesan, atau uji browser end-to-end
+  yang dilakukan dalam implementasi ini. Status pengujian lama di bawah tidak
+  boleh dianggap sebagai pengujian runner browser baru.
+- Batas yang masih ada: referensi halaman login berhasil dimuat; deteksi login,
+  sasaran percakapan, dan koordinat input manual belum diuji pada UI
+  kanal nyata; CAPTCHA/perubahan tampilan dapat menghentikan tugas. Dedup impor
+  hanya untuk ID ekstraksi yang sama, bukan seluruh screenshot dari pesan yang
+  sama. Draf visual planner belum melewati Guard; draf dari impor CRM memakai Guard.
+- Kontrol login manual headless, Dockerfile, supervisor, Compose bervolume, serta
+  template Cloud Run disediakan. Image fitur browser belum dibangun/dideploy;
+  kontrol login remote belum diverifikasi end-to-end. State Cloud Run pada template
+  bersifat sementara. Belum ada pemantauan inbox berkelanjutan.
+  Executor mengarahkan sumber browser ke handoff agar username screenshot tidak
+  dipakai sebagai ID API.
+
 ## Ringkasan uji sesuai TOR (skenario, masukan, hasil aktual, kendala, pengawasan manusia)
 
 Diperbarui 22 Okt 2026 siang pada branch `feat/lead-stages`. Sumber setiap baris: uji E2E API

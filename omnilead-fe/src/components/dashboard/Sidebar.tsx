@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ComponentType, type SVGProps } from "react";
-import { Activity, BookOpen, Menu, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
+import { Activity, BookOpen, Menu, Monitor, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
@@ -22,6 +22,7 @@ const main: NavItem[] = [
   { href: "/dashboard", label: "Beranda", icon: HomeIcon },
   { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
   { href: "/dashboard/agent", label: "Aktivitas agen", icon: Activity },
+  { href: "/dashboard/browser", label: "Agen browser", icon: Monitor },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
   { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
@@ -75,7 +76,8 @@ export function Sidebar() {
   const collapsed = useCollapsed();
   const isActive = useIsActive();
   const { session } = useAccount();
-  const { pendingCount } = useDashboard();
+  const { actions } = useDashboard();
+  const pendingCount = actions.filter((action) => action.status === "pending").length;
   const user = session.user;
   const navMain = mainNav(pendingCount);
 
@@ -137,7 +139,8 @@ export function Sidebar() {
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const isActive = useIsActive();
-  const { pendingCount } = useDashboard();
+  const { actions } = useDashboard();
+  const pendingCount = actions.filter((action) => action.status === "pending").length;
   const pathname = usePathname();
   const [seen, setSeen] = useState(pathname);
   if (seen !== pathname) {

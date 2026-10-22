@@ -15,6 +15,13 @@ Tiga bagian, masing-masing dijalankan di terminal terpisah:
 Dokumen: [PRD](docs/crm-agentic-multikanal-6.1.md) · [plan.md](plan.md) (yang sudah dan belum) ·
 [TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-6.1.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
 
+**Agen browser OpenClaw:** `/dashboard/browser` memakai dependency resmi
+`openclaw@2026.10.5` untuk profil, screenshot, dan input browser tanpa token API
+kanal. Dashboard menyediakan chat tugas, kartu login aman, planner visual, persetujuan,
+serta impor pesan ke CRM. Paket container dan volume persisten tersedia melalui
+`compose.browser.yaml`; template Cloud Run juga tersedia, dengan state sementara.
+Setup dan batasnya: [docs/browser-agent.md](docs/browser-agent.md).
+
 Urutan menjalankan: **agen → BE → FE**.
 
 Status per 22 Okt 2026:

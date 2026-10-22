@@ -1,4 +1,4 @@
-"""Executor: satu-satunya komponen yang benar-benar mengirim ke platform.
+"""Executor koneksi API. Input browser lokal memiliki persetujuan langkah sendiri.
 
 - Hanya menjalankan aksi berstatus APPROVED/EDITED (hasil keputusan manusia).
 - Menolak selama Pause aktif, kanal dimatikan, atau batas laju terlampaui;
@@ -78,6 +78,14 @@ class Executor:
             raise RateLimited(
                 f"Batas {settings.rate_limit_per_hour} pengiriman/jam untuk {action.channel.value} tercapai"
             )
+
+        source = self._store.get_event(action.event_id) if action.event_id else None
+        if source and source.meta.get("transport") == "browser":
+            action.status = ActionStatus.AWAITING_MANUAL_SEND
+            action.result_ref = None
+            self._store.save_action(action)
+            self._log(action, "handoff", "Pesan berasal dari browser; draf ditinjau dan dikirim melalui sesi browser yang sesuai.")
+            return action
 
         connector = self._registry.get(action.channel)
         write_action = WRITE_ACTION[action.kind]

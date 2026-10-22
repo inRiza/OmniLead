@@ -1,0 +1,24 @@
+# Optional browser-enabled backend. Existing agent and frontend remain separate.
+services:
+  browser-api:
+    build:
+      context: .
+      dockerfile: tools/openclaw/Dockerfile
+    image: omnilead-browser-api:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      OMNILEAD_STORE: sqlite
+      OMNILEAD_AGENT_URL: ${OMNILEAD_AGENT_URL:-http://host.docker.internal:8100}
+      OMNILEAD_AGENT_API_KEY: ${OMNILEAD_AGENT_API_KEY:?Set the shared agent key in your shell}
+      OMNILEAD_FRONTEND_URL: ${OMNILEAD_FRONTEND_URL:-http://localhost:3000}
+      OMNILEAD_CORS_ORIGINS: '["http://localhost:3000"]'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - browser-data:/var/lib/omnilead
+    shm_size: 1gb
+    restart: unless-stopped
+    stop_grace_period: 30s
+volumes:
+  browser-data:

@@ -1,0 +1,9 @@
+{
+  "name": "omnilead-openclaw-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pinned official OpenClaw browser runtime for OmniLead on local hosts and cloud containers",
+  "dependencies": {
+    "openclaw": "2026.10.5"
+  }
+}

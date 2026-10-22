@@ -87,7 +87,15 @@ export default function AgentPage() {
               {selected.eventStatus === "agent_error" && <Button purpose="action" style="secondary" disabled={retrying || d.paused} onClick={retry}>{retrying ? "Memulai ulang…" : "Proses ulang pesan"}</Button>}
               {error && <p role="alert" className="text-sm text-rc-danger">{error}</p>}
               <section><h2 className="mb-2 text-base font-semibold text-rc-fg">Usulan &amp; draf balasan</h2>
-                {isWorking(selected.eventStatus) && !actions.length ? <p className="rounded-lg border border-dashed border-rc-border p-4 text-sm text-rc-fg-muted">Agen sedang menyiapkan usulan. Draf yang selesai diperiksa akan muncul di sini.</p> : <AgentResults actions={actions} onFeedback={d.reject} onApprove={d.approve} onSent={d.markSent} onRetry={d.retry} />}
+                {isWorking(selected.eventStatus) && !actions.length ? <p className="rounded-lg border border-dashed border-rc-border p-4 text-sm text-rc-fg-muted">Agen sedang menyiapkan usulan. Draf yang selesai diperiksa akan muncul di sini.</p> : (
+                  <AgentResults
+                    actions={actions}
+                    onFeedback={(id, reason) => d.feedback(id, "bad", reason)}
+                    onApprove={d.approve}
+                    onSent={d.markSent}
+                    onRetry={d.retry}
+                  />
+                )}
               </section>
               {actions.some((a) => !OPEN_ACTION.has(a.status)) && <section className="space-y-3"><h2 className="text-base font-semibold text-rc-fg">Hasil tindakan</h2>{actions.filter((a) => !OPEN_ACTION.has(a.status)).map((action) => <div key={action.id} className="rounded-lg border border-rc-border bg-rc-surface p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-rc-fg">{action.title}</h3><span className="text-xs text-rc-fg-muted">{OUTCOME[action.status] ?? action.status}</span></div>

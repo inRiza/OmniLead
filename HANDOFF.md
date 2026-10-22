@@ -2,6 +2,98 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
+## Handoff melalui PR: kendala yang masih ada (22 Okt 2026)
+
+- Pengguna meminta commit, push, dan PR ke `develop` agar rekan melanjutkan.
+- Pembacaan screenshot sekarang aktif secara default pada chat/API. Checkbox
+  persetujuan di composer dihapus; pengaturan untuk mematikan pembacaan berada
+  di Pengaturan sesi. Login/password tetap tidak dikirim ke planner.
+- Input nama akun tidak lagi wajib untuk tugas umum. Agen bekerja pada sesi
+  browser aktif; nama akun bukan nama penerima DM. Teks tugas di layar tidak lagi
+  memakai judul "Tugas untuk <nama akun>" yang membingungkan.
+- **Belum diperbaiki:** pengguna berhasil membuka inbox Instagram, tetapi tugas
+  membalas berhenti dengan "Planner belum memilih referensi OpenClaw yang valid".
+  `_advance` menolak `target_ref` kosong/tidak ada di `browser.refs`. Planner saat
+  ini menerima screenshot dan `page_snapshot`, belum daftar referensi terstruktur
+  atau pemilihan ref yang dibatasi schema. Ini prioritas berikutnya.
+- Saran lanjut: kirim metadata ref/role/label secara eksplisit, batasi output ref
+  ke kandidat saat ini, lalu reobservasi/replan terbatas jika tampilan berubah.
+  Pertahankan pengikatan persetujuan ke halaman/sasaran; jangan mengeksekusi ref
+  hasil tebakan. Jika belum ada percakapan aktif dan penerima ambigu, tanyakan di
+  chat alih-alih memilih sembarang pesan belum dibaca.
+- Jangan menyatakan alur balas DM berhasil. Screenshot pengguna menunjukkan
+  kegagalan sebelum aksi pertama (0/12). Login akun nyata dan pengiriman pesan
+  via helper/chat belum diverifikasi end-to-end.
+
+## Chat dan perbaikan Mulai tugas (22 Okt 2026)
+
+- Branch `feat/browser-agent`; versi browser awal sudah di-push pada `fe88a36`.
+  Pengguna kemudian meminta perbaikan alur tugas/login dan langsung commit/push.
+- Dashboard sekarang memakai chat sebagai pintu masuk tugas. Pesan login membuka
+  kartu akun aman; agen mengisi formulir dan menekan tombol login melalui native
+  OpenClaw. Password/OTP hanya masuk endpoint `/browser-agent/login`, tidak ke
+  model, task, chat, atau audit. Request `/run` lama yang menyebut kredensial
+  diarahkan ke alur login, tanpa menyimpan teks aslinya.
+- Helper login ada di `omnilead-be/src/omnilead/browser_login.py`: referensi field
+  berdasarkan label saat tersedia, fallback selector provider tetap, dan tombol
+  login/next/verify yang harus tunggal. Tidak menerima selector/JS dari pengguna.
+  Tahap username/password/kode didukung; QR/CAPTCHA tetap ditangani pemilik.
+- Chat/API mengenali login, tugas umum, setujui, tolak, berhenti, tutup browser,
+  cek layar/login, dan lanjutkan tugas tertunda. Konteks beberapa pesan terakhir
+  diteruskan untuk tindak lanjut tugas. Input/aksi sensitif tetap perlu persetujuan.
+- Penyebab diam sebelumnya: `_advance` mendeteksi login lalu mengembalikan
+  `needs_user`, tetapi tidak ada percakapan atau alur kredensial. Sekarang status,
+  permintaan input, usulan, error, dan hasil muncul di chat.
+- Modul UI chat: `omnilead-fe/src/components/dashboard/BrowserChatPanel.tsx`.
+  Pengaturan kanal dan kontrol manual sekarang dapat dibuka bila dibutuhkan.
+- Batas verifikasi: pemeriksaan statis dan startup, bukan bukti login akun nyata,
+  OTP, model visual, atau kirim pesan sudah berhasil. Lihat `TESTING.md`.
+- Lanjutan: uji pemilik pada akun kanal, penyesuaian variasi UI provider,
+  pemantauan inbox, dedup pesan, dan executor browser terikat draf Guard final.
+- `.env`, BE `.env.example` milik pengguna, profil/cookie, token runtime,
+  log/screenshot, dan ekspor percakapan root tidak dikirim ke remote.
+
+## Pengembangan agen browser OpenClaw (22 Okt 2026)
+
+- Permintaan baru: agen berinteraksi melalui layar seperti OpenClaw, tanpa token
+  API kanal. Branch `feat/browser-agent`, berbasis `develop` commit `fad9e77`.
+- Rencana/setup/batas: `docs/browser-agent.md`. Halaman `/dashboard/browser`,
+  router BE `/browser-agent`, planner agen `/v1/browser/plan`.
+- Versi awal terbimbing: screenshot, scroll, dan URL percakapan/inbox yang
+  dikenali otomatis; navigasi lain/klik/ketik/key memerlukan persetujuan satu
+  langkah. Profil terpisah menurut bisnis/kanal,
+  login manusia, screenshot sementara, KB/tone per kanal, stop/close.
+- Pengguna meminta reuse dependency OpenClaw dan paket cloud. Paket resmi
+  `openclaw@2026.10.5` sudah dipasang di `tools/openclaw/` dengan lockfile;
+  adapter custom Playwright awal sudah diganti adapter native OpenClaw.
+  Gateway lokal port 18889 dan browser control 18891 merespons HTTP 200.
+- Perbaikan sesudah pengguna mencoba: SSRF default memblokir hostname kanal.
+  Domain kanal eksplisit ditambahkan pada launcher/container dan runtime lokal.
+  Open tab memakai about:blank lalu native navigate untuk inspeksi redirect pada
+  Edge berjendela. Halaman login IG, 77 refs, dan JPEG berhasil dimuat/ditinjau;
+  belum login atau kirim pesan. Tombol buka ulang sesi error tersedia di dashboard.
+- Flag BE opt-in di `.env.browser.example`; lokal aktif dengan Edge. State/token
+  OpenClaw berada di folder data/.secrets yang diabaikan Git. Node portable
+  24.16.0 dipakai tanpa mengganti Node proyek. Script install/start tersedia.
+- Kontrol manual dashboard menyediakan klik/teks/tombol untuk login browser
+  headless. Input manual tidak dikirim ke model atau disimpan dalam riwayat;
+  audit hanya mencatat operasi. Belum diuji login remote end-to-end.
+- Dockerfile browser, supervisor, Compose bervolume persisten, dan template
+  Cloud Run sementara ada di tools/openclaw dan compose.browser.yaml.
+  Belum build/deploy image browser. Template Cloud Run kehilangan profil/SQLite
+  saat instance diganti; VM dengan volume persisten diperlukan untuk login awet.
+- Ekstraksi layar dapat diimpor ke CRM setelah pemilik meninjau pengirim/teks;
+  hasil impor memakai pipeline Guard dan dipaksa handoff oleh executor. Draf
+  visual planner sendiri belum melewati Guard. Belum memantau inbox terus-menerus
+  dan belum diuji end-to-end dengan akun kanal nyata.
+- Login/OTP ditangani pemilik; input diteruskan langsung ke browser. Profil login
+  mengandung cookie sensitif dan berada pada folder data yang diabaikan Git.
+- Tarikan develop meninggalkan import `ApprovalQueue`, prop `actions` pada
+  ActivityDetail, dan `pendingCount` yang sudah tidak ada; disesuaikan ke
+  komponen/context dashboard terbaru agar fitur aktivitas dapat dikompilasi.
+- Perubahan fitur disiapkan untuk commit/push atas permintaan pengguna. Perubahan
+  pengguna pada BE `.env.example` dan ekspor percakapan root tetap lokal.
+
 ## Status terbaru (22 Okt 2026, pagi)
 
 - Freeze kode Kamis 22 Okt **15.00**.
