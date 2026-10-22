@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Channel(StrEnum):
@@ -235,11 +235,17 @@ class AppSettings(BaseModel):
     rate_limit_per_hour: int = 30
     business_name: str = "Bisnis Anda"
     agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
-    # Izin agen: manual (selalu tanya), hybrid (risiko rendah otomatis), auto (percaya penuh).
-    autonomy: Literal["manual", "hybrid", "auto"] = "auto"
+    # Izin agen: hybrid (risiko rendah otomatis, buka DM belum dibaca dan terima request perlu izin)
+    # atau auto (akses penuh).
+    autonomy: Literal["hybrid", "auto"] = "auto"
     auto_merge_threshold: float = Field(default=0.9, ge=0.5, le=1.0)
     instagram_sync: dict = Field(default_factory=dict)
     test_mode: bool = False  # unused; mode mengikuti OMNILEAD_TEST_MODE_ENABLED
+
+    @field_validator("autonomy", mode="before")
+    @classmethod
+    def _legacy_manual(cls, value):
+        return "hybrid" if value == "manual" else value
 
 
 class AuditEntry(BaseModel):

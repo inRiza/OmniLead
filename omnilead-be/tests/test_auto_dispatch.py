@@ -30,8 +30,10 @@ def auto(store, queue, executor):
     return AutoSender(store, queue, executor)
 
 
-def test_auto_send_off_keeps_pending(auto, queue, ig):
-    a = auto.handle(queue.propose(proposal()))
+def test_hybrid_keeps_priced_reply_pending(auto, queue, store, ig):
+    enable_auto(store, autonomy="hybrid")
+    a = auto.handle(queue.propose(proposal(kind=ActionKind.SEND_MESSAGE, recipient="@ani", text="Paket B Rp35.000 kak",
+                                           guard=[GuardNote(check="harga", status="pass")])))
     assert a.status == ActionStatus.PENDING
     assert ig.posted == []
 

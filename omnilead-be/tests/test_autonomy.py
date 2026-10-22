@@ -1,4 +1,4 @@
-"""Izin agen: manual, hybrid, dan auto, dengan pagar Guard dan Jeda yang tidak bisa dimatikan."""
+"""Izin agen: hybrid dan auto, dengan pagar Guard dan Jeda yang tidak bisa dimatikan."""
 
 import copy
 
@@ -43,9 +43,10 @@ def run(store, queue, executor, mode, **kw):
     return {a.text or a.kind.value: a.status for a in store.list_actions()}
 
 
-def test_manual_keeps_everything_for_the_owner(store, queue, executor, ig):
-    statuses = run(store, queue, executor, "manual")
-    assert set(statuses.values()) == {ActionStatus.PENDING} and ig.posted == []
+def test_legacy_manual_setting_reads_as_hybrid(store):
+    from omnilead.models import AppSettings
+
+    assert AppSettings.model_validate({"autonomy": "manual"}).autonomy == "hybrid"
 
 
 def test_hybrid_runs_only_low_risk_actions(store, queue, executor, ig):

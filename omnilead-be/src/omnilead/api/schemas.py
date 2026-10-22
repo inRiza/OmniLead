@@ -49,7 +49,7 @@ class AppSettingsPatch(BaseModel):
     dry_run: bool | None = None
     rate_limit_per_hour: int | None = Field(default=None, ge=1, le=10_000)
     preferences: list[str] | None = None
-    autonomy: Literal["manual", "hybrid", "auto"] | None = None
+    autonomy: Literal["hybrid", "auto"] | None = None
     auto_merge_threshold: float | None = Field(default=None, ge=0.5, le=1.0)
 
 

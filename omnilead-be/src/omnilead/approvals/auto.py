@@ -24,7 +24,7 @@ class AutoSender:
     def handle(self, action: Action, event: Event | None = None) -> Action:
         settings = self._store.get_settings()
         mode = settings.autonomy
-        if mode == "manual" or action.status != ActionStatus.PENDING or action.payload.get("_auto_held"):
+        if action.status != ActionStatus.PENDING or action.payload.get("_auto_held"):
             return action
         if action.kind == ActionKind.MERGE:
             if float(action.payload.get("confidence") or 0) < settings.auto_merge_threshold:

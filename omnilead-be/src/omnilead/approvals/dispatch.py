@@ -54,7 +54,7 @@ def dispatch(store: Store, executor: Executor, auto: AutoSender | None = None, n
             if done.status != status:
                 result["executed"].append(action.id)
 
-    if auto is not None and store.get_settings().autonomy != "manual":
+    if auto is not None:
         for action in store.list_actions(ActionStatus.PENDING):
             event = store.get_event(action.event_id) if action.event_id else None
             done = auto.handle(action, event)
