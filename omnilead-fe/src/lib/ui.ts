@@ -1,4 +1,4 @@
-import type { Activity, AuditEntry, Channel, LeadScore, LeadProfile, Sentiment, Urgency } from "./types";
+import type { Activity, AuditEntry, EventSource, Channel, LeadScore, LeadProfile, Sentiment, Urgency } from "./types";
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
@@ -90,3 +90,9 @@ export function cap(s: string) {
 export const kindLabel: Record<Activity["kind"], string> = { komentar: "Komentar", dm: "Pesan langsung", email: "Email" };
 
 export const sentimentTone: Record<Sentiment, Tone> = { positif: "green", netral: "gray", negatif: "red" };
+
+export const sourceMeta: Record<EventSource, { label: string; tone: Tone }> = {
+  webhook: { label: "Webhook Meta", tone: "green" },
+  meta_api: { label: "Meta API", tone: "green" },
+  openclaw: { label: "OpenClaw (layar)", tone: "amber" },
+};

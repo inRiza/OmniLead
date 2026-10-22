@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ComponentType, type SVGProps } from "react";
-import { Activity, BookOpen, Menu, Monitor, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
+import { BookOpen, Bot, Menu, PanelLeftClose, PanelLeftOpen, Settings2, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
 import { useDashboard } from "./DashboardContext";
 import { LogoutButton } from "./LogoutButton";
+import { TestModeToggle } from "./TestMode";
 import { HomeIcon, InboxIcon, ListIcon, PlugIcon, SparkIcon, UsersIcon } from "./icons";
 
 type NavItem = {
@@ -21,8 +22,7 @@ type NavItem = {
 const main: NavItem[] = [
   { href: "/dashboard", label: "Beranda", icon: HomeIcon },
   { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
-  { href: "/dashboard/agent", label: "Aktivitas agen", icon: Activity },
-  { href: "/dashboard/browser", label: "Agen browser", icon: Monitor },
+  { href: "/dashboard/agen", label: "Agen", icon: Bot },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
   { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
@@ -116,6 +116,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-3 pt-0">
+        <TestModeToggle collapsed={collapsed} />
         <div className={cn("flex items-center gap-2.5 rounded-md py-1.5", collapsed ? "justify-center px-0" : "px-2")}>
           <div
             title={user?.name}

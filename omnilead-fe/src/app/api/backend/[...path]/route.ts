@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Browser talks only to this origin. Backend keys and platform tokens stay server-side.
 const backend = (process.env.OMNILEAD_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
-const allowed = new Set(["auth", "workspaces", "knowledge-bases", "connections", "events", "actions", "leads", "channels", "audit", "settings", "summary", "agent", "browser-agent", "content-ideas", "handoff", "health", "webhooks"]);
+const allowed = new Set(["auth", "workspaces", "knowledge-bases", "connections", "events", "actions", "leads", "channels", "audit", "settings", "summary", "agent", "test-mode", "instagram", "content-ideas", "handoff", "health", "webhooks"]);
 const metaWebhooks = new Set(["instagram", "facebook", "whatsapp"]);
 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {

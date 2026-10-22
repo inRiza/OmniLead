@@ -9,9 +9,8 @@ import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ActivityTable, sortActivities, type ActivitySort } from "@/components/dashboard/ActivityTable";
 import { ActivityDetail } from "@/components/dashboard/ActivityDetail";
+import { AgentReasoning } from "@/components/dashboard/AgentReasoning";
 import { AgentResults } from "@/components/dashboard/AgentResults";
-import { PasteMessage } from "@/components/dashboard/PasteMessage";
-import { Button } from "@/components/action/button";
 import { Select } from "@/components/ui/select";
 import { ChannelIcon } from "@/components/primitives";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
@@ -47,7 +46,6 @@ function InboxView() {
   const [status, setStatus] = useState<StatusFilter>((params.get("status") as StatusFilter | null) ?? "all");
   const [sort, setSort] = useState<ActivitySort>("priority");
   const [query, setQuery] = useState("");
-  const [pasting, setPasting] = useState(false);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -131,22 +129,7 @@ function InboxView() {
                 { value: "oldest", label: "Paling lama menunggu" },
               ]}
             />
-            <Button purpose="action" style={pasting ? "secondary" : "primary"} className="min-h-10" onClick={() => setPasting((v) => !v)}>
-              {pasting ? "Tutup" : "Tempel pesan"}
-            </Button>
           </div>
-          {pasting ? (
-            <PasteMessage
-              onCreated={(id) => {
-                setPasting(false);
-                setChannel("all");
-                setKind("all");
-                setStatus("all");
-                setQuery("");
-                setSelectedId(id);
-              }}
-            />
-          ) : null}
 
           <p className="text-sm text-rc-fg-muted">
             {rows.length} percakapan{filtered ? " sesuai filter" : ""}
@@ -186,7 +169,8 @@ function InboxView() {
                 </p>
               </SheetHeader>
               <SheetBody className="flex flex-col gap-5">
-                <ActivityDetail activity={selected} lead={lead} trace={trace} />
+                <ActivityDetail activity={selected} lead={lead} />
+                <AgentReasoning activity={selected} trace={trace} actions={activityActions} onRefresh={d.refresh} />
                 <div>
                   <h2 className="mb-3 text-sm font-semibold text-rc-fg">Hasil kerja agen</h2>
                   <AgentResults

@@ -88,9 +88,11 @@ export interface BeEvent {
     urgency_reason?: string;
     intents?: string[];
     sentiment?: "positif" | "netral" | "negatif";
+    entities?: Record<string, unknown>;
   } | null;
   review_reason: string;
   trace: BeTrace | null;
+  meta?: Record<string, unknown>;
 }
 
 export interface BeAction {
@@ -144,6 +146,11 @@ export interface BeLead {
   closed_at?: string | null;
   created_at: string;
   updated_at: string;
+  score_reasons?: string[];
+  scored_at?: string | null;
+  score_rubric?: string;
+  needs?: Record<string, unknown>;
+  next_step?: string;
 }
 
 export type LeadPatch = Partial<{ stage: string; notes: string; estimated_value: number; lost_reason: string; tags: string[] }>;
@@ -200,6 +207,29 @@ export interface BeAudit {
   actor: string;
   channel: string | null;
   lead_id: string | null;
+}
+
+export interface TestMode {
+  available: boolean;
+  enabled: boolean;
+  accounts: { provider: string; channel: string; configured: boolean }[];
+}
+
+export interface InstagramSync {
+  last_run_at?: string;
+  source?: "meta_api" | "openclaw_text" | "none";
+  fetched?: number;
+  imported?: number;
+  duplicates?: number;
+  dms?: number;
+  comments?: number;
+  webhook_gap?: number;
+  error?: string;
+  api_error?: string;
+  needs_login?: boolean;
+  webhook_last_at?: string;
+  webhook_last_event_at?: string;
+  webhook_stale: boolean;
 }
 
 export interface BeSettings {
@@ -280,6 +310,7 @@ export interface Connection {
   expires_at: number | null;
   scopes: string[];
   error: string;
+  test_mode?: boolean;
 }
 
 export interface KnowledgeProduct {
@@ -360,10 +391,6 @@ export const api = {
     request<BeLead>(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   summary: () => request<BeSummaryItem[]>("/summary/today"),
   contentIdeas: () => request<BeContentIdeas>("/content-ideas"),
-  pasteText: (body: { channel: string; text: string; handle?: string; name?: string }) =>
-    post<BeEvent>("/events/paste?background=true", body),
-  pasteImage: (body: { channel: string; image_base64: string; mime_type: string }) =>
-    post<BeEvent>("/events/paste-image?background=true", body),
 
   approve: (id: string, editedText?: string) =>
     post<BeAction>(`/actions/${id}/approve`, { edited_text: editedText ?? null }),
@@ -378,7 +405,12 @@ export const api = {
   undoMerge: (id: string) => post<BeAction>(`/actions/${id}/undo-merge`),
   markSent: (id: string) => post<BeAction>(`/actions/${id}/sent`),
   handoff: (id: string) => request<HandoffPackage>(`/actions/${id}/handoff`),
+  event: (eventId: string) => request<BeEvent>(`/events/${eventId}`),
   reanalyze: (eventId: string) => post<BeEvent>(`/events/${eventId}/analyze?background=true`),
+  instagramSyncStatus: () => request<InstagramSync>("/instagram/sync"),
+  instagramSync: () => post<InstagramSync>("/instagram/sync"),
+  testMode: () => request<TestMode>("/test-mode"),
+  setTestMode: (enabled: boolean) => request<TestMode>("/test-mode", { method: "PUT", body: JSON.stringify({ enabled }) }),
 
   setPause: (paused: boolean) =>
     post<{ paused: boolean; reprocessed_events: number }>("/settings/pause", {

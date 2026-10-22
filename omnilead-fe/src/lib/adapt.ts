@@ -23,6 +23,7 @@ import type {
   ProposedAction,
   Capability,
   LeadDetail,
+  LeadNeeds,
   SummaryItem,
 } from "./types";
 
@@ -45,6 +46,21 @@ const KIND: Record<BeEvent["kind"], Activity["kind"]> = {
   message: "dm",
   email: "email",
 };
+
+export function asNeeds(raw: Record<string, unknown> | undefined | null): LeadNeeds {
+  const r = raw ?? {};
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  const num = (v: unknown) => (typeof v === "number" && v > 0 ? v : undefined);
+  return {
+    product: text(r.product),
+    qty: num(r.qty),
+    unit: text(r.unit),
+    date: text(r.date),
+    location: text(r.location),
+    budget: num(r.budget),
+    company: text(r.company),
+  };
+}
 
 export function adaptEvent(
   e: BeEvent,
@@ -82,7 +98,10 @@ export function adaptEvent(
     reason: reasons.join(" "),
     leadId: e.lead_id ?? "",
     eventStatus: e.status,
+    source: e.meta?.source === "openclaw_text" ? "openclaw" : e.meta?.source === "meta_api_sync" ? "meta_api" : "webhook",
+    folder: typeof e.meta?.folder === "string" ? e.meta.folder : undefined,
     sentiment: e.triage?.sentiment,
+    needs: asNeeds(e.triage?.entities),
   };
 }
 
@@ -219,6 +238,7 @@ export function adaptTrace(
     guard,
     guardSummary: trace.guard_summary,
     status: trace.status,
+    activity: trace.activity ?? [],
   };
 }
 
@@ -239,6 +259,12 @@ export function adaptLead(l: BeLead): LeadProfile {
     summary: l.summary,
     channels: [...channels],
     scoreReason: l.score_reason ?? "",
+    scoreReasons: l.score_reasons?.length ? l.score_reasons : (l.score_reason ?? "").split(";").map((r) => r.trim()).filter(Boolean),
+    scoredAt: l.scored_at ?? undefined,
+    scoreRubric: l.score_rubric || undefined,
+    needs: asNeeds(l.needs),
+    nextStep: l.next_step || undefined,
+    estimatedValue: l.estimated_value ?? null,
     createdAt: l.created_at,
     updatedAt: l.updated_at,
   };

@@ -46,7 +46,20 @@ export interface Activity {
   leadId: string;
   /** Status event di BE: new | analyzed | review | held | agent_error */
   eventStatus: string;
+  source: EventSource;
+  folder?: string;
   sentiment?: Sentiment;
+  needs: LeadNeeds;
+}
+
+export interface LeadNeeds {
+  product?: string;
+  qty?: number;
+  unit?: string;
+  date?: string;
+  location?: string;
+  budget?: number;
+  company?: string;
 }
 
 export type Sentiment = "positif" | "netral" | "negatif";
@@ -73,6 +86,17 @@ export interface AgentExecutionEvent {
   guard_summary?: string;
   revision?: number;
   intents?: string[];
+  urgency?: string;
+  known?: boolean;
+  history?: number;
+  unanswered?: number;
+  documents?: number;
+  chunks?: number;
+  products?: number;
+  score?: number;
+  score_label?: string;
+  reasons?: string[];
+  estimated_value?: number | null;
 }
 
 export interface GuardCheck {
@@ -194,6 +218,14 @@ export interface LeadProfile {
   channels: Channel[];
   mergedEvidence?: string;
   scoreReason?: string;
+  scoreReasons: string[];
+  scoredAt?: string;
+  scoreRubric?: string;
+  needs: LeadNeeds;
+  nextStep?: string;
+  estimatedValue?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type EventSource = "webhook" | "meta_api" | "openclaw";

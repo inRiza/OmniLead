@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useDashboard } from "./DashboardContext";
+import { TestModeBanner } from "./TestMode";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { LogoutButton } from "./LogoutButton";
 import { MobileNav } from "./Sidebar";
@@ -37,6 +38,7 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
             Service agen tidak terjangkau. Pesan baru akan ditandai dan bisa dianalisis ulang setelah agen menyala.
           </p>
         ) : null}
+        <TestModeBanner />
         {paused ? (
           <p role="status" className="flex flex-wrap items-center justify-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
             Agen sedang dijeda. Semua aksi ditahan.

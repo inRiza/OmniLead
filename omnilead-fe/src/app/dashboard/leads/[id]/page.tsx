@@ -7,7 +7,7 @@ import { adaptLeadDetail } from "@/lib/adapt";
 import { api } from "@/lib/api";
 import type { Channel, LeadDetail } from "@/lib/types";
 import { cap, channelLabel, cn, stageLabel, stageTone } from "@/lib/ui";
-import { ArrowLeft, AtSign, CheckCheck, CircleCheck, Mail, Merge, Phone, Sparkles, Split } from "lucide-react";
+import { ArrowLeft, AtSign, CheckCheck, CircleCheck, Mail, Merge, Phone, Split } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/action/button";
@@ -15,6 +15,7 @@ import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Badge, ChannelIcon } from "@/components/primitives";
 import { LeadManage } from "@/components/dashboard/LeadManage";
+import { LeadInsights } from "@/components/dashboard/LeadInsights";
 
 export default function LeadProfilePage() {
   return (
@@ -139,21 +140,16 @@ function LeadProfile() {
                   </div>
                 </section>
 
-                {lead.summary || lead.scoreReason ? (
-                  <section className="rounded-xl bg-rc-accent-soft/60 p-5">
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-rc-accent">
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                      Ringkasan AI
-                    </p>
-                    {lead.summary ? <p className="mt-2 text-sm leading-relaxed text-rc-fg">{lead.summary}</p> : null}
-                    {lead.scoreReason ? (
-                      <p className="mt-3 border-t border-rc-accent/10 pt-3 text-sm text-rc-fg-muted">
-                        <span className="font-medium text-rc-fg">Alasan skor. </span>
-                        {lead.scoreReason}
-                      </p>
-                    ) : null}
-                  </section>
-                ) : null}
+                <LeadInsights
+                  summary={lead.summary}
+                  score={lead.score}
+                  scoreValue={lead.scoreValue}
+                  reasons={lead.scoreReasons}
+                  needs={lead.needs}
+                  estimatedValue={lead.estimatedValue}
+                  nextStep={lead.nextStep}
+                  scoredAt={lead.scoredAt}
+                />
 
                 <LeadManage key={`${lead.id}-${lead.stage}`} lead={lead} onSaved={load} />
 
