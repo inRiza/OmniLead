@@ -70,8 +70,28 @@ def _password(value: str) -> str:
     return value
 
 
-def _clear_cookie(response: Response) -> None:
-    response.delete_cookie(COOKIE, path="/", secure=get_settings().frontend_url.startswith("https://"), httponly=True, samesite="lax")
+def cookie_secure(request: Request | None = None) -> bool:
+    """Match the page the browser is on, not only FRONTEND_URL.
+
+    FRONTEND_URL may stay on ngrok HTTPS while the UI is opened at http://localhost:3000.
+    A Secure cookie from that login is dropped by the browser and the session never sticks.
+    """
+    if request is not None:
+        origin = (request.headers.get("origin") or "").strip().rstrip("/")
+        if origin.startswith("http://"):
+            return False
+        if origin.startswith("https://"):
+            return True
+        proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+        if proto == "http":
+            return False
+        if proto == "https":
+            return True
+    return get_settings().frontend_url.startswith("https://")
+
+
+def _clear_cookie(response: Response, request: Request | None = None) -> None:
+    response.delete_cookie(COOKIE, path="/", secure=cookie_secure(request), httponly=True, samesite="lax")
 
 
 def _role(user: dict, workspace: str, allowed: tuple = ROLES) -> str:
@@ -89,10 +109,10 @@ def _link(label: str, param: str, token: str) -> None:
         log.warning("Tautan %s: %s", label, get_settings().frontend_url.rstrip("/") + "/login?" + urlencode({param: token}))
 
 
-def set_session(response: Response, user: dict) -> None:
+def set_session(response: Response, user: dict, request: Request | None = None) -> None:
     s = get_settings()
     response.set_cookie(COOKIE, get_accounts().session(user), max_age=s.session_days * 86400,
-                        httponly=True, secure=s.frontend_url.startswith("https://"), samesite="lax", path="/")
+                        httponly=True, secure=cookie_secure(request), samesite="lax", path="/")
     response.headers["Cache-Control"] = "no-store"
 
 
@@ -105,7 +125,7 @@ def session(request: Request, response: Response) -> dict:
     user = get_accounts().user_for_session(token)
     if user:
         response.set_cookie(COOKIE, token, max_age=max(0, int(user["session_expires"] - time.time())),
-                            httponly=True, secure=s.frontend_url.startswith("https://"), samesite="lax", path="/")
+                            httponly=True, secure=cookie_secure(request), samesite="lax", path="/")
     return {"enabled": True, "user": public_user(user) if user else None,
             "registration_enabled": s.registration_enabled}
 
@@ -124,7 +144,7 @@ def register(body: Register, request: Request, response: Response) -> dict:
         user = get_accounts().register(email, body.password, name, business)
     except ValueError:
         raise HTTPException(status_code=409, detail="Email sudah terdaftar. Silakan masuk.") from None
-    set_session(response, user)
+    set_session(response, user, request)
     return public_user(user)
 
 
@@ -142,7 +162,7 @@ def login(body: Login, request: Request, response: Response) -> dict:
     old = request.cookies.get(COOKIE)
     if old:
         get_accounts().delete("session-" + digest(old))
-    set_session(response, user)
+    set_session(response, user, request)
     return public_user(user)
 
 
@@ -151,7 +171,7 @@ def logout(request: Request, response: Response) -> dict:
     token = request.cookies.get(COOKIE, "")
     if token:
         get_accounts().delete("session-" + digest(token))
-    _clear_cookie(response)
+    _clear_cookie(response, request)
     return {"ok": True}
 
 

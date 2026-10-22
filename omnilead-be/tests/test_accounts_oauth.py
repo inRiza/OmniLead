@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from omnilead.accounts import COOKIE, AccountStore, digest
 from omnilead.api import deps
-from omnilead.api.auth_routes import _attempts
+from omnilead.api.auth_routes import _attempts, cookie_secure
 from omnilead.config import Settings, get_settings
 from omnilead.main import create_app
 from omnilead.models import Channel, Lead, ProposedAction
@@ -36,6 +36,68 @@ def app(tmp_path, monkeypatch, legacy_auth_mode):
     deps.get_oauth.cache_clear()
     deps.store_for_workspace.cache_clear()
     get_settings.cache_clear()
+
+
+def test_session_cookie_secure_follows_request_origin(tmp_path, monkeypatch, legacy_auth_mode):
+    # FRONTEND_URL may stay on ngrok HTTPS while the UI is opened at http://localhost.
+    monkeypatch.setenv("OMNILEAD_AUTH_ENABLED", "true")
+    monkeypatch.setenv("OMNILEAD_REGISTRATION_ENABLED", "true")
+    monkeypatch.setenv("OMNILEAD_FRONTEND_URL", "https://example.ngrok-free.dev")
+    monkeypatch.setenv("OMNILEAD_CORS_ORIGINS", '["http://localhost:3000","https://example.ngrok-free.dev"]')
+    monkeypatch.setenv("OMNILEAD_ACCOUNTS_DB_PATH", str(tmp_path / "accounts.db"))
+    monkeypatch.setenv("OMNILEAD_DB_PATH", str(tmp_path / "crm.db"))
+    monkeypatch.setenv("OMNILEAD_SECRETS_DIR", str(tmp_path / "secrets"))
+    monkeypatch.setenv("OMNILEAD_TOKEN_ENCRYPTION_KEY", "0-bsyWTfYEqlwsM80SPDNg3Gg6wZOVCYts0kDns0Jcc=")
+    get_settings.cache_clear()
+    deps.get_accounts.cache_clear()
+    deps.get_oauth.cache_clear()
+    deps.store_for_workspace.cache_clear()
+    _attempts.clear()
+    app = create_app()
+    try:
+        with TestClient(app) as client:
+            local = client.post(
+                "/auth/register",
+                json={"email": "local@example.com", "password": "correct horse battery staple",
+                      "name": "Local", "business": "Local Biz"},
+                headers={"Origin": "http://localhost:3000"},
+            )
+            assert local.status_code == 200, local.text
+            cookie = local.headers["set-cookie"].lower()
+            assert "httponly" in cookie and "samesite=lax" in cookie
+            assert "secure" not in cookie
+            assert client.get("/auth/session").json()["user"]["email"] == "local@example.com"
+
+            client.post("/auth/logout", headers={"Origin": "http://localhost:3000"})
+            secure = client.post(
+                "/auth/login",
+                json={"email": "local@example.com", "password": "correct horse battery staple"},
+                headers={"Origin": "https://example.ngrok-free.dev"},
+            )
+            assert secure.status_code == 200, secure.text
+            assert "secure" in secure.headers["set-cookie"].lower()
+    finally:
+        deps.get_accounts.cache_clear()
+        deps.get_oauth.cache_clear()
+        deps.store_for_workspace.cache_clear()
+        get_settings.cache_clear()
+
+
+def test_cookie_secure_helper_reads_origin_and_forwarded_proto(monkeypatch):
+    monkeypatch.setenv("OMNILEAD_FRONTEND_URL", "https://example.ngrok-free.dev")
+    get_settings.cache_clear()
+    try:
+        class Req:
+            def __init__(self, headers):
+                self.headers = headers
+
+        assert cookie_secure(Req({"origin": "http://localhost:3000"})) is False
+        assert cookie_secure(Req({"origin": "https://example.ngrok-free.dev"})) is True
+        assert cookie_secure(Req({"x-forwarded-proto": "http"})) is False
+        assert cookie_secure(Req({"x-forwarded-proto": "https"})) is True
+        assert cookie_secure(None) is True
+    finally:
+        get_settings.cache_clear()
 
 
 def signup(client, email="owner@example.com"):
