@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ArrowRight } from "lucide-react";
 import type { Channel } from "@/lib/types";
-import { activityStatus, actorKind, outcomeMeta } from "@/lib/ui";
+import { actorKind, isOpenHotLead, needsReply, outcomeMeta } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, SectionTitle } from "@/components/dashboard/Card";
@@ -114,10 +114,17 @@ export default function HomePage() {
     [range, leads],
   );
 
-  const inRange = (iso?: string) => (range ? within(iso, range) : false);
-  const messages = activities.filter((a) => inRange(a.receivedAt)).length;
-  const needReply = activities.filter((a) => activityStatus(a).label === "Perlu dibalas").length;
-  const hot = leads.filter((l) => l.score === "hot" && l.stage !== "deal" && l.stage !== "batal").length;
+  // Same predicate as inbox `?status=Perlu dibalas` — KPI count and list share this queue.
+  const replyQueue = useMemo(
+    () => [...activities].filter(needsReply).sort((a, b) => b.scoreValue - a.scoreValue),
+    [activities],
+  );
+
+  // Period-scoped (charts): messages + closing. Open queues: unreplied + hot leads.
+  const messages = volume.reduce((s, row) => s + CHANNELS.reduce((n, c) => n + Number(row[c] || 0), 0), 0);
+  const needReply = replyQueue.length;
+  const toReply = replyQueue.slice(0, 5);
+  const hot = leads.filter(isOpenHotLead).length;
   const newLeads = trend.reduce((s, t) => s + t.leads, 0);
   const closings = trend.reduce((s, t) => s + t.closing, 0);
   const rate = newLeads ? Math.round((closings / newLeads) * 100) : 0;
@@ -129,11 +136,6 @@ export default function HomePage() {
     { label: "Lead prioritas tinggi", value: hot, href: "/dashboard/leads?score=hot" },
     { label: "Closing", value: closings, href: "/dashboard/leads?stage=deal" },
   ];
-
-  const toReply = [...activities]
-    .filter((a) => activityStatus(a).label === "Perlu dibalas" || a.urgency === "tinggi")
-    .sort((a, b) => b.scoreValue - a.scoreValue)
-    .slice(0, 5);
 
   const agentLog = audit.filter((e) => actorKind(e.actor) !== "Pengguna").slice(0, 6);
   const periodLabel = PERIODS.find((p) => p.value === period)?.label.toLowerCase();
@@ -254,9 +256,12 @@ export default function HomePage() {
               <div className="px-5 pt-5">
                 <SectionTitle
                   action={
-                    <Link href="/dashboard/inbox" className="inline-flex items-center gap-1 text-sm font-medium text-rc-accent hover:underline">
-                      Buka workspace <ArrowRight aria-hidden className="h-3.5 w-3.5" />
-                    </Link>
+                    <span className="flex items-center gap-3">
+                      <span className="text-sm text-rc-fg-muted tabular-nums">{needReply}</span>
+                      <Link href="/dashboard/inbox?status=Perlu%20dibalas" className="inline-flex items-center gap-1 text-sm font-medium text-rc-accent hover:underline">
+                        Buka workspace <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                      </Link>
+                    </span>
                   }
                 >
                   Perlu dibalas
