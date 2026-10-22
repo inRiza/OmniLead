@@ -120,13 +120,15 @@ def get_agent_client() -> AgentClient:
     return AgentClient(s.agent_url, s.agent_api_key, s.agent_timeout_s, token_provider=provider)
 
 
-def get_ingest(store=Depends(get_store), queue=Depends(get_queue), agent=Depends(get_agent_client)) -> IngestService:
-    return IngestService(store, queue, agent)
+def get_ingest(store=Depends(get_store), queue=Depends(get_queue), agent=Depends(get_agent_client),
+               executor=Depends(get_executor)) -> IngestService:
+    return IngestService(store, queue, agent, executor)
 
 
 def ingest_for_workspace(workspace: str) -> IngestService:
     store = store_for_workspace(workspace)
-    return IngestService(store, ApprovalQueue(store, account_bindings=account_bindings(workspace)), get_agent_client())
+    return IngestService(store, ApprovalQueue(store, account_bindings=account_bindings(workspace)), get_agent_client(),
+                         Executor(registry_for_workspace(workspace), store))
 
 
 def require_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:

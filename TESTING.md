@@ -3,6 +3,24 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Izin agen dan perbaikan build develop (22 Okt 2026, siang)
+
+**Izin agen** (`omnilead-be/tests/test_autonomy.py`, 5 tes, agen tiruan):
+
+| Skenario | Hasil |
+|---|---|
+| Selalu tanya: semua usulan menunggu, tidak ada yang dikirim | lulus |
+| Hybrid: jawaban tanpa harga dan update CRM dijalankan; harga, komentar publik, catatan Guard menunggu | lulus |
+| Hybrid: pesan penawaran atau urgensi tinggi tetap menunggu | lulus |
+| Percaya penuh: semua yang lolos Guard dijalankan; catatan Guard menunggu; private reply kedua ke komentar yang sama ditolak executor (batas Meta) | lulus |
+| Jeda saat eksekusi otomatis: aksi kembali menunggu pemilik, tercatat di audit | lulus |
+
+**Perbaikan build `develop` setelah refactor dashboard:** `bun.lock` disinkronkan dengan `recharts`
+(`bun install --frozen-lockfile` kembali lolos); `pendingCount`, `approve`, `retry`, `markSent` dikembalikan ke
+context; halaman Aktivitas agen memakai `AgentResults`; label audit bahasa awam dipasang lagi.
+
+Tes otomatis: BE **167**, agen **57**, FE **23** lulus; `tsc --noEmit` dan `eslint` bersih.
+
 ## Deploy Cloud Run dan audit UI (22 Okt 2026, pagi)
 
 **Deploy:** agen (`adk`), BE (SQLite), dan FE berjalan di Cloud Run `asia-southeast2`. Diperiksa dari luar lewat
@@ -266,7 +284,7 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 162 lulus (22 Okt) |
+| Backend `omnilead-be` | `uv run pytest` | 167 lulus (22 Okt) |
 | Agen `omnilead-agent` | `uv run pytest` | 57 lulus (22 Okt) |
 | Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
 | Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 17/18 pass^3, 13,3 detik per kasus (21 Okt: 14/18, 40,9 detik) |

@@ -148,7 +148,7 @@ function InstagramMock({ sc, count, typing }: MockProps) {
         <p className="font-semibold">1.248 suka</p>
         <p>
           <span className="font-semibold">OmniLead</span> Nasi box komplit untuk acara kantor dan arisan. Pesan
-          minimal 20 porsi.
+          minimal 30 pax.
         </p>
         <p className="text-[#737373]">Lihat semua 24 komentar</p>
       </div>

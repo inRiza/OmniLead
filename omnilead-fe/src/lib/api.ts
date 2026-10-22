@@ -199,6 +199,7 @@ export interface BeSettings {
   dry_run: boolean;
   preferences: string[];
   rate_limit_per_hour: number;
+  autonomy?: "manual" | "hybrid" | "auto";
 }
 
 export interface BeAgentHealth {
@@ -371,7 +372,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ enabled }),
     }),
-  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences">>) =>
+  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences" | "autonomy">>) =>
     request<BeSettings>("/settings", {
       method: "PATCH",
       body: JSON.stringify(patch),

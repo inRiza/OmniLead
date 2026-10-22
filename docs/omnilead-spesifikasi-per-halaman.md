@@ -27,6 +27,11 @@ Halaman utama:
 5. **Integrasi**: status kanal, kemampuan koneksi, dan masalah sinkronisasi.
 6. **Audit**: riwayat tindakan AI, pengguna, dan sistem.
 
+Halaman **Pengaturan** memuat izin agen (Selalu tanya (default), Hybrid, dan Percaya penuh), status agen dan jeda, mode latihan, kanal yang boleh
+dibalas agen, serta batas dan preferensi. Di Workspace dan Aktivitas agen, setiap hasil kerja agen menampilkan
+status dan tombol sesuai keadaannya: **Setujui**/**Edit** (menunggu), **Salin & buka**/**Sudah dikirim** (kirim
+manual), **Coba ulang** (gagal), dan **Hasil kurang tepat?** untuk masukan.
+
 Di desktop navigasi berada di sidebar kiri. Di HP navigasi berada di bawah layar: Beranda, Workspace, Agen, Lead,
 dan **Menu** untuk Konten, Pengetahuan & Tone, Integrasi, Audit, serta Keluar. Semua halaman memakai palet dan
 logo yang sama dengan landing page, dan istilah internal (intent, jenis aksi) ditulis dalam bahasa awam.

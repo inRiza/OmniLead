@@ -12,8 +12,8 @@ Tiga bagian, masing-masing dijalankan di terminal terpisah:
 | `omnilead-be` | webhook, identitas, antrean persetujuan, executor (satu-satunya yang mengirim) |
 | `omnilead-fe` | UI |
 
-Dokumen: [PRD](docs/crm-agentic-multikanal-5.1.md) · [plan.md](plan.md) (yang sudah dan belum) ·
-[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
+Dokumen: [PRD](docs/crm-agentic-multikanal-6.0.md) · [plan.md](plan.md) (yang sudah dan belum) ·
+[TESTING.md](TESTING.md) · [deploy (Lampiran B PRD)](docs/crm-agentic-multikanal-6.0.md#lampiran-b-deploy-ke-google-cloud) · [docs/SOURCES.md](docs/SOURCES.md).
 
 Urutan menjalankan: **agen → BE → FE**.
 
@@ -28,7 +28,9 @@ Status per 22 Okt 2026:
   belum diuji ke akun asli. WhatsApp bisa dihubungkan dengan nomor uji Meta lewat **Hubungkan nomor uji**. Selama
   kanal belum terhubung, pesan masuk lewat **Tempel pesan** dan dibalas lewat **Salin & buka**.
 - Penyimpanan SQLite (lokal maupun di instance Cloud Run). Adapter Firestore ada, belum diuji ke Firestore sungguhan.
-- Tes: BE 162, agen 57, FE 23 lulus; uji E2E lokal 36 cek lulus. Lihat [TESTING.md](TESTING.md).
+- **Izin agen** diatur pemilik di halaman Pengaturan: Selalu tanya (default), Hybrid, dan Percaya penuh. Usulan yang ditandai Guard selalu menunggu
+  manusia, dan agen tetap tidak memegang tombol kirim (executor yang mengirim).
+- Tes: BE 167, agen 57, FE 23 lulus; uji E2E lokal 36 cek lulus. Lihat [TESTING.md](TESTING.md).
 
 ## Backend
 

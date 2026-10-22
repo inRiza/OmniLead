@@ -243,8 +243,8 @@ const SCENARIOS: StageScenario[] = [
     thread: [
       { from: "customer", text: "Kak, bisa buat 60 orang tgl 30? harga?" },
       { from: "agent", text: "Bisa, Kak Ani! Rincian harga untuk 60 porsi kami kirim lewat DM ya." },
-      { from: "customer", text: "Ada pilihan menu vegetarian juga ga kak?" },
-      { from: "agent", text: "Ada, Kak. Paket Sayur Komplit, daftar menunya sekalian kami kirim di DM." },
+      { from: "customer", text: "Bisa kirim ke Cimahi juga kak?" },
+      { from: "agent", text: "Bisa, Kak. Kami antar ke Bandung dan Cimahi. Detail paketnya sekalian kami kirim di DM ya." },
     ],
   },
   {
@@ -272,7 +272,7 @@ const SCENARIOS: StageScenario[] = [
       },
       {
         from: "agent",
-        text: "Selamat pagi,\n\nTerima kasih atas permintaannya. Penawaran Paket B nasi box komplit: Rp35.000 × 100 porsi = Rp3.500.000, sudah termasuk pengantaran.\n\nSalam,\nOmniLead",
+        text: "Selamat pagi,\n\nTerima kasih atas permintaannya. Penawaran Paket B nasi box komplit: Rp35.000 × 100 porsi = Rp3.500.000. Pembayaran DP 50% saat konfirmasi.\n\nSalam,\nOmniLead",
       },
       { from: "customer", text: "Baik, kami ambil. Mohon dikirimkan invoice-nya." },
       { from: "agent", text: "Siap. Invoice kami lampirkan dan tanggal 12 sudah kami kunci untuk pesanan Anda." },
