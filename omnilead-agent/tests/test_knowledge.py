@@ -24,6 +24,37 @@ def test_rule_fallback_uses_owner_facts_and_tone_without_demo_business():
     assert any("Knowledge base email" in line for line in result.trace.plan)
 
 
+def test_public_business_name_is_independent_of_workspace_name():
+    result = analyze(request(business="Nama Pemilik", public_business_name="Toko Pelanggan"), drafter=TemplateDrafter())
+    text = " ".join(p.text for p in result.proposals)
+    assert "Toko Pelanggan" in text and "Nama Pemilik" not in text
+
+
+def test_missing_brand_or_knowledge_blocks_uninformed_replies():
+    result = analyze(request(public_business_name=""), drafter=TemplateDrafter())
+    assert result.flagged_for_review and not result.proposals
+    result = analyze(request(public_business_name="Toko", documents=[], products=[]), drafter=TemplateDrafter())
+    assert result.flagged_for_review and "knowledge base" in result.review_reason
+
+
+def test_model_failure_template_requires_owner_review():
+    class BrokenDrafter:
+        def draft(self, ctx):
+            raise RuntimeError("offline")
+    result = analyze(request(), drafter=BrokenDrafter())
+    outgoing = [p for p in result.proposals if p.kind in ("send_message", "reply_comment", "comment_post")]
+    assert outgoing and all(any(g.check == "model_fallback" and g.status == "warn" for g in p.guard) for p in outgoing)
+
+
+def test_thinking_config_matches_model_generation(monkeypatch):
+    from omnilead_agent.adk_triage import generation_config
+    monkeypatch.setenv("OMNILEAD_AGENT_THINKING", "low")
+    legacy = generation_config("gemini-2.5-flash").thinking_config
+    assert legacy.thinking_budget == 1024 and legacy.thinking_level is None
+    modern = generation_config("gemini-3.8-flash").thinking_config
+    assert modern.thinking_budget is None and modern.thinking_level is not None
+
+
 def test_workspace_product_prices_replace_demo_catalog():
     req = request(products=[{"id": "shirt", "name": "Kaos Basic", "unit_price": 75000, "unit": "pcs", "min_order": 1}])
     req.event.text = "harga kaos basic berapa?"

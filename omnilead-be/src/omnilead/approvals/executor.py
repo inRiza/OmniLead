@@ -19,6 +19,7 @@ from omnilead.openclaw_browser import BrowserSendFailed
 from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus, set_stage
 from omnilead.store import Store
 from omnilead.windows import check_window
+from omnilead.message_freshness import browser_reply_hold
 
 DONE = (
     ActionStatus.EXECUTED,
@@ -82,6 +83,8 @@ class Executor:
             )
 
         source = self._store.get_event(action.event_id) if action.event_id else None
+        if action.payload.get("_auto") and (reason := browser_reply_hold(source)):
+            return self._fail(action, reason)
         if source and source.meta.get("transport") == "browser":
             action.status = ActionStatus.AWAITING_MANUAL_SEND
             action.result_ref = None

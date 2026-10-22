@@ -60,6 +60,14 @@ INFORMAL = ("kak", "gan", "brp", "ga ", "gak", "yg", "dong", "nih", "ya?", "tgl"
 
 REFUND_WORDS = ("refund", "kembalikan uang", "uang kembali", "salah kirim", "salah menu", "ga sesuai pesanan", "tidak sesuai pesanan")
 
+
+def is_greeting(text: str) -> bool:
+    """Repeated greetings alone are not evidence of spam or advertising."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    return bool(words) and all(re.fullmatch(
+        r"ha+l+o+|he+l+o+|ha+i+|hi+|hey+|kak+|ka|min|admin|permisi|pagi|siang|sore|malam|"
+        r"selamat|assalamu[a']?laikum|salam|ping|p", word) for word in words)
+
 SIZE_RE = re.compile(r"\b(?:size|ukuran|sz)\s*([sml]|xs|xl{1,2}|xxl|\d{2})\b", re.I)
 RESELLER_RE = re.compile(r"\b(reseller|dropship(?:per)?|grosir|agen)\b", re.I)
 

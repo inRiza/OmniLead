@@ -6,6 +6,7 @@ import type { AgentExecutionEvent } from "./types";
 const BASE = "/api/backend";
 let activeWorkspace: string | null = null;
 export function setActiveWorkspace(id: string | null) { activeWorkspace = id; }
+export function getActiveWorkspace() { return activeWorkspace; }
 
 export class ApiError extends Error {
   constructor(
@@ -241,6 +242,7 @@ export interface InstagramSync {
 }
 
 export interface BeSettings {
+  agent_channels?: Record<string, ChannelAgentConfig>;
   paused: boolean;
   disabled_channels: string[];
   dry_run: boolean;
@@ -337,6 +339,7 @@ export interface KnowledgeBase {
 }
 
 export interface ChannelAgentConfig {
+  business_name?: string;
   knowledge_base_ids: string[];
   tone: "friendly" | "professional" | "casual" | "concise" | "custom";
   custom_tone: string;
@@ -358,6 +361,14 @@ export interface FacebookPages {
 export const api = {
   base: BASE,
   session: () => request<AccountSession>("/auth/session"),
+  conversations: () => request<import("./chat").ConversationSummary[]>("/agent/conversations"),
+  createConversation: () => post<import("./chat").Conversation>("/agent/conversations", {}),
+  conversation: (id: string) => request<import("./chat").Conversation>(`/agent/conversations/${encodeURIComponent(id)}`),
+  agentTasks: () => request<import("./agent-tasks").TaskBoard>("/agent/tasks"),
+  createAgentTask: (body: import("./agent-tasks").TaskInput) => post<import("./agent-tasks").AgentTask>("/agent/tasks", body),
+  changeAgentTask: (id: string, operation: "pause" | "resume" | "complete") =>
+    request<import("./agent-tasks").AgentTask>(`/agent/tasks/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ operation }) }),
+  runAgentTask: (id: string) => post<{ accepted: boolean }>(`/agent/tasks/${encodeURIComponent(id)}/run`, {}),
   login: (email: string, password: string) => post<AccountUser>("/auth/login", { email, password }),
   register: (body: { email: string; password: string; name: string }) => post<AccountUser>("/auth/register", body),
   addWorkspace: (name: string) => post<{ id: string; name: string }>("/workspaces", { name }),

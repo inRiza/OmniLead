@@ -104,10 +104,10 @@ function HeroDashboard() {
                 key={item.label}
                 className={cn(
                   "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs sm:text-sm",
-                  item.active ? "bg-rc-accent-soft font-semibold text-rc-accent" : "text-rc-fg-muted",
+                  "active" in item && item.active ? "bg-rc-accent-soft font-semibold text-rc-accent" : "text-rc-fg-muted",
                 )}
               >
-                <span className={cn("h-4 w-4 shrink-0 rounded-sm", item.active ? "bg-rc-accent/40" : "bg-rc-border")} />
+                <span className={cn("h-4 w-4 shrink-0 rounded-sm", "active" in item && item.active ? "bg-rc-accent/40" : "bg-rc-border")} />
                 {item.label}
               </span>
             ))}

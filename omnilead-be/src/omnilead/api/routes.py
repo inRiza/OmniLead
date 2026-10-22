@@ -30,9 +30,16 @@ from omnilead.api.deps import (
     get_registry,
     get_store,
 )
+import json
+
+from fastapi.responses import StreamingResponse
+
 from omnilead.agent_client import AgentClient, AgentUnavailable
+from omnilead.chat import run_chat
+from omnilead.chat_tools import ChatTools
 from omnilead.api.schemas import (
     AppSettingsPatch,
+    ChatRequest,
     LeadPatch,
     PasteEventRequest,
     PasteImageRequest,
@@ -489,7 +496,8 @@ def action_handoff(
 
 @router.get("/settings", response_model=AppSettings)
 def get_settings_(store: Store = Depends(get_store)) -> AppSettings:
-    return store.get_settings()
+    from omnilead.knowledge import resolved_channel_configs
+    return store.get_settings().model_copy(update={"agent_channels": resolved_channel_configs(store)})
 
 
 @router.patch("/settings", response_model=AppSettings)
@@ -561,6 +569,64 @@ def audit(
     store: Store = Depends(get_store),
 ) -> list[AuditEntry]:
     return store.list_audit(limit, channel=channel)
+
+
+@router.post("/agent/chat")
+def agent_chat(
+    req: ChatRequest,
+    request: Request,
+    store: Store = Depends(get_store),
+    registry: Registry = Depends(get_registry),
+    ingest: IngestService = Depends(get_ingest),
+    agent: AgentClient = Depends(get_agent_client),
+):
+    """Chat pemilik dengan agen. Stream NDJSON: step, tool_result, message, error.
+
+    Agen memilih tool; BE yang menjalankannya. Tidak ada tool kirim: balasan hanya disiapkan
+    lewat pipeline analisis (Guard + persetujuan).
+    """
+    tools = ChatTools(store, registry, ingest, app_config(), workspace_for_request(request), req.channel)
+    history = [h.model_dump() for h in req.history]
+    session = reply = None
+    if req.conversation_id:
+        from omnilead.chat_sessions import begin_turn
+        try:
+            session, reply, history = begin_turn(store, req.conversation_id, req.message, req.channel)
+        except KeyError:
+            raise HTTPException(404, "Percakapan tidak ditemukan pada bisnis ini")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc))
+    events = run_chat(tools, agent, store.get_settings().business_name, req.message, history)
+    if session:
+        from omnilead.chat_sessions import record_stream
+        events = record_stream(store, session, reply, events)
+
+    def stream():
+        for item in events:
+            yield json.dumps(item, ensure_ascii=False) + "\n"
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+
+@router.get("/agent/conversations")
+def conversations(store: Store = Depends(get_store)):
+    return [{k: v for k, v in session.items() if k not in ("turns", "revision", "lease_until")}
+            for session in store.list_conversations()[:100]]
+
+
+@router.post("/agent/conversations", status_code=201)
+def create_conversation(store: Store = Depends(get_store)):
+    from omnilead.chat_sessions import new_conversation
+    return new_conversation(store)
+
+
+@router.get("/agent/conversations/{session_id}")
+def conversation(session_id: str, store: Store = Depends(get_store)):
+    session = store.get_conversation(session_id)
+    if not session:
+        raise HTTPException(404, "Percakapan tidak ditemukan pada bisnis ini")
+    return session
 
 
 @router.get("/instagram/sync")

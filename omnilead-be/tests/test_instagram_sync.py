@@ -392,19 +392,19 @@ def test_openclaw_reads_primary_general_and_comment_notifications(store, ingest,
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
     assert result["source"] == "openclaw_text" and result["error"] == ""
     assert result["api_error"] == "token kosong"
-    assert (result["dms"], result["comments"]) == (3, 1)
+    assert (result["dms"], result["comments"]) == (2, 1)  # the 2-day-old General message is history, not a new reply target
     assert ("click", "e3") in browser.log and ("click", "e21") in browser.log and ("click", "e22") in browser.log
     assert ("navigate", instagram_sync.NOTIFICATIONS_URL) in browser.log and browser.closed == 1
     assert len(agent.calls) == calls
     events = {e.text: e for e in store.list_events()}
     assert events["kak harga nasbox?"].meta["folder"] == "Primary" and events["kak harga nasbox?"].meta["unread"] is True
-    assert events["bisa kirim ke Bekasi?"].meta["folder"] == "General"
+    assert "bisa kirim ke Bekasi?" not in events
     assert events["Apakah kamu buka comission?"].meta["folder"] == "Requests"
     assert "siap kak" not in events
     note = events["masih ada kak?"]
     assert note.kind == "comment" and note.external_id == "18129021832872344" and note.sender.handle == "sari.home"
     again = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert again["imported"] == 0 and again["duplicates"] == 4
+    assert again["imported"] == 0 and again["duplicates"] == 3
 
 
 def test_openclaw_reads_thread_history_and_sends_it_as_timeline(store, ingest, browser, agent):
@@ -414,7 +414,7 @@ def test_openclaw_reads_thread_history_and_sends_it_as_timeline(store, ingest, b
     assert ("scrollIntoView", "e38") in browser.log
     event = next(e for e in store.list_events() if e.text == "kak harga nasbox?")
     assert [m["text"] for m in event.meta["conversation"]][-2:] == ["[media]", "kak harga nasbox?"]
-    assert "conversation" not in next(e for e in store.list_events() if e.text == "bisa kirim ke Bekasi?").meta
+    assert not any(e.text == "bisa kirim ke Bekasi?" for e in store.list_events())
     ingest.process(ingest.prepare(event), expected_run_id=None)
     timeline = agent.calls[-1]["lead"]["timeline"]
     assert [(t["direction"], t["text"]) for t in timeline] == [
@@ -469,7 +469,7 @@ def test_hybrid_asks_before_opening_unread_or_accepting_requests(store, ingest, 
     assert [t["name"] for t in result["pending"]["accept_request"]] == ["Rizain F"]
     assert ("click", "e27") not in browser.log and ("click", "e45") not in browser.log
     assert ("click", "e50") not in browser.log
-    assert {e.text for e in store.list_events() if e.kind == "dm"} == {"bisa kirim ke Bekasi?"}
+    assert {e.text for e in store.list_events() if e.kind == "dm"} == set()
     assert instagram_sync.sync_status(store)["pending"] == result["pending"]
 
     granted = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1",
@@ -484,7 +484,7 @@ def test_full_access_reads_unread_and_accepts_without_asking(store, ingest, brow
     _autonomy(store, "auto")
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert result["pending"] == {} and result["dms"] == 3
+    assert result["pending"] == {} and result["dms"] == 2
     assert ("click", "e27") in browser.log and ("click", "e50") in browser.log
 
 
@@ -534,7 +534,7 @@ def test_openclaw_unavailable_is_reported(store, ingest, monkeypatch):
 def test_prefer_browser_skips_meta_api(store, ingest, browser):
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(messages=[msg("m-api", "dari api")])})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1", prefer_browser=True)
-    assert result["source"] == "openclaw_text" and result["dms"] == 3
+    assert result["source"] == "openclaw_text" and result["dms"] == 2
     assert all(e.meta.get("source") == "openclaw_text" for e in store.list_events() if e.kind == "dm")
 
 
@@ -590,7 +590,7 @@ def test_webhook_marks_last_seen_and_status_route(tmp_path, monkeypatch):
 def test_empty_meta_api_falls_back_to_openclaw(store, ingest, browser):
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector()})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert result["source"] == "openclaw_text" and (result["dms"], result["comments"]) == (3, 1)
+    assert result["source"] == "openclaw_text" and (result["dms"], result["comments"]) == (2, 1)
 
 
 def test_sync_queues_new_messages_and_analyzes_them_in_order(store, ingest, agent):

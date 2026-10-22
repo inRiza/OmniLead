@@ -2,6 +2,37 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
+## Pembaruan ruang agen (23 Okt 2026)
+
+- Branch kerja `feat/agent-chat`. Halaman `/dashboard/agen` sekarang chat penuh,
+  riwayat percakapan di kiri, pilihan kanal, dan papan tugas/jadwal yang lebarnya
+  dapat digeser. Ikon sparkle dan eyebrow pada layar awal dihapus.
+- Percakapan, ringkasan pemikiran yang disediakan provider, hasil tool, kanal,
+  dan judul otomatis disimpan di backend database; localStorage hanya preferensi
+  tampilan dan ID percakapan terakhir. Tool memakai riwayat kanonis dari server.
+- Tugas memiliki status, jadwal WIB, hasil dan jejak proses persisten. Worker
+  SQLite lokal memeriksa jadwal setiap 15 detik. Cloud memerlukan trigger
+  `/scheduler/agent-tasks` dengan autentikasi scheduler yang sudah ada.
+- Jadwal menjalankan instruksi dalam mode eksekusi; tool membuat/mengubah jadwal
+  tidak tersedia agar tugas tidak membuat jadwal baru secara rekursif.
+- Identitas toko berasal dari pengaturan bisnis per kanal atau nama eksplisit
+  dalam KB terpilih. Nama workspace tidak menjadi nama merek pelanggan.
+- Penyebab draf selalu berupa template: Gemini 2.5 pada Vertex menolak
+  `thinking_level`. Konfigurasi kini memakai `thinking_budget` untuk 2.5 dan
+  `thinking_level` untuk 3. Draf model asli berhasil diperiksa tanpa mengirim DM.
+- Balasan mengikuti riwayat, menjawab inti pesan, sapaan/emoji seperlunya, dan
+  tidak mengulang perkenalan atau janji pengecekan kosong. Kegagalan model diberi
+  tanda draf cadangan dan ditahan untuk tinjauan.
+- Koneksi SQLite dipisahkan per thread untuk mengatasi SystemError saat chat,
+  polling dan analisis bersamaan. Pesan browser lama/tanpa waktu yang tepercaya
+  ditahan dari balasan otomatis; jangan mengirim ulang arsip lama.
+- Batas: eksekusi inbox terjadwal baru Instagram; kanal lain dapat dipilih untuk
+  perencanaan/data tersimpan. Daftar prospek bukan jaminan seluruh arsip IG.
+  Firestore telah diimplementasikan tetapi belum diuji langsung. Stop chat
+  menghentikan pemantauan, bukan membatalkan tool yang sudah berjalan.
+- Detail dan verifikasi: `docs/agent-chat.md`. Jangan sertakan `.env`, BE
+  `.env.example` milik pengguna, profil browser, log atau ekspor percakapan.
+
 ## Handoff melalui PR: kendala yang masih ada (22 Okt 2026)
 
 - Pengguna meminta commit, push, dan PR ke `develop` agar rekan melanjutkan.

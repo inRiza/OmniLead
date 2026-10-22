@@ -54,6 +54,12 @@ def require_scheduler(
 router = APIRouter(prefix="/scheduler", tags=["scheduler"], dependencies=[Depends(require_scheduler)])
 
 
+@router.post("/agent-tasks")
+def agent_tasks() -> dict:
+    from omnilead.task_worker import tick
+    return {"workspaces": tick()}
+
+
 @router.post("/followups")
 def followups(store: Store = Depends(get_store), queue: ApprovalQueue = Depends(get_queue)) -> dict:
     if get_settings().auth_enabled:

@@ -186,6 +186,22 @@ def _author(group: Node) -> str:
     return tails.pop() if len(tails) == 1 else ""
 
 
+def conversation_username(snapshot: str) -> str:
+    """Only profile controls in the conversation pane establish a peer identity.
+
+    Ignore arbitrary URLs in message bodies and the sidebar's own Profile link.
+    Return empty if a group/multiple peers makes identity ambiguous.
+    """
+    peers = set()
+    for node in walk(parse_tree(snapshot)):
+        if node.role != "link" or any(p.role == "article" for p in _ancestors(node)):
+            continue
+        match = PROFILE_URL.search(node.url)
+        if match and re.match(r"^(open the profile page of|buka (halaman )?profil)\s+", node.name, re.I):
+            peers.add(match.group(1).lower())
+    return next(iter(peers)) if len(peers) == 1 else ""
+
+
 def _ancestors(node: Node) -> list[Node]:
     out = []
     while node.parent:
