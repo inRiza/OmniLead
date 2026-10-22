@@ -349,7 +349,7 @@ def comment_box_ref(refs: dict) -> str:
     boxes = [(ref, _norm(str(item.get("name", "")))) for ref, item in refs.items()
              if isinstance(item, dict) and item.get("role") == "textbox"]
     named = [ref for ref, name in boxes if "comment" in name or "komentar" in name]
-    return named[0] if named else (boxes[0][0] if len(boxes) == 1 else "")
+    return named[0] if len(named) == 1 else (boxes[0][0] if len(boxes) == 1 and not boxes[0][1] else "")
 
 
 def _norm(text: str) -> str:

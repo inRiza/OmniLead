@@ -2,7 +2,7 @@ import hashlib
 import re
 import time
 
-from omnilead.instagram_snapshot import comment_box_ref, folder_ref, reply_ref, thread_ref
+from omnilead.instagram_snapshot import comment_box_ref, folder_ref, reply_ref, thread_ref, post as parse_post
 from omnilead.instagram_sync import DIALOGS, FOLDERS, INBOX_URL, SETTLE_SECONDS, _open_post
 from omnilead.models import ActionKind
 from omnilead.openclaw_browser import BrowserSendFailed, OpenClawBrowser
@@ -57,11 +57,19 @@ def _start(settings, workspace: str):
     return browser
 
 
-def _verify(browser, text: str, key: str) -> str:
+def _verify(browser, text: str, key: str, *, post_code: str = "") -> str:
     probe = _norm(text.splitlines()[0])[:40]
     for _ in range(VERIFY_ATTEMPTS):
         time.sleep(SETTLE_SECONDS)
-        if probe in _norm(browser.read_text()):
+        snapshot = browser.read_text()
+        if post_code:
+            # The editor can still contain the draft after Enter. Only a posted
+            # comment from the business is proof of delivery.
+            posted = next((c for c in parse_post(snapshot, post_code).comments
+                           if c.direction == "out" and _norm(c.text) == _norm(text)), None)
+            if posted:
+                return "openclaw:comment:" + posted.comment_id
+        elif probe in _norm(snapshot):
             return "openclaw:" + hashlib.sha256(f"{key}|{text}|{time.time()}".encode()).hexdigest()[:24]
     raise BrowserSendFailed("Pesan sudah diketik tetapi belum terlihat terkirim di Instagram.")
 
@@ -137,7 +145,7 @@ def reply_comment(settings, workspace: str, post_code: str, comment_id: str, aut
         raise BrowserSendFailed("Komentar tujuan atau isi balasan kosong.")
     browser = _start(settings, workspace)
     try:
-        _open_post(browser, post_code)
+        page = _open_post(browser, post_code)
         browser.inspect()
         ref = reply_ref(browser.text, comment_id)
         if not ref:
@@ -153,13 +161,25 @@ def reply_comment(settings, workspace: str, post_code: str, comment_id: str, aut
         if author and reply.lower().startswith(mention.lower()):
             reply = reply[len(mention):].strip()
         body = f"{mention} {reply}" if author else reply
+        existing = next((c for c in page.comments if c.direction == "out" and _norm(c.text) == _norm(body)), None)
+        if existing:
+            return "openclaw:comment:" + existing.comment_id
         if author and _norm(box_value(browser.text, box)).startswith(mention.lower()):
             browser.act("type", ref=box, text=reply, slowly=True)
             browser.inspect()
+            # Typing enables/changes controls and renumbers OpenClaw refs.
+            # The old textbox ref may now point at a link or Post button.
+            box = comment_box_ref(browser.refs)
+            if not box:
+                raise BrowserSendFailed("Kolom balasan berubah setelah mengetik; pesan belum dikirim.")
         if _norm(box_value(browser.text, box)) != _norm(body):
             browser.act("type", ref=box, text=body)
+            browser.inspect()
+            box = comment_box_ref(browser.refs)
+        if not box or _norm(box_value(browser.text, box)) != _norm(body):
+            raise BrowserSendFailed("Isi kolom balasan belum sesuai; pesan belum dikirim.")
         browser.act("press", key="Enter")
-        return _verify(browser, body, comment_id)
+        return _verify(browser, body, comment_id, post_code=post_code)
     finally:
         browser.close()
 
