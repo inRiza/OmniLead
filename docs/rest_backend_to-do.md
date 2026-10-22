@@ -8,17 +8,23 @@ Dokumen ini mendaftar pekerjaan backend yang masih dibutuhkan agar UI dashboard 
 - **Status sekarang.** Setiap item menyebut kondisi kode saat ini dan file terkait. Path backend relatif ke `omnilead-be/src/omnilead`, path agen relatif ke `omnilead-agent/src/omnilead_agent`, path frontend relatif ke `omnilead-fe/src`.
 - Item bertanda **(perlu dicek)** disimpulkan dari membaca kode dan belum dibuktikan dengan menjalankannya.
 
+
+
 ## Ringkasan prioritas
 
-| Prioritas | Item |
-|---|---|
-| P0 | 1.1 Kirim otomatis tanpa persetujuan, 1.2 Aksi macet di EXECUTING, 2.1 Agen crash saat produk kosong, 3.1 Konflik pencocokan identitas, 4.1 Endpoint ubah lead, 4.2 Tahap Deal dan Batal dari alur nyata |
-| P1 | Kategori pesan dan sentimen, metrik dashboard, audit terstruktur, percakapan per thread, ide konten dari pengetahuan bisnis, status integrasi lengkap, profil bisnis, follow-up lengkap |
-| P2 | Paket dan batas bisnis, multi pengguna, reset kata sandi, antrean webhook, pagination dan indeks, tes kontrak agen |
+
+| Prioritas | Item                                                                                                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0        | 1.1 Kirim otomatis tanpa persetujuan, 1.2 Aksi macet di EXECUTING, 2.1 Agen crash saat produk kosong, 3.1 Konflik pencocokan identitas, 4.1 Endpoint ubah lead, 4.2 Tahap Deal dan Batal dari alur nyata |
+| P1        | Kategori pesan dan sentimen, metrik dashboard, audit terstruktur, percakapan per thread, ide konten dari pengetahuan bisnis, status integrasi lengkap, profil bisnis, follow-up lengkap                  |
+| P2        | Paket dan batas bisnis, multi pengguna, reset kata sandi, antrean webhook, pagination dan indeks, tes kontrak agen                                                                                       |
+
 
 ---
 
-## 1. Eksekusi agen dan pengiriman
+
+
+## 1. Eksekusi agen dan pengiriman - Rizain
 
 UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
@@ -39,7 +45,9 @@ UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 - [ ] **1.5 (P1) Retry otomatis dengan backoff** untuk kegagalan sementara (5xx, timeout). Sekarang retry hanya manual lewat `POST /actions/{id}/retry`.
 - [ ] **1.6 (P2) Rate limit menghitung dry run dan handoff** secara terpisah. Sekarang hanya menghitung baris audit `executed`.
 
-## 2. Agen (omnilead-agent)
+
+
+## 2. Agen (omnilead-agent) - Bimo
 
 UI terkait: Workspace (kategori, ringkasan AI, langkah agen), Lead, Konten.
 
@@ -65,7 +73,9 @@ UI terkait: Workspace (kategori, ringkasan AI, langkah agen), Lead, Konten.
 - [ ] **2.8 (P2) Retry otomatis saat agen tidak tersedia.** Sekarang event menjadi `agent_error` dan harus dianalisis ulang manual (`POST /events/{id}/analyze`).
 - [ ] **2.9 (P2) Tes kontrak backend dan agen.** Semua tes backend memakai agen palsu. Belum ada tes yang memastikan skema `AgentResult` cocok.
 
-## 3. Pencocokan dan penggabungan pelanggan (identitas)
+
+
+## 3. Pencocokan dan penggabungan pelanggan (identitas) - Rizain
 
 UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 
@@ -90,7 +100,9 @@ UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 - [ ] **3.9 (P2) Status kecocokan per identitas.** Spesifikasi meminta indikator per identitas (pasti atau belum pasti). Simpan sumber dan keyakinan tiap identitas di lead.
 - [ ] **3.10 (P2) Performa.** `_resolve_lead` memindai semua lead per event. Perlu indeks per identitas.
 
-## 4. Lead dan pipeline
+
+
+## 4. Lead dan pipeline - Fayadh
 
 UI terkait: Lead (tabel dan pipeline), Lead detail, Beranda (Lead prioritas tinggi, Potensi closing).
 
@@ -109,7 +121,9 @@ UI terkait: Lead (tabel dan pipeline), Lead detail, Beranda (Lead prioritas ting
   - Tambahkan perubahan tahap, follow-up, catatan, dan merge. Saat ini audit difilter dari 500 baris terakhir di Python.
 - [ ] **4.6 (P2) Filter dan pencarian di server.** Filter tahap, skor, dan pencarian sekarang di frontend atas semua lead (`GET /leads` tanpa limit).
 
-## 5. Workspace dan percakapan
+
+
+## 5. Workspace dan percakapan - Bimo
 
 UI terkait: Workspace (tabel, filter, detail).
 
@@ -120,7 +134,9 @@ UI terkait: Workspace (tabel, filter, detail).
 - [ ] **5.3 (P1) Pencarian dan filter di server.** Pencarian nama, handle, dan isi pesan, filter kanal, asal, status, dan urutan sekarang semua di frontend atas `GET /events?limit=200`. Pesan lebih lama tidak terlihat.
 - [ ] **5.4 (P2) Kanal yang dimatikan tetap dianalisis.** `disabled_channels` tidak dicek saat ingest, sehingga agen tetap berjalan.
 
-## 6. Beranda dan metrik
+
+
+## 6. Beranda dan metrik - Fayadh
 
 UI terkait: Beranda (kartu, Volume pesan per kanal, Potensi closing, Perlu dibalas, Hasil kerja agen).
 
@@ -131,9 +147,11 @@ UI terkait: Beranda (kartu, Volume pesan per kanal, Potensi closing, Perlu dibal
     - Lead baru dan closing per bucket.
     - Angka konversi dan jumlah lead dalam proses.
     - Jumlah perlu dibalas dan jumlah lead prioritas tinggi.
-- [ ] **6.2 (P2) `GET /summary/today` sesuai arah baru.** Daftar ini masih memprioritaskan aksi yang menunggu persetujuan. Setelah 1.1, ubah ke log hasil agen yang butuh perhatian: gagal, perlu tinjauan, dan follow-up jatuh tempo.
+- [ ] **6.2 (P2)** `GET /summary/today` **sesuai arah baru.** Daftar ini masih memprioritaskan aksi yang menunggu persetujuan. Setelah 1.1, ubah ke log hasil agen yang butuh perhatian: gagal, perlu tinjauan, dan follow-up jatuh tempo.
 
-## 7. Audit
+
+
+## 7. Audit - Fayadh
 
 UI terkait: Audit (filter pelaku, hasil, kanal, pencarian, grup per hari).
 
@@ -144,7 +162,9 @@ UI terkait: Audit (filter pelaku, hasil, kanal, pencarian, grup per hari).
 - [ ] **7.3 (P1) Filter dan pagination di server.** `GET /audit` hanya punya `limit` (maksimal 500) dan `channel`. Perlu filter lead, actor, event, outcome, rentang tanggal, pencarian, dan cursor.
 - [ ] **7.4 (P2) Label event lengkap.** Event `channel_connected`, `knowledge_saved`, dan `agent_channel_configured` belum punya label di `AUDIT_LABEL`. Lebih baik backend mengirim label yang mudah dibaca.
 
-## 8. Konten (peta pengetahuan)
+
+
+## 8. Konten (peta pengetahuan) - Bimo
 
 UI terkait: Konten (graph, Ringkasan agen, Celah pengetahuan, Peluang promosi, Rekomendasi konten).
 
@@ -159,7 +179,9 @@ UI terkait: Konten (graph, Ringkasan agen, Celah pengetahuan, Peluang promosi, R
 - [ ] **8.5 (P2) Cache hasil analisis.** Setiap buka halaman memanggil agen secara langsung (300 event). Simpan hasil dan perbarui berkala.
 - [ ] **8.6 (P2) Retrieval pengetahuan.** `knowledge.py` `build_context` memakai skor tumpang tindih kata, tanpa embedding. Pertimbangkan pencarian semantik.
 
-## 9. Integrasi kanal
+
+
+## 9. Integrasi kanal - Bimo
 
 UI terkait: Integrasi, Bisnis (langkah Kanal untuk agen), Pengaturan agen.
 
@@ -173,7 +195,9 @@ UI terkait: Integrasi, Bisnis (langkah Kanal untuk agen), Pengaturan agen.
 - [ ] **9.6 (P2) Fallback polling Meta** bila webhook terlewat.
 - [ ] **9.7 (P2) Alur onboarding WhatsApp di halaman Bisnis.** Langkah Kanal untuk agen mengarahkan WhatsApp ke halaman Integrasi karena Embedded Signup butuh pemilih nomor dan PIN. Pertimbangkan endpoint yang bisa dipakai langsung dari onboarding.
 
-## 10. Pengaturan agen
+
+
+## 10. Pengaturan agen - Bimo
 
 UI terkait: Pengaturan agen (status, mode latihan, kanal, batas dan preferensi).
 
@@ -183,6 +207,8 @@ UI terkait: Pengaturan agen (status, mode latihan, kanal, batas dan preferensi).
   - Perlu skema aturan (jenis, nilai), misalnya diskon maksimal, sapaan, larangan harga di publik, dan minimal DP, agar guard bisa memakainya.
 - [ ] **10.2 (P1) Pembelajaran preferensi otomatis.** `queue.py` `_learn_preference` masih menambah preferensi dari alasan penolakan (maksimal 20). Karena pengguna kini mengatur preferensi sendiri, putuskan apakah fitur ini dimatikan atau dipisah sebagai "saran aturan".
 - [ ] **10.3 (P2) Batas kirim per kanal.** `rate_limit_per_hour` berlaku sama untuk semua kanal.
+
+
 
 ## 11. Akun dan bisnis
 
@@ -194,6 +220,8 @@ UI terkait: Pilih bisnis, Buat bisnis baru, dropdown bisnis di topbar, Login dan
 - [ ] **11.4 (P2) Multi pengguna per bisnis.** Belum ada undangan, peran, atau penanggung jawab percakapan.
 - [ ] **11.5 (P2) Keamanan akun.** Belum ada reset atau ganti kata sandi, verifikasi email, perpanjangan sesi otomatis, cabut semua sesi, dan hapus akun. Rate limit login masih di memori per instance.
 
+
+
 ## 12. Infrastruktur dan skala
 
 - [ ] **12.1 (P2) Antrean webhook.** Webhook diproses dengan `BackgroundTasks` di proses yang sama, sehingga bisa hilang bila instance Cloud Run berhenti. Gunakan Cloud Tasks atau Pub/Sub.
@@ -203,19 +231,23 @@ UI terkait: Pilih bisnis, Buat bisnis baru, dropdown bisnis di topbar, Login dan
   - Belum ada definisi indeks Firestore di repo.
 - [ ] **12.3 (P2) Pemanggilan berulang.** `reassign_lead`, `_lead_context`, `get_lead`, dan `windows.check_window` memanggil `list_actions()` tanpa filter.
 
+
+
 ## 13. Ketergantungan pada data seed
 
 Bagian UI berikut terlihat lengkap hanya karena data dari `omnilead-be/scripts/seed_account.py`. Pada bisnis baru, bagian ini kosong atau salah sampai item terkait selesai.
 
-| UI | Bergantung pada seed | Selesai bila |
-|---|---|---|
-| Beranda, grafik Potensi closing | Lead bertahap `deal` dan `batal` | 4.1, 4.2, 4.4 |
-| Lead, tampilan Pipeline | Tahap `deal` dan `batal` | 4.2, 4.3 |
-| Workspace, Langkah agen | Trace dan triage yang sudah jadi | Agen berjalan nyata (bagian 2) |
-| Workspace, badge Sentimen | Tidak muncul karena seed tidak mengisi | 2.2 |
-| Konten, graph dan ringkasan | Katalog dan dokumen pengetahuan contoh | 8.1, 8.2, 8.3 |
-| Pengetahuan & Tone | Tiga dokumen dan nada per kanal | Pengguna mengisi sendiri |
-| Audit | 183 baris yang waktunya dimundurkan lewat SQL | 7.1 |
+
+| UI                              | Bergantung pada seed                          | Selesai bila                   |
+| ------------------------------- | --------------------------------------------- | ------------------------------ |
+| Beranda, grafik Potensi closing | Lead bertahap `deal` dan `batal`              | 4.1, 4.2, 4.4                  |
+| Lead, tampilan Pipeline         | Tahap `deal` dan `batal`                      | 4.2, 4.3                       |
+| Workspace, Langkah agen         | Trace dan triage yang sudah jadi              | Agen berjalan nyata (bagian 2) |
+| Workspace, badge Sentimen       | Tidak muncul karena seed tidak mengisi        | 2.2                            |
+| Konten, graph dan ringkasan     | Katalog dan dokumen pengetahuan contoh        | 8.1, 8.2, 8.3                  |
+| Pengetahuan & Tone              | Tiga dokumen dan nada per kanal               | Pengguna mengisi sendiri       |
+| Audit                           | 183 baris yang waktunya dimundurkan lewat SQL | 7.1                            |
+
 
 Catatan: `seed_account.py` me-reset **semua** bisnis milik akun yang diberikan. Jangan jalankan pada akun yang berisi data asli.
 
