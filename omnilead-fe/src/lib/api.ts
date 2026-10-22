@@ -135,9 +135,16 @@ export interface BeLead {
   score: number | null;
   label: string | null;
   score_reason: string;
+  tags?: string[];
+  notes?: string;
+  estimated_value?: number | null;
+  lost_reason?: string;
+  closed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type LeadPatch = Partial<{ stage: string; notes: string; estimated_value: number; lost_reason: string; tags: string[] }>;
 
 export interface BeCapability {
   action: string;
@@ -346,6 +353,8 @@ export const api = {
   settings: () => request<BeSettings>("/settings"),
   agentHealth: () => request<BeAgentHealth>("/agent/health"),
   leadDetail: (id: string) => request<BeLeadDetail>(`/leads/${id}`),
+  updateLead: (id: string, patch: LeadPatch) =>
+    request<BeLead>(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   summary: () => request<BeSummaryItem[]>("/summary/today"),
   contentIdeas: () => request<BeContentIdeas>("/content-ideas"),
   pasteText: (body: { channel: string; text: string; handle?: string; name?: string }) =>

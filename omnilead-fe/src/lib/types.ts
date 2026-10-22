@@ -157,7 +157,16 @@ export interface TimelineEntry {
 }
 
 export interface LeadDetail {
-  lead: LeadProfile & { phones: string[]; emails: string[]; handles: string[]; scoreReason: string };
+  lead: LeadProfile & {
+    phones: string[];
+    emails: string[];
+    handles: string[];
+    scoreReason: string;
+    notes?: string;
+    estimatedValue?: number | null;
+    lostReason?: string;
+    tags?: string[];
+  };
   timeline: TimelineEntry[];
   mergeEvidence: { id: number; ts: string; detail: string }[];
   /** Merge yang sudah dieksekusi dan masih bisa dipisah. */
