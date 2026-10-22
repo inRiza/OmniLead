@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     openclaw_browser_url: str = "http://127.0.0.1:18891"
     openclaw_token_file: Path = Path(".secrets/openclaw-token")
     openclaw_state_dir: Path = Path("data/openclaw")
+    instagram_history_limit: int = 10
+    instagram_history_scrolls: int = 2
 
     # Cloud Scheduler: token bersama (Authorization: Bearer) atau OIDC bila audience diisi.
     scheduler_token: str = ""

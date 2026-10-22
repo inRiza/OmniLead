@@ -2,27 +2,15 @@ import hashlib
 import re
 import time
 
-from omnilead.instagram_snapshot import find_ref
+from omnilead.instagram_snapshot import folder_ref, thread_ref
 from omnilead.instagram_sync import DIALOGS, FOLDERS, INBOX_URL, SETTLE_SECONDS
 from omnilead.openclaw_browser import BrowserSendFailed, OpenClawBrowser
 
-AVATAR = "user-profile-picture "
 COMPOSER = {"message", "message...", "pesan", "pesan...", "kirim pesan...", "write a message..."}
 
 
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
-
-
-def thread_ref(refs: dict, name: str) -> str:
-    wanted = _norm(name)
-    for ref, item in refs.items():
-        if not isinstance(item, dict) or item.get("role") != "button":
-            continue
-        label = _norm(str(item.get("name", "")))
-        if label.startswith(_norm(AVATAR)) and (label[len(AVATAR):] + " ").startswith(wanted + " "):
-            return ref
-    return ""
 
 
 def composer_ref(refs: dict) -> str:
@@ -36,7 +24,7 @@ def _open_thread(browser, name: str) -> bool:
     for folder in FOLDERS:
         browser.inspect()
         if folder != "Primary":
-            tab = find_ref(browser.refs, folder)
+            tab = folder_ref(browser.refs, folder)
             if not tab:
                 continue
             browser.act("click", ref=tab)

@@ -480,13 +480,24 @@ class IngestService:
                      "direction": "out", "text": a.text},
                 ))
         items.sort(key=lambda x: x[0])
+        timeline = [i[1] for i in items]
+        conversation = [m for m in (event.meta or {}).get("conversation") or []
+                        if isinstance(m, dict) and str(m.get("text") or "").strip()]
+        if conversation:
+            if conversation[-1].get("direction") == "in" and conversation[-1]["text"].strip() == event.text.strip():
+                conversation = conversation[:-1]
+            timeline = [i for i in timeline if i["channel"] != event.channel.value] + [
+                {"ts": None, "channel": event.channel.value,
+                 "direction": "out" if m.get("direction") == "out" else "in", "text": str(m["text"])}
+                for m in conversation
+            ]
         return {
             "id": lead.id,
             "name": lead.name,
             "company": lead.company,
             "stage": lead.stage,
             "summary": lead.summary,
-            "timeline": [i[1] for i in items[-TIMELINE_LIMIT:]],
+            "timeline": timeline[-TIMELINE_LIMIT:],
         }
 
     def _apply(self, event: Event, lead: Lead | None, result: AgentResult) -> Event:

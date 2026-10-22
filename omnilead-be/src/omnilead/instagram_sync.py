@@ -1,11 +1,15 @@
 import hashlib
 import logging
 import time
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 
+from omnilead.autonomy import browser_grants
 from omnilead.connectors.base import ActionNotSupported, ConnectorError
 from omnilead.ingest import IngestService, handle_key
-from omnilead.instagram_snapshot import comments as parse_comments, find_ref, threads as parse_threads
+from omnilead.instagram_snapshot import (FOLDER_TABS, button_ref, comments as parse_comments,
+                                        conversation as parse_conversation, folder_ref, thread_ref,
+                                        threads as parse_threads)
 from omnilead.models import Channel, EventIn, Sender
 from omnilead.openclaw_browser import OpenClawBrowser, OpenClawUnavailable
 
@@ -18,6 +22,7 @@ DIALOGS = ("Not Now", "Not now", "Lain Kali", "Jangan Sekarang", "Nanti Saja")
 WEBHOOK_STALE = timedelta(minutes=30)
 TEXT_DUPLICATE_WINDOW = timedelta(hours=72)
 SETTLE_SECONDS = 2.5
+ACCEPT_LABELS = ("accept", "terima")
 
 
 def _now() -> datetime:
@@ -88,17 +93,70 @@ def _seen_recently(store, handle: str, text: str) -> bool:
     return False
 
 
-def _browser_dms(browser) -> list[EventIn]:
+def _top_message_ref(refs: dict) -> str:
+    return next((ref for ref, item in refs.items() if isinstance(item, dict) and item.get("role") == "article"), "")
+
+
+def _open_folder(browser, folder: str) -> bool:
+    browser.inspect()
+    ref = folder_ref(browser.refs, folder)
+    if not ref:
+        return False
+    browser.act("click", ref=ref)
+    time.sleep(SETTLE_SECONDS)
+    return True
+
+
+def _accept_request(browser) -> bool:
+    browser.inspect()
+    ref = button_ref(browser.refs, *ACCEPT_LABELS)
+    if not ref:
+        return False
+    browser.act("click", ref=ref)
+    time.sleep(SETTLE_SECONDS)
+    browser.inspect()
+    primary = button_ref(browser.refs, *FOLDER_TABS["Primary"])
+    if primary:
+        browser.act("click", ref=primary)
+        time.sleep(SETTLE_SECONDS)
+    return True
+
+
+def _read_conversation(browser, name: str, limit: int, scrolls: int, folder: str = "Primary") -> list[dict]:
+    browser.inspect()
+    ref = thread_ref(browser.refs, name)
+    if not ref and folder != "Primary" and _open_folder(browser, folder):
+        browser.inspect()
+        ref = thread_ref(browser.refs, name)
+    if not ref:
+        return []
+    browser.act("click", ref=ref)
+    time.sleep(SETTLE_SECONDS)
+    messages = parse_conversation(browser.read_text(), limit)
+    for _ in range(scrolls):
+        if len(messages) >= limit:
+            break
+        browser.inspect()
+        top = _top_message_ref(browser.refs)
+        if not top:
+            break
+        browser.act("scrollIntoView", ref=top)
+        time.sleep(SETTLE_SECONDS)
+        older = parse_conversation(browser.read_text(), limit)
+        if len(older) <= len(messages):
+            break
+        messages = older
+    return [asdict(m) for m in messages]
+
+
+def _browser_dms(browser, known=lambda handle, text: False, limit: int = 10, scrolls: int = 2,
+                 grants=frozenset(), pending: dict | None = None) -> list[EventIn]:
     events: list[EventIn] = []
     seen: set[str] = set()
+    pending = {} if pending is None else pending
     for folder in FOLDERS:
-        if folder != "Primary":
-            browser.inspect()
-            ref = find_ref(browser.refs, folder)
-            if not ref:
-                continue
-            browser.act("click", ref=ref)
-            time.sleep(SETTLE_SECONDS)
+        if folder != "Primary" and not _open_folder(browser, folder):
+            continue
         for thread in parse_threads(browser.read_text()):
             if not thread.incoming or not thread.preview:
                 continue
@@ -106,11 +164,31 @@ def _browser_dms(browser) -> list[EventIn]:
             if digest in seen:
                 continue
             seen.add(digest)
+            meta = {"source": "openclaw_text", "folder": folder, "unread": thread.unread,
+                    "seen_at": thread.time, "handoff_only": True}
+            if known(thread.name, thread.preview):
+                events.append(EventIn(
+                    channel=Channel.INSTAGRAM, kind="dm", external_id=f"openclaw:{digest}",
+                    sender=Sender(handle=thread.name, name=thread.name), text=thread.preview, meta=meta,
+                ))
+                continue
+            need = "accept_request" if folder == "Requests" else "read_unread" if thread.unread else ""
+            if need and need not in grants:
+                pending.setdefault(need, []).append({"name": thread.name, "preview": thread.preview[:200],
+                                                     "folder": folder})
+                continue
+            try:
+                history = _read_conversation(browser, thread.name, limit, scrolls, folder)
+                if need == "accept_request":
+                    meta["accepted"] = _accept_request(browser)
+            except OpenClawUnavailable as exc:
+                log.warning("instagram thread read failed for %s: %s", thread.name, exc)
+                history = []
+            if history:
+                meta["conversation"] = history
             events.append(EventIn(
                 channel=Channel.INSTAGRAM, kind="dm", external_id=f"openclaw:{digest}",
-                sender=Sender(handle=thread.name, name=thread.name), text=thread.preview,
-                meta={"source": "openclaw_text", "folder": folder, "unread": thread.unread,
-                      "seen_at": thread.time, "handoff_only": True},
+                sender=Sender(handle=thread.name, name=thread.name), text=thread.preview, meta=meta,
             ))
     return events
 
@@ -126,7 +204,8 @@ def _browser_comments(browser) -> list[EventIn]:
     ) for c in parse_comments(browser.read_text())]
 
 
-def _from_browser(settings, workspace: str) -> tuple[list[EventIn], str]:
+def _from_browser(settings, workspace: str, known, grants=frozenset(),
+                  pending: dict | None = None) -> tuple[list[EventIn], str]:
     browser = OpenClawBrowser(settings, workspace, "instagram")
     try:
         browser.open(INBOX_URL)
@@ -136,17 +215,20 @@ def _from_browser(settings, workspace: str) -> tuple[list[EventIn], str]:
             return [], "needs_login"
         browser.dismiss(*DIALOGS)
         time.sleep(1)
-        return _browser_dms(browser) + _browser_comments(browser), "ok"
+        dms = _browser_dms(browser, known, settings.instagram_history_limit, settings.instagram_history_scrolls,
+                           grants, pending)
+        return dms + _browser_comments(browser), "ok"
     finally:
         browser.close()
 
 
-def _try_browser(settings, workspace: str, report: dict, errors: list[str]) -> list[EventIn]:
+def _try_browser(settings, workspace: str, report: dict, errors: list[str], known,
+                 grants=frozenset()) -> list[EventIn]:
     if not settings.browser_enabled:
         errors.append("OpenClaw belum diaktifkan (OMNILEAD_BROWSER_ENABLED).")
         return []
     try:
-        events, state = _from_browser(settings, workspace)
+        events, state = _from_browser(settings, workspace, known, grants, report["pending"])
         report["source"] = "openclaw_text"
         report["needs_login"] = state == "needs_login"
         if report["needs_login"]:
@@ -161,18 +243,23 @@ def _try_browser(settings, workspace: str, report: dict, errors: list[str]) -> l
 
 
 def sync_instagram(store, registry, ingest: IngestService, settings, workspace: str, *,
-                   use_browser: bool = True, prefer_browser: bool = False) -> dict:
+                   use_browser: bool = True, prefer_browser: bool = False, allow=()) -> dict:
     started = _now()
     report = {"last_run_at": started.isoformat(), "source": "none", "fetched": 0, "imported": 0, "duplicates": 0,
-              "dms": 0, "comments": 0, "webhook_gap": 0, "error": "", "api_error": "", "needs_login": False}
+              "dms": 0, "comments": 0, "webhook_gap": 0, "error": "", "api_error": "", "needs_login": False,
+              "pending": {}}
     connector = registry.get(Channel.INSTAGRAM)
     account = (getattr(registry, "account_ids", None) or {}).get("instagram", "")
     events: list[EventIn] = []
     errors: list[str] = []
     used_browser = False
+    grants = browser_grants(store.get_settings().autonomy, allow)
+
+    def known(handle: str, text: str) -> bool:
+        return _seen_recently(store, handle, text)
 
     if prefer_browser and use_browser:
-        events = _try_browser(settings, workspace, report, errors)
+        events = _try_browser(settings, workspace, report, errors, known, grants)
         used_browser = report["source"] == "openclaw_text" or report["needs_login"]
 
     if not used_browser:
@@ -189,7 +276,7 @@ def sync_instagram(store, registry, ingest: IngestService, settings, workspace: 
         if report["source"] == "none" or not events:
             report["api_error"] = " ".join(dict.fromkeys(errors))
             if use_browser:
-                events = _try_browser(settings, workspace, report, errors)
+                events = _try_browser(settings, workspace, report, errors, known, grants)
         elif errors:
             errors = [f"Sebagian data Meta API gagal dibaca: {errors[0]}"]
 

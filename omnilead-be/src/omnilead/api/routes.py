@@ -574,14 +574,18 @@ def instagram_sync_now(
     background_tasks: BackgroundTasks,
     analyze: bool = Query(False),
     prefer_browser: bool = Query(False),
+    allow: list[str] = Query(default_factory=list),
     store: Store = Depends(get_store),
     registry: Registry = Depends(get_registry),
     ingest: IngestService = Depends(get_ingest),
 ) -> dict:
     result = sync_instagram(
         store, registry, ingest, app_config(), workspace_for_request(request),
-        prefer_browser=prefer_browser,
+        prefer_browser=prefer_browser, allow=allow,
     )
+    if allow:
+        store.audit("browser_permission_granted", "Pemilik mengizinkan agen: " + ", ".join(sorted(set(allow))),
+                    actor="user", channel="instagram")
     if analyze:
         result["queued"] = queue_analysis(store)
         background_tasks.add_task(run_analysis_queue, store, ingest, result["queued"])

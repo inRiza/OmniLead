@@ -52,7 +52,7 @@ class OpenClawBrowser:
             return data
         except httpx.ConnectError:
             raise OpenClawUnavailable(
-                "Gateway OpenClaw tidak merespons di "
+                "Gateway tidak merespons."
                 f"{self.http.base_url}. Jalankan tools/openclaw/start.sh lalu tunggu ±1 menit."
             ) from None
         except httpx.HTTPStatusError as exc:

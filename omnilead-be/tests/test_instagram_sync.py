@@ -9,11 +9,11 @@ from omnilead.config import Settings
 from omnilead.connectors.base import ConnectorError, NotConnected
 from omnilead.connectors.instagram import InstagramConnector
 from omnilead.ingest import IngestService
-from omnilead.instagram_snapshot import comments as parse_comments, threads as parse_threads
+from omnilead.instagram_snapshot import comments as parse_comments, conversation as parse_conversation, threads as parse_threads
 from omnilead.instagram_sync import record_webhook, sync_instagram
 from omnilead.models import ActionKind, ActionStatus, Channel, Comment, EventIn, ProposedAction, Sender
 from tests.conftest import FakeRegistry
-from tests.test_ingest_api import CANNED, FakeAgent
+from tests.test_ingest_api import CANNED, FakeAgent, client  # noqa: F401
 
 NOW = datetime.now(timezone.utc)
 
@@ -51,6 +51,16 @@ GENERAL = """- main
           - StaticText "2d"
 """
 
+REQUESTS = """- main
+  - button "user-profile-picture Rizain F Apakah kamu buka comission? 3m Unread" [ref=e45]
+    - image "user-profile-picture"
+        - StaticText "Rizain F"
+        - StaticText "Apakah kamu buka comission?"
+        - Abbr "3 minutes ago"
+          - StaticText "3m"
+        - StaticText "Unread"
+"""
+
 NOTIFICATIONS = """- generic "page" [ref=e1]
   - link "Reels" [ref=e3] [url=https://www.instagram.com/reels/]
   - main
@@ -68,6 +78,60 @@ NOTIFICATIONS = """- generic "page" [ref=e1]
       - link "andi" [ref=e36] [url=https://www.instagram.com/andi/]
       - StaticText "liked your post."
 """
+
+
+THREAD = """- main
+  - link "Profile" [ref=e5] [url=https://www.instagram.com/toko.kita/]
+  - main
+    - link "Open the profile page of rina.toko" [ref=e24] [url=https://www.instagram.com/rina.toko/]
+    - heading "Rina Toko" [ref=e29] [level=2]
+    - generic
+      - generic
+        - article "kak mau tanya nasi box" [ref=e38] [tabindex]
+          - StaticText "kak mau tanya nasi box"
+          - group "Message actions"
+            - button "React to message from rina.toko" [ref=e52]
+            - button "Reply to message from rina.toko" [ref=e53]
+      - generic
+        - StaticText "Thu 1:18 AM"
+        - article "Halo kak, untuk berapa orang?" [ref=e41] [tabindex]
+          - StaticText "Halo kak, untuk berapa orang?"
+        - group "Message actions"
+          - button "React to message from toko.kita" [ref=e58]
+          - button "Reply to message from toko.kita" [ref=e59]
+      - generic
+        - link "Open the profile page of rina.toko" [ref=e43] [url=https://www.instagram.com/rina.toko]
+        - article "50 orang tgl 30" [ref=e44] [tabindex]
+          - StaticText "50 orang tgl 30"
+          - group "Message actions"
+            - button "React to message from rina.toko" [ref=e61]
+        - article "Unsupported message Use the Instagram mobile app to view this message." [ref=e46] [tabindex]
+          - group "Message actions"
+            - button "React to message from rina.toko" [ref=e63]
+        - article "kak harga nasbox?" [ref=e45] [tabindex]
+          - StaticText "kak harga nasbox?"
+          - group "Message actions"
+            - button "React to message from rina.toko" [ref=e62]
+    - textbox "Message..." [ref=e77]
+"""
+
+
+def test_parse_conversation_from_thread_snapshot():
+    messages = parse_conversation(THREAD)
+    assert [(m.direction, m.text) for m in messages] == [
+        ("in", "kak mau tanya nasi box"), ("out", "Halo kak, untuk berapa orang?"),
+        ("in", "50 orang tgl 30"), ("in", "[media]"), ("in", "kak harga nasbox?"),
+    ]
+    assert [m.text for m in parse_conversation(THREAD, limit=2)] == ["[media]", "kak harga nasbox?"]
+    assert parse_conversation(INBOX) == []
+
+
+def test_folder_tabs_match_with_unread_count_and_locale():
+    from omnilead.instagram_snapshot import folder_ref
+
+    refs = {"e20": {"role": "tab", "name": "Utama"}, "e21": {"role": "tab", "name": "General (3)"},
+            "e22": {"role": "tab", "name": "Request (1)"}, "e9": {"role": "link", "name": "Requests"}}
+    assert [folder_ref(refs, f) for f in instagram_sync.FOLDERS] == ["e20", "e21", "e22"]
 
 
 def test_parse_threads_from_inbox_snapshot():
@@ -220,14 +284,24 @@ class FakeBrowser:
     def inspect(self):
         if self.page == "inbox_dialog":
             self.refs = {"e3": {"role": "button", "name": "Not Now"}}
-        elif self.page == "primary":
-            self.refs = {"e20": {"role": "tab", "name": "Primary"}, "e21": {"role": "tab", "name": "General"}}
+        elif self.page in ("primary", "rina", "general", "requests", "request_thread"):
+            self.refs = {"e20": {"role": "tab", "name": "Primary"}, "e21": {"role": "tab", "name": "General"},
+                         "e22": {"role": "tab", "name": "Request (1)"}}
+            if self.page in ("requests", "request_thread"):
+                self.refs["e45"] = {"role": "button", "name": "user-profile-picture Rizain F Apakah kamu buka comission? 3m"}
+            if self.page == "request_thread":
+                self.refs["e50"] = {"role": "button", "name": "Accept"}
+            if self.page in ("primary", "rina"):
+                self.refs["e27"] = {"role": "button", "name": "user-profile-picture Rina Toko kak harga nasbox? 11h"}
+            if self.page == "rina":
+                self.refs["e38"] = {"role": "article", "name": "kak mau tanya nasi box"}
         else:
             self.refs = {}
 
     def act(self, kind, **fields):
-        FakeBrowser.log.append(("click", fields["ref"]))
-        self.page = {"e3": "primary", "e21": "general"}.get(fields["ref"], self.page)
+        FakeBrowser.log.append(("click" if kind == "click" else kind, fields["ref"]))
+        self.page = {"e3": "primary", "e21": "general", "e22": "requests", "e27": "rina", "e45": "request_thread",
+                     "e50": "primary"}.get(fields["ref"], self.page)
 
     def dismiss(self, *labels):
         self.inspect()
@@ -241,7 +315,9 @@ class FakeBrowser:
         self.page = "notifications"
 
     def read_text(self):
-        return {"primary": INBOX, "general": GENERAL, "notifications": NOTIFICATIONS}.get(self.page, "")
+        return {"primary": INBOX, "rina": INBOX + THREAD, "general": GENERAL, "requests": REQUESTS,
+                "request_thread": REQUESTS + THREAD.replace("rina.toko", "rizainfird"),
+                "notifications": NOTIFICATIONS}.get(self.page, "")
 
     def login_required(self):
         return FakeBrowser.login
@@ -266,18 +342,80 @@ def test_openclaw_reads_primary_general_and_comment_notifications(store, ingest,
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
     assert result["source"] == "openclaw_text" and result["error"] == ""
     assert result["api_error"] == "token kosong"
-    assert (result["dms"], result["comments"]) == (2, 1)
-    assert ("click", "e3") in browser.log and ("click", "e21") in browser.log
+    assert (result["dms"], result["comments"]) == (3, 1)
+    assert ("click", "e3") in browser.log and ("click", "e21") in browser.log and ("click", "e22") in browser.log
     assert ("navigate", instagram_sync.NOTIFICATIONS_URL) in browser.log and browser.closed == 1
     assert len(agent.calls) == calls
     events = {e.text: e for e in store.list_events()}
     assert events["kak harga nasbox?"].meta["folder"] == "Primary" and events["kak harga nasbox?"].meta["unread"] is True
     assert events["bisa kirim ke Bekasi?"].meta["folder"] == "General"
+    assert events["Apakah kamu buka comission?"].meta["folder"] == "Requests"
     assert "siap kak" not in events
     note = events["masih ada kak?"]
     assert note.kind == "comment" and note.external_id == "18129021832872344" and note.sender.handle == "sari.home"
     again = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert again["imported"] == 0 and again["duplicates"] == 3
+    assert again["imported"] == 0 and again["duplicates"] == 4
+
+
+def test_openclaw_reads_thread_history_and_sends_it_as_timeline(store, ingest, browser, agent):
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
+    sync_instagram(store, registry, ingest, settings(browser_enabled=True, instagram_history_limit=10,
+                                                     instagram_history_scrolls=2), "ws1")
+    assert ("scrollIntoView", "e38") in browser.log
+    event = next(e for e in store.list_events() if e.text == "kak harga nasbox?")
+    assert [m["text"] for m in event.meta["conversation"]][-2:] == ["[media]", "kak harga nasbox?"]
+    assert "conversation" not in next(e for e in store.list_events() if e.text == "bisa kirim ke Bekasi?").meta
+    ingest.process(ingest.prepare(event), expected_run_id=None)
+    timeline = agent.calls[-1]["lead"]["timeline"]
+    assert [(t["direction"], t["text"]) for t in timeline] == [
+        ("in", "kak mau tanya nasi box"), ("out", "Halo kak, untuk berapa orang?"), ("in", "50 orang tgl 30"),
+        ("in", "[media]"),
+    ]
+
+    browser.log.clear()
+    sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert ("click", "e27") not in browser.log
+
+
+def _autonomy(store, mode):
+    s = store.get_settings()
+    s.autonomy = mode
+    store.save_settings(s)
+
+
+def test_hybrid_asks_before_opening_unread_or_accepting_requests(store, ingest, browser):
+    _autonomy(store, "hybrid")
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
+    result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert [t["name"] for t in result["pending"]["read_unread"]] == ["Rina Toko"]
+    assert [t["name"] for t in result["pending"]["accept_request"]] == ["Rizain F"]
+    assert ("click", "e27") not in browser.log and ("click", "e45") not in browser.log
+    assert ("click", "e50") not in browser.log
+    assert {e.text for e in store.list_events() if e.kind == "dm"} == {"bisa kirim ke Bekasi?"}
+    assert instagram_sync.sync_status(store)["pending"] == result["pending"]
+
+    granted = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1",
+                             allow=["read_unread", "accept_request"])
+    assert granted["pending"] == {} and granted["dms"] == 2
+    assert ("click", "e27") in browser.log and ("click", "e50") in browser.log
+    request = next(e for e in store.list_events() if e.sender.handle == "Rizain F")
+    assert request.meta["accepted"] is True and request.meta["conversation"]
+
+
+def test_full_access_reads_unread_and_accepts_without_asking(store, ingest, browser):
+    _autonomy(store, "auto")
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
+    result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert result["pending"] == {} and result["dms"] == 3
+    assert ("click", "e27") in browser.log and ("click", "e50") in browser.log
+
+
+def test_sync_route_passes_owner_permission(client, store, monkeypatch):
+    calls = []
+    monkeypatch.setattr("omnilead.api.routes.sync_instagram", lambda *a, **k: calls.append(k) or {"pending": {}})
+    r = client.post("/instagram/sync?allow=read_unread&allow=accept_request")
+    assert r.status_code == 200 and calls[-1]["allow"] == ["read_unread", "accept_request"]
+    assert any(e.event == "browser_permission_granted" for e in store.list_audit(limit=10))
 
 
 def test_openclaw_dm_forces_manual_send(store, ingest, browser):
@@ -307,7 +445,7 @@ def test_openclaw_unavailable_is_reported(store, ingest, monkeypatch):
     from omnilead.openclaw_browser import OpenClawUnavailable
 
     def boom(*a, **k):
-        raise OpenClawUnavailable("Gateway OpenClaw tidak merespons")
+        raise OpenClawUnavailable("Gateway tidak merespons")
 
     monkeypatch.setattr(instagram_sync, "OpenClawBrowser", boom)
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
@@ -318,7 +456,7 @@ def test_openclaw_unavailable_is_reported(store, ingest, monkeypatch):
 def test_prefer_browser_skips_meta_api(store, ingest, browser):
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(messages=[msg("m-api", "dari api")])})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1", prefer_browser=True)
-    assert result["source"] == "openclaw_text" and result["dms"] == 2
+    assert result["source"] == "openclaw_text" and result["dms"] == 3
     assert all(e.meta.get("source") == "openclaw_text" for e in store.list_events() if e.kind == "dm")
 
 
@@ -374,7 +512,7 @@ def test_webhook_marks_last_seen_and_status_route(tmp_path, monkeypatch):
 def test_empty_meta_api_falls_back_to_openclaw(store, ingest, browser):
     registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector()})
     result = sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
-    assert result["source"] == "openclaw_text" and (result["dms"], result["comments"]) == (2, 1)
+    assert result["source"] == "openclaw_text" and (result["dms"], result["comments"]) == (3, 1)
 
 
 def test_sync_queues_new_messages_and_analyzes_them_in_order(store, ingest, agent):
