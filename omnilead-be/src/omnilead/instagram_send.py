@@ -1,15 +1,21 @@
 import hashlib
+import logging
 import re
 import time
 
 from omnilead.instagram_snapshot import comment_box_ref, folder_ref, reply_ref, thread_ref, post as parse_post
 from omnilead.instagram_sync import DIALOGS, FOLDERS, INBOX_URL, SETTLE_SECONDS, _open_post
 from omnilead.models import ActionKind
-from omnilead.openclaw_browser import BrowserSendFailed, OpenClawBrowser
+from omnilead.openclaw_browser import BrowserSendFailed, OpenClawBrowser, OpenClawUnavailable
 
 COMPOSER = {"message", "message...", "pesan", "pesan...", "kirim pesan...", "write a message..."}
 SEARCH = {"search", "cari"}
 VERIFY_ATTEMPTS = 3
+ACT_ATTEMPTS = 3
+# Kolom bisa tertutup overlay atau sedang dirender ulang saat OpenClaw mengetik. Kegagalan ini terjadi
+# SEBELUM teks diketik, jadi aman diulang. Kegagalan lain (gateway mati, domain diblokir) tidak diulang.
+RETRYABLE = re.compile(r"timeout|not editable|not visible|not enabled|not attached|detached|intercepts pointer", re.I)
+log = logging.getLogger(__name__)
 
 
 def _norm(text: str) -> str:
@@ -74,8 +80,27 @@ def _verify(browser, text: str, key: str, *, post_code: str = "") -> str:
     raise BrowserSendFailed("Pesan sudah diketik tetapi belum terlihat terkirim di Instagram.")
 
 
+def _type(browser, box: str, find, **fields) -> str:
+    """Ketik ke kolom; bila kolom belum bisa dipakai, pulihkan halaman lalu cari kolomnya lagi. Mengembalikan ref terakhir."""
+    for attempt in range(ACT_ATTEMPTS):
+        try:
+            browser.act("type", ref=box, **fields)
+            return box
+        except OpenClawUnavailable as exc:
+            if attempt == ACT_ATTEMPTS - 1 or not RETRYABLE.search(str(exc)):
+                raise
+            log.warning("Kolom Instagram belum bisa diketik (percobaan %s): %s", attempt + 1, str(exc)[:160])
+            time.sleep(1)
+            browser.dismiss(*DIALOGS)  # menutup dialog yang menutupi kolom, sekaligus menyegarkan snapshot
+            browser.inspect()
+            box = find(browser.refs)
+            if not box:
+                raise BrowserSendFailed("Kolom pesan Instagram hilang setelah halaman berubah; pesan belum dikirim.") from None
+    return box
+
+
 def _submit(browser, box: str, text: str, key: str) -> str:
-    browser.act("type", ref=box, text=text, submit=True)
+    _type(browser, box, composer_ref, text=text, submit=True)
     return _verify(browser, text, key)
 
 
@@ -165,7 +190,7 @@ def reply_comment(settings, workspace: str, post_code: str, comment_id: str, aut
         if existing:
             return "openclaw:comment:" + existing.comment_id
         if author and _norm(box_value(browser.text, box)).startswith(mention.lower()):
-            browser.act("type", ref=box, text=reply, slowly=True)
+            _type(browser, box, comment_box_ref, text=reply, slowly=True)
             browser.inspect()
             # Typing enables/changes controls and renumbers OpenClaw refs.
             # The old textbox ref may now point at a link or Post button.
@@ -173,7 +198,7 @@ def reply_comment(settings, workspace: str, post_code: str, comment_id: str, aut
             if not box:
                 raise BrowserSendFailed("Kolom balasan berubah setelah mengetik; pesan belum dikirim.")
         if _norm(box_value(browser.text, box)) != _norm(body):
-            browser.act("type", ref=box, text=body)
+            _type(browser, box, comment_box_ref, text=body)
             browser.inspect()
             box = comment_box_ref(browser.refs)
         if not box or _norm(box_value(browser.text, box)) != _norm(body):

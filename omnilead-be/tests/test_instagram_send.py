@@ -4,6 +4,7 @@ from omnilead import instagram_send
 from omnilead.approvals.executor import Executor
 from omnilead.approvals.queue import ApprovalQueue
 from omnilead.instagram_send import BrowserSendFailed, composer_ref, send_dm, thread_ref
+from omnilead.openclaw_browser import OpenClawUnavailable
 from omnilead.instagram_snapshot import threads as parse_threads
 from omnilead.models import ActionKind, ActionStatus, Channel, EventIn, ProposedAction, Sender
 from tests.conftest import FakeConnector, FakeRegistry
@@ -48,6 +49,8 @@ def test_system_previews_are_not_messages():
 class FakeBrowser:
     sent: list = []
     shown = True
+    type_errors: list = []
+    type_calls = 0
 
     def __init__(self, settings, workspace, channel):
         self.url = "https://www.instagram.com/direct/inbox/"
@@ -70,6 +73,9 @@ class FakeBrowser:
         if kind == "click" and fields["ref"] == "e28":
             self.page = "thread"
         if kind == "type":
+            FakeBrowser.type_calls += 1
+            if FakeBrowser.type_errors:
+                raise FakeBrowser.type_errors.pop(0)
             FakeBrowser.sent.append((fields["ref"], fields["text"], fields["submit"]))
 
     def read_text(self):
@@ -83,6 +89,8 @@ class FakeBrowser:
 def browser(monkeypatch):
     FakeBrowser.sent = []
     FakeBrowser.shown = True
+    FakeBrowser.type_errors = []
+    FakeBrowser.type_calls = 0
     monkeypatch.setattr(instagram_send, "OpenClawBrowser", FakeBrowser)
     monkeypatch.setattr(instagram_send.time, "sleep", lambda s: None)
     return FakeBrowser
@@ -99,6 +107,30 @@ def test_send_dm_reports_missing_thread_and_unconfirmed(browser):
     browser.shown = False
     with pytest.raises(BrowserSendFailed, match="belum terlihat terkirim"):
         send_dm(None, "ws1", "usagi", "halo")
+
+
+TIMEOUT = "OpenClaw menolak POST /act: TimeoutError: locator.type: Timeout 10000ms exceeded."
+
+
+def test_send_dm_retries_when_the_composer_is_not_actionable_yet(browser):
+    browser.type_errors = [OpenClawUnavailable(TIMEOUT)]
+    ref = send_dm(None, "ws1", "usagi", "Boleh kak")
+    assert ref.startswith("openclaw:") and browser.type_calls == 2
+    assert browser.sent == [("e60", "Boleh kak", True)]  # terkirim sekali saja
+
+
+def test_send_dm_does_not_retry_gateway_failures(browser):
+    browser.type_errors = [OpenClawUnavailable("Gateway tidak merespons.")]
+    with pytest.raises(OpenClawUnavailable, match="Gateway"):
+        send_dm(None, "ws1", "usagi", "Boleh kak")
+    assert browser.type_calls == 1 and browser.sent == []
+
+
+def test_send_dm_gives_up_after_repeated_timeouts_without_sending(browser):
+    browser.type_errors = [OpenClawUnavailable(TIMEOUT)] * 5
+    with pytest.raises(OpenClawUnavailable, match="Timeout"):
+        send_dm(None, "ws1", "usagi", "Boleh kak")
+    assert browser.type_calls == instagram_send.ACT_ATTEMPTS and browser.sent == []
 
 
 def _openclaw_dm(store):
