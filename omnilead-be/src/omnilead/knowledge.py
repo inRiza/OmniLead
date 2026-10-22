@@ -12,13 +12,32 @@ TONE = {
     "custom": "",
 }
 
+PROFILE_LABELS = {
+    "category": "Jenis usaha",
+    "description": "Deskripsi",
+    "service_area": "Area layanan",
+    "hours": "Jam operasional",
+}
 
-def build_context(store, channel: str, query: str) -> dict:
+
+def profile_document(profile: dict | None) -> dict | None:
+    lines = [f"{label}: {str(profile[key]).strip()}" for key, label in PROFILE_LABELS.items()
+             if profile and str(profile.get(key) or "").strip()]
+    if not lines:
+        return None
+    return {"id": "profil-bisnis", "name": "Profil bisnis", "content": "\n".join(lines)}
+
+
+def build_context(store, channel: str, query: str, profile: dict | None = None) -> dict:
     settings = store.get_settings()
     config = settings.agent_channels.get(channel, ChannelAgentConfig())
     keywords = set(re.findall(r"\w{3,}", query.lower()))
     documents, products = [], []
     budget = 12_000
+    summary = profile_document(profile)
+    if summary:
+        documents.append(summary)
+        budget -= len(summary["content"])
     for id in config.knowledge_base_ids:
         knowledge = store.get_knowledge(id)
         if not knowledge:
@@ -43,4 +62,5 @@ def build_context(store, channel: str, query: str) -> dict:
             products.append({"id": f"{id}-{index}", **product.model_dump()})
     return {"business": settings.business_name, "channel": channel,
             "tone": config.tone, "tone_instruction": config.custom_tone if config.tone == "custom" else TONE[config.tone],
-            "documents": documents, "products": products}
+            "documents": documents[:10], "products": products,
+            "business_profile": {key: profile.get(key, "") for key in PROFILE_LABELS} if summary else None}
