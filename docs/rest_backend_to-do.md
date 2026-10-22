@@ -210,7 +210,7 @@ UI terkait: Pengaturan agen (status, mode latihan, kanal, batas dan preferensi).
 
 
 
-## 11. Akun dan bisnis
+## 11. Akun dan bisnis - Rizain
 
 UI terkait: Pilih bisnis, Buat bisnis baru, dropdown bisnis di topbar, Login dan daftar.
 
@@ -222,7 +222,7 @@ UI terkait: Pilih bisnis, Buat bisnis baru, dropdown bisnis di topbar, Login dan
 
 
 
-## 12. Infrastruktur dan skala
+## 12. Infrastruktur dan skala - Rizain
 
 - [ ] **12.1 (P2) Antrean webhook.** Webhook diproses dengan `BackgroundTasks` di proses yang sama, sehingga bisa hilang bila instance Cloud Run berhenti. Gunakan Cloud Tasks atau Pub/Sub.
 - [ ] **12.2 (P2) Pagination dan indeks.**
