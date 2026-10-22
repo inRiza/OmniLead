@@ -11,11 +11,12 @@
 """
 
 from datetime import datetime, timedelta, timezone
+import logging
 
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, TransientError
 from omnilead.connectors.registry import Registry
 from omnilead.approvals.merge import build_snapshot
-from omnilead.openclaw_browser import BrowserSendFailed
+from omnilead.openclaw_browser import BrowserSendFailed, OpenClawUnavailable
 from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus, set_stage
 from omnilead.store import Store
 from omnilead.windows import check_window
@@ -28,6 +29,7 @@ DONE = (
 )
 RUNNABLE = (ActionStatus.APPROVED, ActionStatus.EDITED)
 RETRY_BACKOFF = (timedelta(minutes=1), timedelta(minutes=5), timedelta(minutes=30))
+log = logging.getLogger(__name__)
 
 WRITE_ACTION = {
     ActionKind.COMMENT_POST: "post_comment",
@@ -162,10 +164,11 @@ class Executor:
         self._store.save_action(action)
         try:
             ref = self._browser_send(action, source)
-        except BrowserSendFailed as exc:
+        except (BrowserSendFailed, OpenClawUnavailable) as exc:
             return self._fail(action, f"Gagal kirim ke Instagram: {exc}")
-        except Exception:
-            return self._fail(action, "Gagal kirim ke Instagram: browser agen belum siap. Coba ulang sebentar lagi.")
+        except Exception as exc:
+            log.exception("Instagram browser send failed for action %s", action.id)
+            return self._fail(action, f"Gagal kirim ke Instagram: gangguan {type(exc).__name__}. Periksa log layanan browser.")
         action.status = ActionStatus.EXECUTED
         action.result_ref = ref
         action.error = None

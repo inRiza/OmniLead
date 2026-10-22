@@ -58,7 +58,7 @@ class AutoSender:
             return self._queue.return_to_owner(action.id, str(exc))
 
     def _hold(self, action: Action, detail: str) -> Action:
-        action.payload = {**action.payload, "_auto_held": True}
+        action.payload = {**action.payload, "_auto_held": True, "_auto_hold_reason": detail}
         self._store.save_action(action)
         self._store.audit("auto_send_held", detail, action.id, actor="agent",
                           channel=action.channel.value, lead_id=action.lead_id)

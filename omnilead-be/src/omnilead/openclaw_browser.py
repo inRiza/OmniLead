@@ -3,9 +3,12 @@
 import hashlib
 import json
 import re
+import logging
 from urllib.parse import urlsplit
 
 import httpx
+
+log = logging.getLogger(__name__)
 
 
 class OpenClawUnavailable(Exception):
@@ -149,6 +152,13 @@ class OpenClawBrowser:
 
     def close(self):
         try:
-            self.request("POST", "/stop")
+            # A sync/send owns one tab, not the entire shared business profile.
+            # Stopping Chromium here can interrupt another message or manual login.
+            if self.target_id:
+                self.request("DELETE", f"/tabs/{self.target_id}", targetIdMode="raw")
+                self.target_id = ""
+        except OpenClawUnavailable:
+            # Cleanup failure must not turn a confirmed delivery into a failed send.
+            log.warning("Could not close browser task tab; preserving the shared profile")
         finally:
             self.http.close()

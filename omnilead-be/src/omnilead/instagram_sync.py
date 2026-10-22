@@ -566,12 +566,15 @@ def queue_analysis(store) -> list[str]:
     return eligible
 
 
-def run_analysis_queue(store, ingest: IngestService, ids: list[str], *, draft_only: bool = False) -> None:
-    for event_id in ids:
+def run_analysis_queue(store, ingest: IngestService, ids: list[str], *, draft_only: bool = False,
+                       progress=None) -> None:
+    for index, event_id in enumerate(ids):
         event = store.get_event(event_id)
         if not event or event.status != "new" or not (event.trace or {}).get("queued"):
             continue
         try:
+            if progress:
+                progress(f"Menganalisis pesan {index + 1}/{len(ids)} dan menjalankan aksi sesuai izin agen")
             event = ingest.prepare(event)
             ingest.process(event, expected_run_id=event.trace["run_id"], draft_only=draft_only)
         except Exception as exc:

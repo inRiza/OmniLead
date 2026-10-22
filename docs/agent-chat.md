@@ -51,6 +51,22 @@ Daftar prospek dibatasi hasil CRM, bukan bukti seluruh arsip Instagram terbaca.
 
 ## Identitas bisnis dan gaya balasan
 
+### Eksekusi dan hasil di chat
+
+Mode izin terkini diteruskan ke model. Akses penuh menjalankan usulan yang lolos
+pemeriksaan tanpa keputusan tambahan; Hybrid mengikuti klasifikasi risikonya.
+Hasil tool membedakan terkirim, simulasi, gagal, tertahan dan kirim manual,
+menyertakan isi balasan/penerima/alasan, untuk dilaporkan kembali di chat.
+Pembaca inbox menunggu analisis dan pengiriman maksimal tiga pesan per turn;
+sisa antrean dilaporkan secara eksplisit untuk dilanjutkan, bukan diklaim selesai.
+Draf lama yang masih pending dievaluasi sesuai mode terkini ketika pemilik
+meminta balasan. Draf cadangan model dapat dianalisis ulang pada permintaan itu.
+
+Sesi OpenClaw ditutup per tab tugas. Profil browser bersama tetap berjalan agar
+sync tidak memutus pengiriman atau login manual. Error cleanup tidak mengubah
+pengiriman yang sudah terkonfirmasi menjadi gagal. Error operasi browser yang
+dikenali diteruskan; exception lain dicatat di log dengan jenis gangguannya.
+
 Nama toko per kanal berasal dari field bisnis yang disimpan pemilik, lalu
 fallback ke nama eksplisit dan tidak ambigu dalam KB terpilih. Tidak memakai
 nama workspace sebagai merek. Fakta produk/harga mengikuti KB/katalog.
