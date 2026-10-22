@@ -10,7 +10,6 @@ from omnilead.api.webhooks import router as webhook_router
 from omnilead.config import get_settings
 from omnilead.api.auth_routes import router as auth_router, check_origin
 from omnilead.api.knowledge_routes import router as knowledge_router
-from omnilead.api.browser_routes import router as browser_router
 
 
 def create_app() -> FastAPI:
@@ -45,7 +44,6 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(knowledge_router, dependencies=[Depends(require_api_key)])
-    app.include_router(browser_router, dependencies=[Depends(require_api_key)])
     app.include_router(router, dependencies=[Depends(require_api_key)])
     # Webhook dan Scheduler punya autentikasi sendiri (signature / token), bukan API key FE.
     app.include_router(webhook_router)
@@ -60,11 +58,6 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
-
-    @app.on_event("shutdown")
-    def close_local_browsers() -> None:
-        from omnilead.browser_agent import manager
-        manager.shutdown()
 
     return app
 

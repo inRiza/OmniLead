@@ -1,9 +1,8 @@
-"""Adapter to the official OpenClaw browser control API; no platform API tokens."""
+"""Adapter to the official OpenClaw browser control API in text snapshot mode; no screenshots."""
 
 import hashlib
 import json
 import re
-from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
@@ -20,10 +19,9 @@ class OpenClawBrowser:
             raise OpenClawUnavailable("Kontrol OpenClaw harus memakai alamat loopback lokal.")
         token_path = settings.openclaw_token_file.resolve()
         if not token_path.is_file():
-            raise OpenClawUnavailable("Jalankan tools/openclaw/start.ps1 untuk menyiapkan OpenClaw lokal.")
+            raise OpenClawUnavailable("Jalankan tools/openclaw/start.sh (macOS/Linux) atau start.ps1 (Windows) untuk menyiapkan OpenClaw lokal.")
         self.http = httpx.Client(base_url=settings.openclaw_browser_url.rstrip("/"), timeout=35,
             headers={"Authorization": "Bearer " + token_path.read_text().strip()}, trust_env=False)
-        self.state_dir = settings.openclaw_state_dir.resolve()
         self.profile = "ol-" + hashlib.sha256(f"{workspace}:{channel}".encode()).hexdigest()[:24]
         self.headless = settings.browser_headless
         self.target_id = ""
@@ -48,6 +46,21 @@ class OpenClawBrowser:
             if not isinstance(data, dict):
                 raise ValueError()
             return data
+        except httpx.ConnectError:
+            raise OpenClawUnavailable(
+                "Gateway OpenClaw tidak merespons di "
+                f"{self.http.base_url}. Jalankan tools/openclaw/start.sh lalu tunggu ±1 menit."
+            ) from None
+        except httpx.HTTPStatusError as exc:
+            detail = ""
+            try:
+                detail = str(exc.response.json().get("error") or exc.response.text)[:200]
+            except (ValueError, AttributeError):
+                detail = exc.response.text[:200] if exc.response else ""
+            raise OpenClawUnavailable(
+                f"OpenClaw menolak {method} {path}"
+                + (f": {detail}" if detail else ". Periksa gateway lokal dan jendela browser.")
+            ) from None
         except (httpx.HTTPError, ValueError):
             raise OpenClawUnavailable("OpenClaw belum dapat menjalankan operasi browser. Periksa gateway lokal dan jendela browser.") from None
 
@@ -86,25 +99,20 @@ class OpenClawBrowser:
         self.fingerprint = hashlib.sha256(json.dumps({"url": self.url, "text": self.text,
             "refs": self.refs}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
-    def capture(self):
+    def read_text(self):
+        data = self.request("GET", "/snapshot", targetId=self.target_id, format="ai", interactive="false",
+            compact="true", urls="true", timeoutMs=15000)
+        self.url = str(data.get("url") or self.url)
+        return str(data.get("snapshot") or "")
+
+    def dismiss(self, *labels):
         self.inspect()
-        response = self.request("POST", "/screenshot", {"targetId": self.target_id,
-            "type": "jpeg", "fullPage": False, "timeoutMs": 15000})
-        path = Path(response.get("path", "")).resolve()
-        media_root = (self.state_dir / "media" / "browser").resolve()
-        if not path.is_relative_to(media_root) or path.suffix.lower() not in {".jpg", ".jpeg"} or not path.is_file():
-            raise OpenClawUnavailable("Lokasi screenshot OpenClaw tidak sesuai direktori runtime lokal.")
-        try:
-            if path.stat().st_size > 2_000_000:
-                raise OpenClawUnavailable("Screenshot terlalu besar untuk planner visual.")
-            image = path.read_bytes()
-            if not image.startswith(b"\xff\xd8"):
-                raise OpenClawUnavailable("Format screenshot OpenClaw bukan JPEG yang diharapkan.")
-        finally:
-            path.unlink(missing_ok=True)
-        if str(response.get("url") or self.url) != self.url:
-            raise OpenClawUnavailable("Halaman berubah saat screenshot dibuat. Perbarui layar.")
-        return image
+        wanted = {label.lower() for label in labels}
+        for ref, item in self.refs.items():
+            if isinstance(item, dict) and str(item.get("name", "")).strip().lower() in wanted:
+                self.act("click", ref=ref)
+                return True
+        return False
 
     def login_required(self):
         parts = urlsplit(self.url)
