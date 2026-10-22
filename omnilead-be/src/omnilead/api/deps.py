@@ -126,10 +126,10 @@ def get_auto_sender(store=Depends(get_store), queue=Depends(get_queue), executor
 
 
 def get_ingest(request: Request, store=Depends(get_store), queue=Depends(get_queue), agent=Depends(get_agent_client),
-               auto=Depends(get_auto_sender)) -> IngestService:
+               executor=Depends(get_executor), auto=Depends(get_auto_sender)) -> IngestService:
     workspace = workspace_for_request(request)
     profile = (lambda: get_accounts().workspace_profile(workspace)) if workspace != "legacy" else None
-    return IngestService(store, queue, agent, on_proposed=auto.handle, profile=profile)
+    return IngestService(store, queue, agent, executor, on_proposed=auto.handle, profile=profile)
 
 
 def auto_sender_for_workspace(workspace: str) -> AutoSender:
@@ -141,9 +141,10 @@ def auto_sender_for_workspace(workspace: str) -> AutoSender:
 def ingest_for_workspace(workspace: str) -> IngestService:
     store = store_for_workspace(workspace)
     queue = ApprovalQueue(store, account_bindings=account_bindings(workspace))
-    auto = AutoSender(store, queue, Executor(registry_for_workspace(workspace), store))
+    executor = Executor(registry_for_workspace(workspace), store)
+    auto = AutoSender(store, queue, executor)
     profile = (lambda: get_accounts().workspace_profile(workspace)) if workspace != "legacy" else None
-    return IngestService(store, queue, get_agent_client(), on_proposed=auto.handle, profile=profile)
+    return IngestService(store, queue, get_agent_client(), executor, on_proposed=auto.handle, profile=profile)
 
 
 def require_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:

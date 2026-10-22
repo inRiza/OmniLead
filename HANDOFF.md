@@ -11,6 +11,7 @@ Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan p
 - Akun demo `juri@omnilead.id`, kata sandi di Secret Manager `demo-password`. Redeploy BE menghapus data dan
   koneksi kanal; akun demo dan pesan contoh dibuat ulang otomatis.
 - Kanal belum diuji ke akun asli; kredensial Meta dan OAuth Gmail belum diisi. Langkahnya di `docs/demo-nyata.md`.
+- Izin agen (Selalu tanya (default), Hybrid, dan Percaya penuh) ditambahkan siang 22 Okt; PRD 6.0.
 - Komentar kode singkat, hanya di bagian penting, tanpa simbol atau emoji. Commit tanpa jejak AI.
 
 ## Penyelesaian konflik PR #3 (21 Okt 2026)
@@ -60,7 +61,7 @@ Dari `~/.claude/CLAUDE.md` pengguna dan percakapan:
 ## 2. Apa proyek ini
 
 **OmniLead**: CRM agentic multi-kanal untuk UMKM Indonesia (hackathon). Agen menyiapkan balasan dan tindak lanjut,
-**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-5.1.md`
+**pemilik yang memutuskan** ("AI menyiapkan, pemilik memutuskan"). PRD: `docs/crm-agentic-multikanal-6.1.md`
 (versi isi 2.4; nama file tetap). Status terkini ada di PRD bagian "Status Implementasi" dan di `plan.md`.
 
 Tiga bagian di satu repo (`github.com/inRiza/OmniLead`, remote `origin`):

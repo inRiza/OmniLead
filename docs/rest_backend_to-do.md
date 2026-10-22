@@ -28,7 +28,7 @@ Dokumen ini mendaftar pekerjaan backend yang masih dibutuhkan agar UI dashboard 
 
 UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
-- [x] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.**
+- [x] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.** Selesai sebagai **izin agen** (`AppSettings.autonomy`, `autonomy.py`: Selalu tanya, Hybrid, Percaya penuh) di Pengaturan agen, plus `approvals/auto.py` `AutoSender` untuk scheduler, dedup, dan retry. Guard `warn`/`block`, pesan tinjauan, dan merge di bawah ambang tetap ditahan; jeda/kanal mati/rate limit/jendela kanal/dry run lewat executor. Tes: `tests/test_autonomy.py`, `tests/test_auto_dispatch.py`.
   - Sekarang: tidak ada auto-approve. Aksi hanya dieksekusi setelah `POST /actions/{id}/approve` (`approvals/queue.py`, `approvals/executor.py`). UI sudah menghapus tombol persetujuan, sehingga draf agen tertahan di status `pending` ("Disiapkan" di UI).
   - Perlu:
     - Langsung eksekusi setelah agen mengusulkan, bila semua guard lolos dan kanal terhubung.
@@ -36,7 +36,7 @@ UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
     - Tetap patuhi pause, `disabled_channels`, rate limit, jendela kanal, dan dry run.
     - Tambahkan setting `auto_send: bool` di `AppSettings` agar bisa dimatikan per bisnis, idealnya per kanal.
   - **Selesai.**
-    - Setting `auto_send` (default mati) dan saklar "Kirim otomatis" di Pengaturan agen.
+    - Setting `autonomy` (default manual) dan pilihan izin agen di Pengaturan agen.
     - `approvals/auto.py` `AutoSender` mengirim usulan agen bila semua guard `pass`. Usulan dengan guard `warn` atau `block`, atau pesan yang ditandai tinjauan, ditahan (audit `auto_send_held`) dan tidak dicoba lagi.
     - Pause, kanal dimatikan, rate limit, jendela kanal, dan dry run tetap berlaku lewat executor.
     - Aksi yang tertahan rate limit dijalankan ulang oleh `POST /scheduler/dispatch`.
@@ -61,7 +61,7 @@ UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
 UI terkait: Workspace (kategori, ringkasan AI, langkah agen), Lead, Konten.
 
-- [ ] **2.1 (P0) Agen gagal bila bisnis belum punya produk (perlu dicek).**
+- [~] **2.1 (P0) Agen gagal bila bisnis belum punya produk.** IndexError di `scoring.py` sudah diperbaiki 22 Okt (tes `test_order_with_quantity_on_empty_knowledge_base_still_drafts`). Sisa: nominal Rp di draf masih diblok bila produk kosong.
   - `scoring.py` `estimate_value` dan drafter cadangan memakai `catalog.packages[0]`. Bisnis baru tanpa produk akan memicu IndexError saat pesan menyebut jumlah, sehingga event menjadi `agent_error`.
   - Selain itu, semua nominal "Rp" di draf diblok bila produk kosong.
   - Perlu jalur aman saat katalog kosong.
@@ -117,7 +117,7 @@ UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 - [x] **3.7 (P1) Endpoint merge manual.** Tambahkan `POST /leads/{id}/merge` dengan `{ source_lead_id }` agar pengguna bisa menggabungkan sendiri.
   - **Selesai.** `POST /leads/{id}/merge` langsung menggabungkan, tetap bisa dipisah lewat `undo-merge`. Mengembalikan 404 bila profil tidak ada dan 409 bila menggabungkan ke diri sendiri.
 - [x] **3.8 (P1) Merge otomatis dengan ambang keyakinan.** Karena alur persetujuan dihapus, putuskan aturannya. Contoh: keyakinan 0,9 atau lebih langsung digabung dan tetap bisa dipisah, sedangkan di bawahnya masuk Perlu tinjauan.
-  - **Selesai.** Setting `auto_merge_threshold` (default 0,9; pilihan di Pengaturan agen). Saat `auto_send` aktif, usulan gabung dengan keyakinan di atas ambang langsung dieksekusi, dicatat sebagai "Digabung otomatis oleh agen", dan tetap bisa dipisah. Di bawah ambang tetap menjadi usulan.
+  - **Selesai.** Setting `auto_merge_threshold` (default 0,9; pilihan di Pengaturan agen). Saat izin agen bukan Selalu tanya, usulan gabung dengan keyakinan di atas ambang langsung dieksekusi, dicatat sebagai "Digabung otomatis oleh agen", dan tetap bisa dipisah. Di bawah ambang tetap menjadi usulan.
 - [x] **3.9 (P2) Status kecocokan per identitas.** Spesifikasi meminta indikator per identitas (pasti atau belum pasti). Simpan sumber dan keyakinan tiap identitas di lead.
   - **Selesai.** Field `lead.identity_sources` per identitas berisi `source` (created, exact, merge), `confidence`, `channel`, dan waktu. Saat merge, sumber dari profil asal ikut dipindah dengan keyakinan merge-nya. UI belum menampilkannya.
 - [x] **3.10 (P2) Performa.** `_resolve_lead` memindai semua lead per event. Perlu indeks per identitas.
@@ -129,12 +129,12 @@ UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 
 UI terkait: Lead (tabel dan pipeline), Lead detail, Beranda (Lead prioritas tinggi, Potensi closing).
 
-- [ ] **4.1 (P0) Endpoint ubah lead.** Belum ada `PATCH /leads/{id}`. Perlu untuk tahap, catatan internal, nilai peluang, alasan batal, dan tag. Executor juga mengabaikan `tags` di payload `crm_update`.
-- [ ] **4.2 (P0) Tahap Deal dan Batal dari alur nyata.**
+- [x] **4.1 (P0) Endpoint ubah lead.** Belum ada `PATCH /leads/{id}`. Perlu untuk tahap, catatan internal, nilai peluang, alasan batal, dan tag. Executor juga mengabaikan `tags` di payload `crm_update`. **Selesai 22 Okt:** `PATCH /leads/{id}` (tahap, catatan, nilai peluang, alasan batal, tag) dengan audit `lead_updated`; executor kini menerapkan `tags`. UI: kartu Kelola lead di detail lead. Tes: `tests/test_lead_update.py`.
+- [x] **4.2 (P0) Tahap Deal dan Batal dari alur nyata.** **Selesai 22 Okt:** intent `konfirmasi_bayar` dan `batal_pesan` di triage aturan dan LLM; agen mengusulkan Deal atau Batal tanpa mengirim ulang penawaran, dan balasan tidak menyatakan pembayaran sudah diterima. Di izin Hybrid, perubahan ke Deal/Batal tetap menunggu pemilik.
   - Agen hanya mengusulkan `baru`, `tertarik`, dan `penawaran`. `deal` dan `batal` hanya ada di seed, sehingga grafik Closing di Beranda kosong untuk bisnis asli.
   - Perlu deteksi closing, misalnya konfirmasi bayar atau DP, ditambah ubah manual lewat 4.1.
 - [ ] **4.3 (P1) Validasi tahap dan tahap Negosiasi.** Tahap disimpan sebagai string bebas. Jadikan enum, dan tambahkan `negosiasi` sesuai spesifikasi (Baru, Tertarik, Penawaran, Negosiasi, Deal, Batal).
-- [ ] **4.4 (P1) Field lead yang belum ada:**
+- [ ] **4.4 (P1) Field lead yang belum ada:** Sebagian 22 Okt: `closed_at` (diisi saat Deal/Batal), `estimated_value`, `notes` (satu teks), `lost_reason`, `tags` sudah ada. Sisa: `first_contact_at`, `last_interaction_at`, `next_follow_up_at`, `owner`, `notes[]`.
   - `first_contact_at`: sekarang UI memakai `created_at`.
   - `last_interaction_at`: sekarang UI memakai `updated_at`, yang ikut berubah saat agen berjalan.
   - `closed_at`: sekarang tanggal closing di grafik Beranda dihampiri dengan `updated_at` lead berstatus deal.
@@ -183,7 +183,7 @@ UI terkait: Audit (filter pelaku, hasil, kanal, pencarian, grup per hari).
   - Hasil (Berhasil, Disiapkan, Perlu tinjauan, Ditahan, Gagal) dan jenis pelaku (AI, Pengguna, Sistem) sekarang ditebak di frontend dari nama event dan string actor (`lib/adapt.ts` `AUDIT_OUTCOME`, `lib/ui.ts` `actorKind`).
 - [ ] **7.2 (P1) Konsistensi actor.** Nilai actor bercampur: ingest, system, agent, executor, scheduler, owner, dan email pengguna. Jalur merge memakai `owner` secara tetap. Standarkan ke `actor_type` ditambah `actor_id`.
 - [ ] **7.3 (P1) Filter dan pagination di server.** `GET /audit` hanya punya `limit` (maksimal 500) dan `channel`. Perlu filter lead, actor, event, outcome, rentang tanggal, pencarian, dan cursor.
-- [ ] **7.4 (P2) Label event lengkap.** Event `channel_connected`, `knowledge_saved`, dan `agent_channel_configured` belum punya label di `AUDIT_LABEL`. Lebih baik backend mengirim label yang mudah dibaca.
+- [x] **7.4 (P2) Label event lengkap.** Event `channel_connected`, `knowledge_saved`, dan `agent_channel_configured` belum punya label di `AUDIT_LABEL`. Lebih baik backend mengirim label yang mudah dibaca. **Selesai 22 Okt:** label untuk `channel_connected`, `channel_disconnected`, `knowledge_saved`, `knowledge_deleted`, `agent_channel_configured`, `instagram_notification`, `lead_updated`, `auto_approved`, `auto_held`.
 
 
 
@@ -288,7 +288,7 @@ Endpoint scheduler baru yang perlu didaftarkan di Cloud Scheduler (autentikasi s
 | `POST /scheduler/drain-inbox` | Tiap 5 menit | Memproses ulang job webhook yang belum selesai |
 | `POST /scheduler/dedup` | Harian | Mencari dan mengusulkan profil duplikat |
 
-Setting baru: `auto_send`, `auto_merge_threshold` (di `PATCH /settings`), `OMNILEAD_DEFAULT_PLAN`, dan `OMNILEAD_RESET_LINK_LOG`.
+Setting baru: `autonomy`, `auto_merge_threshold` (di `PATCH /settings`), `OMNILEAD_DEFAULT_PLAN`, dan `OMNILEAD_RESET_LINK_LOG`.
 
 ## 13. Ketergantungan pada data seed
 

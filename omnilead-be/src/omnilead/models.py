@@ -179,9 +179,25 @@ class Lead(BaseModel):
     score: int | None = None
     label: str | None = None
     score_reason: str = ""
+    tags: list[str] = Field(default_factory=list)
+    notes: str = ""
+    estimated_value: int | None = None
+    lost_reason: str = ""
+    closed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     identity_sources: dict[str, dict] = Field(default_factory=dict)
+
+
+LEAD_STAGES = ("baru", "tertarik", "penawaran", "deal", "batal")
+CLOSED_STAGES = ("deal", "batal")
+
+
+def set_stage(lead: "Lead", stage: str, now: datetime) -> None:
+    """Ubah tahap lead; tanggal closing diisi saat masuk Deal atau Batal dan dikosongkan bila dibuka lagi."""
+    if stage != lead.stage:
+        lead.closed_at = now if stage in CLOSED_STAGES else None
+    lead.stage = stage
 
 
 class KnowledgeProduct(BaseModel):
@@ -213,7 +229,8 @@ class AppSettings(BaseModel):
     rate_limit_per_hour: int = 30
     business_name: str = "Bisnis Anda"
     agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
-    auto_send: bool = False
+    # Izin agen: manual (selalu tanya), hybrid (risiko rendah otomatis), auto (percaya penuh).
+    autonomy: Literal["manual", "hybrid", "auto"] = "manual"
     auto_merge_threshold: float = Field(default=0.9, ge=0.5, le=1.0)
 
 

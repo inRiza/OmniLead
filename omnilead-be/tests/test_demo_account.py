@@ -33,6 +33,7 @@ def test_demo_account_is_created_seeded_and_can_log_in(tmp_path, monkeypatch, le
         channels = client.get("/agent/channel-settings").json()
         assert all(c["knowledge_base_ids"] == ["demo-katalog"] for c in channels.values())
         assert channels["email"]["tone"] == "professional"
+        assert client.get("/settings").json()["business_name"] == "Usaha Bu Rina (demo)"
     # Restart: akun yang sudah ada tidak dibuat ulang dan datanya tidak direset.
     with TestClient(make_app(tmp_path, monkeypatch, OMNILEAD_DEMO_EMAIL="juri@omnilead.id",
                              OMNILEAD_DEMO_PASSWORD="demo-juri-2026")) as client:

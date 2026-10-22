@@ -87,6 +87,9 @@ Pesan masuk: WhatsApp lewat webhook `/webhooks/whatsapp` (butuh URL HTTPS publik
 `cloudflared tunnel --url http://localhost:8001`). Gmail lewat poll
 `POST /scheduler/gmail-poll` dengan header `Authorization: Bearer <OMNILEAD_SCHEDULER_TOKEN>`.
 
+Izin agen (`AppSettings.autonomy`, `PATCH /settings`): `manual` (default), `hybrid`, atau `auto`. Usulan yang
+boleh berjalan sendiri disetujui atas nama agen lalu langsung dieksekusi; aturannya di `autonomy.py`.
+
 Data demo: `uv run python -m omnilead.seed` (mengosongkan DB lalu mengisi 30 lead dummy + Ani).
 
 Akun demo untuk juri: isi `OMNILEAD_DEMO_EMAIL` dan `OMNILEAD_DEMO_PASSWORD`. Saat server menyala, akun itu

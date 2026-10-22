@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from omnilead.connectors.base import ActionNotSupported, ConnectorError, TransientError
 from omnilead.connectors.registry import Registry
 from omnilead.approvals.merge import build_snapshot
-from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus
+from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus, set_stage
 from omnilead.store import Store
 from omnilead.windows import check_window
 
@@ -167,8 +167,10 @@ class Executor:
             if lead is None:
                 return self._fail(action, "crm_update tanpa lead yang valid")
             stage = str(action.payload.get("stage", lead.stage))
-            lead.stage = stage
-            lead.updated_at = datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc)
+            set_stage(lead, stage, now)
+            lead.tags = list(dict.fromkeys([*lead.tags, *(str(t) for t in action.payload.get("tags", []))]))
+            lead.updated_at = now
             self._store.save_lead(lead)
             ref = f"crm:{stage}"
         else:  # FOLLOWUP: pengingat terjadwal; pengiriman saat jatuh tempo lewat usulan baru

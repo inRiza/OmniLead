@@ -19,7 +19,7 @@ def proposal(**kw):
 
 def enable_auto(store, **kw):
     s = store.get_settings()
-    s.auto_send = True
+    s.autonomy = "auto"
     for k, v in kw.items():
         setattr(s, k, v)
     store.save_settings(s)
@@ -68,12 +68,12 @@ def test_auto_send_respects_rate_limit_and_dispatch_resumes(auto, queue, store, 
     enable_auto(store, rate_limit_per_hour=1)
     auto.handle(queue.propose(proposal(text="satu")))
     b = auto.handle(queue.propose(proposal(text="dua")))
-    assert b.status == ActionStatus.APPROVED
+    assert b.status == ActionStatus.PENDING
     s = store.get_settings()
     s.rate_limit_per_hour = 5
     store.save_settings(s)
     result = dispatch(store, executor, auto)
-    assert b.id in result["executed"]
+    assert b.id in result["auto_sent"]
     assert store.get_action(b.id).status == ActionStatus.EXECUTED
 
 
@@ -219,8 +219,8 @@ def test_feedback_route_and_settings_patch(monkeypatch, tmp_path):
     app.dependency_overrides[get_store] = lambda: st
     try:
         client = TestClient(app)
-        r = client.patch("/settings", json={"auto_send": True, "auto_merge_threshold": 0.8})
-        assert r.status_code == 200 and r.json()["auto_send"] is True and r.json()["auto_merge_threshold"] == 0.8
+        r = client.patch("/settings", json={"autonomy": "auto", "auto_merge_threshold": 0.8})
+        assert r.status_code == 200 and r.json()["autonomy"] == "auto" and r.json()["auto_merge_threshold"] == 0.8
         action = client.post("/actions/propose", json={"channel": "instagram", "kind": "reply_comment",
                                                        "post_ref": "p", "comment_ref": "c", "text": "hai"}).json()
         assert client.post(f"/actions/{action['id']}/feedback", json={"rating": "bad"}).status_code == 422
@@ -247,8 +247,13 @@ def test_ingest_auto_sends_passing_proposals(store, queue, executor, ig):
         CANNED["proposals"][2],
     ]}
     sender = AutoSender(store, queue, executor)
-    ingest = IngestService(store, queue, AgentClient("http://agent", transport=httpx.MockTransport(agent.handler)),
-                           on_proposed=sender.handle)
+    ingest = IngestService(
+        store,
+        queue,
+        AgentClient("http://agent", transport=httpx.MockTransport(agent.handler)),
+        executor,
+        on_proposed=sender.handle,
+    )
     event, _ = ingest.ingest(EventIn(channel=Channel.INSTAGRAM, kind="comment", external_id="m1",
                                      sender=Sender(handle="@ani", name="Ani"), text="harga 60 pax?",
                                      post_ref="p1", comment_ref="c1"))

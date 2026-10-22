@@ -12,7 +12,7 @@ import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ActivityDetail } from "@/components/dashboard/ActivityDetail";
 import { AgentActivity, agentStatus } from "@/components/dashboard/AgentActivity";
-import { ApprovalQueue } from "@/components/dashboard/ApprovalQueue";
+import { AgentResults } from "@/components/dashboard/AgentResults";
 import { PasteMessage } from "@/components/dashboard/PasteMessage";
 
 type Filter = "all" | "working" | "waiting" | "error";
@@ -83,11 +83,11 @@ export default function AgentPage() {
               </button>)}
             </div>
             {selected && <div className="min-w-0 space-y-5">
-              {lead ? <ActivityDetail activity={selected} lead={lead} trace={trace} actions={actions} /> : <AgentActivity activity={selected} trace={trace} actions={actions} />}
+              {lead ? <ActivityDetail activity={selected} lead={lead} trace={trace} /> : <AgentActivity activity={selected} trace={trace} actions={actions} />}
               {selected.eventStatus === "agent_error" && <Button purpose="action" style="secondary" disabled={retrying || d.paused} onClick={retry}>{retrying ? "Memulai ulang…" : "Proses ulang pesan"}</Button>}
               {error && <p role="alert" className="text-sm text-rc-danger">{error}</p>}
               <section><h2 className="mb-2 text-base font-semibold text-rc-fg">Usulan &amp; draf balasan</h2>
-                {isWorking(selected.eventStatus) && !actions.length ? <p className="rounded-lg border border-dashed border-rc-border p-4 text-sm text-rc-fg-muted">Agen sedang menyiapkan usulan. Draf yang selesai diperiksa akan muncul di sini.</p> : <ApprovalQueue actions={actions} paused={d.paused} leadsById={d.leadsById} onApprove={d.approve} onReject={d.reject} onRetry={d.retry} onSent={d.markSent} />}
+                {isWorking(selected.eventStatus) && !actions.length ? <p className="rounded-lg border border-dashed border-rc-border p-4 text-sm text-rc-fg-muted">Agen sedang menyiapkan usulan. Draf yang selesai diperiksa akan muncul di sini.</p> : <AgentResults actions={actions} onFeedback={d.reject} onApprove={d.approve} onSent={d.markSent} onRetry={d.retry} />}
               </section>
               {actions.some((a) => !OPEN_ACTION.has(a.status)) && <section className="space-y-3"><h2 className="text-base font-semibold text-rc-fg">Hasil tindakan</h2>{actions.filter((a) => !OPEN_ACTION.has(a.status)).map((action) => <div key={action.id} className="rounded-lg border border-rc-border bg-rc-surface p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-rc-fg">{action.title}</h3><span className="text-xs text-rc-fg-muted">{OUTCOME[action.status] ?? action.status}</span></div>

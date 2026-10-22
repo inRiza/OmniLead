@@ -15,7 +15,9 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 from omnilead.agent_client import AgentClient, AgentResult, AgentUnavailable
+from omnilead.approvals.executor import ChannelDisabled, Paused, RateLimited
 from omnilead.approvals.queue import ApprovalQueue
+from omnilead.autonomy import auto_approvable
 from omnilead.models import (
     Action,
     ActionKind,
@@ -111,12 +113,19 @@ def mentioned_contacts(text: str) -> list[tuple[str, str, str]]:
 
 
 class IngestService:
-    def __init__(self, store: Store, queue: ApprovalQueue, agent: AgentClient,
-                 on_proposed: Callable[[Action, Event], Action] | None = None,
-                 profile: Callable[[], dict] | None = None):
+    def __init__(
+        self,
+        store: Store,
+        queue: ApprovalQueue,
+        agent: AgentClient,
+        executor=None,
+        on_proposed: Callable[[Action, Event], Action] | None = None,
+        profile: Callable[[], dict] | None = None,
+    ):
         self._store = store
         self._queue = queue
         self._agent = agent
+        self._executor = executor
         self._on_proposed = on_proposed
         self._profile = profile
         self._conflicts: list[tuple[Lead, list[str]]] = []
@@ -269,6 +278,16 @@ class IngestService:
                 lead_id=event.lead_id,
             )
             return event
+
+    def _autopilot(self, action, event: Event) -> None:
+        mode = self._store.get_settings().autonomy
+        if self._executor is None or not auto_approvable(action, event, mode):
+            return
+        approved = self._queue.auto_approve(action.id, mode)
+        try:
+            self._executor.execute(approved)
+        except (Paused, ChannelDisabled, RateLimited) as exc:
+            self._queue.return_to_owner(action.id, str(exc))
 
     def reprocess_held(self) -> list[Event]:
         held = [e for e in self._store.list_events(limit=1000) if e.status == "held"]
@@ -507,7 +526,12 @@ class IngestService:
             action = self._to_action(p, event)
             if action is None:
                 continue
-            queued.append(self._queue.propose(action))
+            proposed = self._queue.propose(action)
+            queued.append(proposed)
+            if self._on_proposed:
+                self._on_proposed(proposed, event)
+            else:
+                self._autopilot(proposed, event)
 
         event.status = "review" if result.flagged_for_review else "analyzed"
         self._store.save_event(event)
@@ -518,9 +542,6 @@ class IngestService:
             channel=event.channel.value,
             lead_id=event.lead_id,
         )
-        if self._on_proposed:
-            for action in queued:
-                self._on_proposed(action, event)
         return event
 
     def _to_action(self, p, event: Event) -> ProposedAction | None:

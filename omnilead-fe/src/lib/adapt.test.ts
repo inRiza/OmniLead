@@ -212,6 +212,8 @@ describe("lead dan audit", () => {
     expect(adaptAudit({ ...base, event: "identity_split" }).event).toBe("Profil dipisah kembali");
     expect(adaptAudit({ ...base, event: "executed" }).event).toBe("Terkirim");
     expect(adaptAudit({ ...base, event: "event_baru_x" }).event).toBe("event_baru_x");
+    for (const event of ["lead_updated", "channel_connected", "knowledge_saved", "agent_channel_configured", "auto_approved"])
+      expect(adaptAudit({ ...base, event }).event).not.toBe(event);
   });
 
   it("detail dan pelaku audit tanpa istilah internal", () => {

@@ -116,7 +116,7 @@ def test_mentioned_contacts_parses_email_and_phone():
 
 def test_auto_merge_above_threshold_when_auto_send(ingest, store):
     s = store.get_settings()
-    s.auto_send = True
+    s.autonomy = "auto"
     s.auto_merge_threshold = 0.9
     store.save_settings(s)
     a, _ = ingest.ingest(ev("w1", phone="081200000001", name="Ani"))
