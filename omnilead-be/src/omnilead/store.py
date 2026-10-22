@@ -10,8 +10,10 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from omnilead.identity import identity_keys
 from omnilead.models import (
     Action,
+    ActionKind,
     ActionStatus,
     AppSettings,
     AuditEntry,
@@ -68,6 +70,20 @@ class Store:
                 id TEXT PRIMARY KEY,
                 data TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS lead_identity (
+                key TEXT NOT NULL,
+                lead_id TEXT NOT NULL,
+                PRIMARY KEY (key, lead_id)
+            );
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL,
+                status TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                error TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
         # DB lama (sebelum kolom audit diperluas)
@@ -79,11 +95,36 @@ class Store:
         ):
             if col not in cols:
                 self._db.execute(f"ALTER TABLE audit ADD COLUMN {col} {ddl}")
+        action_cols = {r["name"] for r in self._db.execute("PRAGMA table_info(actions)")}
+        if "lead_id" not in action_cols:
+            self._db.execute("ALTER TABLE actions ADD COLUMN lead_id TEXT")
+            self._db.execute("ALTER TABLE actions ADD COLUMN kind TEXT")
+            for row in self._db.execute("SELECT id, data FROM actions").fetchall():
+                data = json.loads(row["data"])
+                self._db.execute("UPDATE actions SET lead_id = ?, kind = ? WHERE id = ?",
+                                 (data.get("lead_id"), data.get("kind"), row["id"]))
+        self._db.executescript(
+            """
+            CREATE INDEX IF NOT EXISTS idx_events_lead_ts ON events (lead_id, ts);
+            CREATE INDEX IF NOT EXISTS idx_events_ts ON events (ts);
+            CREATE INDEX IF NOT EXISTS idx_audit_rate ON audit (event, channel, ts);
+            CREATE INDEX IF NOT EXISTS idx_audit_lead ON audit (lead_id);
+            CREATE INDEX IF NOT EXISTS idx_actions_status ON actions (status, created_at);
+            CREATE INDEX IF NOT EXISTS idx_actions_lead ON actions (lead_id);
+            CREATE INDEX IF NOT EXISTS idx_actions_kind ON actions (kind);
+            CREATE INDEX IF NOT EXISTS idx_identity_lead ON lead_identity (lead_id);
+            CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs (status, updated_at);
+            """
+        )
+        indexed = self._db.execute("SELECT COUNT(*) AS n FROM lead_identity").fetchone()["n"]
+        if not indexed:
+            for row in self._db.execute("SELECT data FROM leads").fetchall():
+                self._index_lead(Lead.model_validate_json(row["data"]), commit=False)
         self._db.commit()
 
     def reset(self) -> None:
         """Hapus semua data (dipakai skrip seed)."""
-        for table in ("actions", "audit", "leads", "events", "settings", "knowledge"):
+        for table in ("actions", "audit", "leads", "events", "settings", "knowledge", "lead_identity", "jobs"):
             self._db.execute(f"DELETE FROM {table}")
         self._db.commit()
 
@@ -91,13 +132,15 @@ class Store:
 
     def save_action(self, action: Action) -> None:
         self._db.execute(
-            "INSERT OR REPLACE INTO actions (id, data, status, created_at) "
-            "VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO actions (id, data, status, created_at, lead_id, kind) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
             (
                 action.id,
                 action.model_dump_json(),
                 action.status.value,
                 action.created_at.isoformat(),
+                action.lead_id,
+                action.kind.value,
             ),
         )
         self._db.commit()
@@ -108,16 +151,28 @@ class Store:
         ).fetchone()
         return Action.model_validate_json(row["data"]) if row else None
 
-    def list_actions(self, status: ActionStatus | None = None) -> list[Action]:
-        if status:
-            rows = self._db.execute(
-                "SELECT data FROM actions WHERE status = ? ORDER BY created_at DESC",
-                (status.value,),
-            ).fetchall()
-        else:
-            rows = self._db.execute(
-                "SELECT data FROM actions ORDER BY created_at DESC"
-            ).fetchall()
+    def list_actions(
+        self,
+        status: ActionStatus | None = None,
+        *,
+        lead_id: str | None = None,
+        kind: ActionKind | None = None,
+        limit: int | None = None,
+    ) -> list[Action]:
+        where, args = [], []
+        for col, value in (("status", status.value if status else None), ("lead_id", lead_id),
+                           ("kind", kind.value if kind else None)):
+            if value is not None:
+                where.append(f"{col} = ?")
+                args.append(value)
+        sql = "SELECT data FROM actions"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            args.append(limit)
+        rows = self._db.execute(sql, args).fetchall()
         return [Action.model_validate_json(r["data"]) for r in rows]
 
     # --- audit ---
@@ -148,17 +203,27 @@ class Store:
         self._db.commit()
 
     def list_audit(
-        self, limit: int = 100, channel: str | None = None
+        self,
+        limit: int = 100,
+        channel: str | None = None,
+        *,
+        lead_id: str | None = None,
+        event: str | None = None,
+        actor: str | None = None,
+        before_id: int | None = None,
     ) -> list[AuditEntry]:
-        if channel:
-            rows = self._db.execute(
-                "SELECT * FROM audit WHERE channel = ? ORDER BY id DESC LIMIT ?",
-                (channel, limit),
-            ).fetchall()
-        else:
-            rows = self._db.execute(
-                "SELECT * FROM audit ORDER BY id DESC LIMIT ?", (limit,)
-            ).fetchall()
+        where, args = [], []
+        for col, value in (("channel", channel), ("lead_id", lead_id), ("event", event), ("actor", actor)):
+            if value is not None:
+                where.append(f"{col} = ?")
+                args.append(value)
+        if before_id is not None:
+            where.append("id < ?")
+            args.append(before_id)
+        sql = "SELECT * FROM audit"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        rows = self._db.execute(sql + " ORDER BY id DESC LIMIT ?", (*args, limit)).fetchall()
         return [
             AuditEntry(
                 id=r["id"],
@@ -188,7 +253,21 @@ class Store:
             "INSERT OR REPLACE INTO leads (id, data) VALUES (?, ?)",
             (lead.id, lead.model_dump_json()),
         )
+        self._index_lead(lead, commit=False)
         self._db.commit()
+
+    def _index_lead(self, lead: Lead, commit: bool = True) -> None:
+        self._db.execute("DELETE FROM lead_identity WHERE lead_id = ?", (lead.id,))
+        self._db.executemany("INSERT OR IGNORE INTO lead_identity (key, lead_id) VALUES (?, ?)",
+                             [(k, lead.id) for k in identity_keys(lead)])
+        if commit:
+            self._db.commit()
+
+    def find_leads_by_identity(self, key: str) -> list[Lead]:
+        rows = self._db.execute(
+            "SELECT l.data FROM lead_identity i JOIN leads l ON l.id = i.lead_id WHERE i.key = ?", (key,)
+        ).fetchall()
+        return [Lead.model_validate_json(r["data"]) for r in rows]
 
     def get_lead(self, lead_id: str) -> Lead | None:
         row = self._db.execute(
@@ -198,6 +277,7 @@ class Store:
 
     def delete_lead(self, lead_id: str) -> None:
         self._db.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+        self._db.execute("DELETE FROM lead_identity WHERE lead_id = ?", (lead_id,))
         self._db.commit()
 
     def reassign_lead(self, old_id: str, new_id: str) -> None:
@@ -205,10 +285,9 @@ class Store:
         for event in self.list_events(lead_id=old_id, limit=10_000):
             event.lead_id = new_id
             self.save_event(event)
-        for action in self.list_actions():
-            if action.lead_id == old_id:
-                action.lead_id = new_id
-                self.save_action(action)
+        for action in self.list_actions(lead_id=old_id):
+            action.lead_id = new_id
+            self.save_action(action)
 
     def list_leads(self) -> list[Lead]:
         rows = self._db.execute("SELECT data FROM leads").fetchall()
@@ -251,18 +330,49 @@ class Store:
         self._db.commit()
 
     def list_events(
-        self, lead_id: str | None = None, limit: int = 200
+        self, lead_id: str | None = None, limit: int = 200, *, before: datetime | None = None
     ) -> list[Event]:
+        where, args = [], []
         if lead_id:
-            rows = self._db.execute(
-                "SELECT data FROM events WHERE lead_id = ? ORDER BY ts DESC LIMIT ?",
-                (lead_id, limit),
-            ).fetchall()
-        else:
-            rows = self._db.execute(
-                "SELECT data FROM events ORDER BY ts DESC LIMIT ?", (limit,)
-            ).fetchall()
+            where.append("lead_id = ?")
+            args.append(lead_id)
+        if before is not None:
+            where.append("ts < ?")
+            args.append(before.isoformat())
+        sql = "SELECT data FROM events"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        rows = self._db.execute(sql + " ORDER BY ts DESC LIMIT ?", (*args, limit)).fetchall()
         return [Event.model_validate_json(r["data"]) for r in rows]
+
+    def enqueue_job(self, job_id: str, payload: dict) -> bool:
+        now = datetime.now(timezone.utc).isoformat()
+        cur = self._db.execute(
+            "INSERT OR IGNORE INTO jobs (id, payload, status, created_at, updated_at) VALUES (?, ?, 'pending', ?, ?)",
+            (job_id, json.dumps(payload), now, now),
+        )
+        self._db.commit()
+        return cur.rowcount > 0
+
+    def get_job(self, job_id: str) -> dict | None:
+        row = self._db.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+        return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+
+    def list_jobs(self, statuses: tuple[str, ...], older_than: timedelta | None = None, limit: int = 100) -> list[dict]:
+        cutoff = (datetime.now(timezone.utc) - (older_than or timedelta(0))).isoformat()
+        marks = ",".join("?" for _ in statuses)
+        rows = self._db.execute(
+            f"SELECT * FROM jobs WHERE status IN ({marks}) AND updated_at <= ? ORDER BY created_at LIMIT ?",
+            (*statuses, cutoff, limit),
+        ).fetchall()
+        return [{**dict(r), "payload": json.loads(r["payload"])} for r in rows]
+
+    def update_job(self, job_id: str, status: str, error: str = "", attempt: bool = False) -> None:
+        self._db.execute(
+            "UPDATE jobs SET status = ?, error = ?, updated_at = ?, attempts = attempts + ? WHERE id = ?",
+            (status, error[:500], datetime.now(timezone.utc).isoformat(), 1 if attempt else 0, job_id),
+        )
+        self._db.commit()
 
     # --- settings ---
 
