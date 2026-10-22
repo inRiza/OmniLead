@@ -15,9 +15,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 from omnilead.agent_client import AgentClient, AgentResult, AgentUnavailable
-from omnilead.approvals.executor import ChannelDisabled, Paused, RateLimited
 from omnilead.approvals.queue import ApprovalQueue
-from omnilead.autonomy import auto_approvable
 from omnilead.models import (
     Action,
     ActionKind,
@@ -285,15 +283,17 @@ class IngestService:
             )
             return event
 
-    def _autopilot(self, action, event: Event) -> None:
-        mode = self._store.get_settings().autonomy
-        if self._executor is None or not auto_approvable(action, event, mode):
-            return
-        approved = self._queue.auto_approve(action.id, mode)
-        try:
-            self._executor.execute(approved)
-        except (Paused, ChannelDisabled, RateLimited) as exc:
-            self._queue.return_to_owner(action.id, str(exc))
+    def _autopilot(self, action, event: Event):
+        if self._executor is not None:
+            from omnilead.approvals.auto import AutoSender
+            return AutoSender(self._store, self._queue, self._executor).handle(action, event)
+        return action
+
+    def dispatch_proposed(self, action, event: Event):
+        """Apply the current autonomy setting to an existing pending proposal."""
+        if self._on_proposed:
+            return self._on_proposed(action, event)
+        return self._autopilot(action, event)
 
     def reprocess_held(self) -> list[Event]:
         held = [e for e in self._store.list_events(limit=1000) if e.status == "held"]
@@ -510,6 +510,9 @@ class IngestService:
         event.triage = result.triage
         event.trace = result.trace
         event.review_reason = result.review_reason
+        # Dispatch must see the final review decision, not the earlier processing state.
+        event.status = "review" if result.flagged_for_review else "analyzed"
+        self._store.save_event(event)
 
         if lead:
             crm = result.crm or {}
@@ -564,15 +567,14 @@ class IngestService:
                 continue
             hold_draft = draft_only and action.kind in (ActionKind.SEND_MESSAGE, ActionKind.REPLY_COMMENT, ActionKind.COMMENT_POST)
             if hold_draft:
-                action.payload = {**action.payload, "_auto_held": True}
+                action.payload = {**action.payload, "_auto_held": True,
+                                  "_auto_hold_reason": "Pemilik meminta draf tanpa pengiriman."}
             proposed = self._queue.propose(action)
             queued.append(proposed)
             if hold_draft:
                 self._store.audit("owner_draft_only", "Pemilik meminta draf untuk ditinjau; tidak dikirim otomatis", proposed.id, actor="agent", channel=event.channel.value)
-            elif self._on_proposed:
-                self._on_proposed(proposed, event)
             else:
-                self._autopilot(proposed, event)
+                self.dispatch_proposed(proposed, event)
 
         event.status = "review" if result.flagged_for_review else "analyzed"
         self._store.save_event(event)

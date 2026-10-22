@@ -126,6 +126,9 @@ def test_unknown_lead_and_empty_queue(make):
 
 
 def test_prepare_reply_goes_through_pipeline_with_owner_instruction_and_needs_approval(make, store):
+    settings = store.get_settings()
+    settings.autonomy = "hybrid"
+    store.save_settings(settings)
     lead(store, "a1", "Ani", "PT Maju Jaya", "Hot", 86)
     message(store, "a1")
     client, agent = make([tool("siapkan_balasan", lead="Ani", instruksi="bilang stok ready"), final("Draf siap.")])

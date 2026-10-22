@@ -242,21 +242,51 @@ class ChatTools:
         status = sync_instagram(self.store, self.registry, self.ingest, self.settings, self.workspace,
                                 prefer_browser=True, progress=progress)
         queued = queue_analysis(self.store)
-        if queued:
-            threading.Thread(target=run_analysis_queue, args=(self.store, self.ingest, queued),
-                             kwargs={"draft_only": self.draft_only}, daemon=True).start()
+        batch = queued[:3]
+        if batch:
+            run_analysis_queue(self.store, self.ingest, batch, draft_only=self.draft_only, progress=progress)
+        actions = [a for a in self.store.list_actions() if a.event_id in batch and a.kind in MESSAGE_KINDS]
         parts = [f"{status.get('dms', 0)} DM dan {status.get('comments', 0)} komentar baru dibaca"]
-        if queued:
-            parts.append(f"{len(queued)} pesan dianalisis di latar belakang; drafnya muncul di Workspace")
+        if batch:
+            parts.append(f"{len(batch)} pesan selesai diproses")
+        if len(queued) > len(batch):
+            parts.append(f"{len(queued) - len(batch)} pesan masih antre; minta lanjutkan untuk batch berikutnya")
+        outcomes = self._outcomes(actions)
+        parts.extend(outcomes["ringkasan"])
+        reviewed = [self.store.get_event(eid) for eid in batch]
+        notes = [{"event_id": e.id, "status": e.status, "alasan": e.review_reason}
+                 for e in reviewed if e and e.status in ("review", "agent_error", "held")]
+        if notes:
+            parts.append(f"{len(notes)} pesan belum dapat ditangani: " + "; ".join(n["alasan"] for n in notes))
         if status.get("error"):
             parts.append("Catatan: " + str(status["error"])[:200].rstrip(". "))
         if any((status.get("pending") or {}).values()):
             parts.append("Agen butuh izin Anda; buka pengaturan Instagram di Integrasi untuk memeriksa akses DM")
-        ok = not (status.get("error") or status.get("needs_login") or any((status.get("pending") or {}).values()))
+        ok = not (status.get("error") or status.get("needs_login") or any((status.get("pending") or {}).values()) or outcomes["gagal"])
         return result(ok, ". ".join(parts) + ".", {
-            "dm": status.get("dms", 0), "komentar": status.get("comments", 0), "dianalisis": len(queued),
+            "dm": status.get("dms", 0), "komentar": status.get("comments", 0), "dianalisis": len(batch),
+            "masih_antre": len(queued) - len(batch), "hasil_eksekusi": outcomes["daftar"], "pesan_tertahan": notes,
             "sumber": status.get("source", ""), "perlu_login": bool(status.get("needs_login")),
         }, refresh=True)
+
+    def _outcomes(self, actions):
+        rows, counts = [], {}
+        for action in actions:
+            state = "simulasi" if action.result_ref == "dry-run" else action.status.value
+            counts[state] = counts.get(state, 0) + 1
+            lead = self.store.get_lead(action.lead_id) if action.lead_id else None
+            reason = action.error or action.payload.get("_auto_hold_reason") or "; ".join(
+                g.note or g.check for g in action.guard if g.status != "pass")
+            if state == "pending" and not reason:
+                reason = "Menunggu keputusan sesuai mode Hybrid." if self.store.get_settings().autonomy == "hybrid" else "Belum dieksekusi; periksa status agen dan kanal."
+            rows.append({"id": action.id, "untuk": (lead.name if lead else None) or action.recipient,
+                         "kanal": action.channel.value, "status": state, "isi": action.text[:400], "alasan": reason})
+        labels = {"executed": "terkirim", "sent_manually": "dikirim manual", "pending": "tertahan",
+                  "failed": "gagal dikirim", "executing": "masih dikirim", "awaiting_manual_send": "perlu pengiriman manual",
+                  "simulasi": "simulasi tanpa pengiriman", "approved": "siap dieksekusi", "edited": "siap dieksekusi"}
+        summaries = [f"{count} balasan {labels.get(state, state)}" for state, count in counts.items()]
+        summaries.extend(f"{r['untuk'] or 'Pelanggan'}: {r['alasan']}" for r in rows if r["alasan"] and r["status"] in ("failed", "pending", "awaiting_manual_send"))
+        return {"daftar": rows, "ringkasan": summaries, "gagal": counts.get("failed", 0)}
 
     def daftar_menunggu(self) -> dict:
         items = []
@@ -327,7 +357,18 @@ class ChatTools:
             return result(True, "Pesan terakhir sudah memiliki balasan terkirim; saya tidak membuat balasan ulang.",
                           {"status": "sudah_dibalas"})
         drafts = pending_drafts(event, actions)
-        if drafts and not instruksi.strip():
+        retry_fallback = (drafts and self.store.get_settings().autonomy == "auto" and not self.draft_only
+                          and all(any(g.check == "model_fallback" for g in d.guard) for d in drafts))
+        old_fallbacks = list(drafts) if retry_fallback else []
+        if drafts and not instruksi.strip() and not retry_fallback:
+            if self.store.get_settings().autonomy == "auto" and not self.draft_only:
+                for draft in drafts:
+                    if draft.status == ActionStatus.PENDING:
+                        self.ingest.dispatch_proposed(draft, event)
+                current = [self.store.get_action(d.id) for d in drafts]
+                outcome = self._outcomes([d for d in current if d])
+                return result(not outcome["gagal"], ". ".join(outcome["ringkasan"]) + ".",
+                              {"hasil_eksekusi": outcome["daftar"]}, refresh=True)
             return result(True, "Draf untuk pesan ini sudah ada di Workspace dan belum dikirim. Tidak dibuat duplikat.",
                           {"status": "draf_menunggu", "draf": [{"id": d.id, "isi": d.text[:400]} for d in drafts[:3]]})
         if event.status == "processing":
@@ -342,18 +383,22 @@ class ChatTools:
             return result(False, event.review_reason or "Analisis gagal. Coba lagi.", refresh=True)
         drafts = [a for a in self.store.list_actions()
                   if a.event_id == event.id and a.id not in before and a.kind in MESSAGE_KINDS]
+        if drafts:
+            for old in old_fallbacks:
+                if old.status == ActionStatus.PENDING:
+                    old.status = ActionStatus.REJECTED
+                    old.reject_reason = "Draf cadangan digantikan oleh analisis ulang yang diminta pemilik."
+                    self.store.save_action(old)
         if event.status == "review" and not drafts:
             return result(True, f"Pesan {name} ditandai perlu tinjauan manual: {event.review_reason or 'lihat Workspace'}.",
                           {"status": "review"}, refresh=True)
         if not drafts:
             return result(True, f"Tidak ada balasan yang perlu disiapkan untuk {name}.", {"status": event.status}, refresh=True)
-        sent = [d for d in drafts if d.status in (ActionStatus.EXECUTED, ActionStatus.SENT_MANUALLY)]
-        waiting = [d for d in drafts if d.status in OPEN_STATUSES]
-        parts = [f"{len(drafts)} draf untuk {name} disiapkan"]
-        if waiting:
-            parts.append(f"{len(waiting)} menunggu persetujuan Anda di Workspace")
-        if sent:
-            parts.append(f"{len(sent)} terkirim otomatis sesuai mode otonomi")
-        return result(True, ", ".join(parts) + ".", {
+        outcome = self._outcomes(drafts)
+        summary = "; ".join(outcome["ringkasan"])
+        if self.store.get_settings().autonomy == "hybrid" and any(d.status == ActionStatus.PENDING for d in drafts):
+            summary += "; menunggu persetujuan Anda di Workspace"
+        return result(not outcome["gagal"], f"Hasil untuk {name}: {summary}.", {
+            "hasil_eksekusi": outcome["daftar"],
             "draf": [{"kanal": d.channel.value, "status": d.status.value, "isi": (d.text or "")[:400]} for d in drafts[:3]],
         }, refresh=True)

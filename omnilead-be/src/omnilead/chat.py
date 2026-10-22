@@ -41,6 +41,8 @@ def run_chat(tools: ChatTools, agent, business: str, message: str, history: list
             payload = {"turns": turns, "business": business,
                        "execution_mode": "interactive" if allow_task_changes else "scheduled",
                        "channel": getattr(tools, "channel_scope", None)}
+            if isinstance(tools, ChatTools):
+                payload["autonomy"] = tools.store.get_settings().autonomy
             if step == 0 and re.search(r"\b(cek|lihat|baca|cari|balas|siapkan|jadwalkan|buatkan|daftar)\b", message, re.I) and re.search(
                     r"\b(dm|pesan|inbox|lead|prospek|pelanggan|jadwal|tugas|instagram|whatsapp)\b", message, re.I):
                 payload["require_tool"] = True
