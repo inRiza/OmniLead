@@ -129,7 +129,7 @@ export function WhyToggle() {
             style={clip}
           >
             <span className="inline-flex items-center gap-1.5 rounded-md bg-rc-accent/10 px-2.5 py-1 text-xs font-medium text-rc-accent">
-              <LogoMark size={14} accent /> OmniLead
+              <LogoMark size={14} /> OmniLead
             </span>
           </div>
         </div>
@@ -310,7 +310,7 @@ function SkillVisual({ k }: { k: string }) {
     return (
       <div className="flex w-full max-w-md flex-col gap-3">
         <Later ms={0} className="flex items-center gap-2 text-xs text-rc-fg-muted">
-          <LogoMark size={18} accent /> Draf balasan untuk Ani
+          <LogoMark size={18} /> Draf balasan untuk Ani
         </Later>
         <Later ms={120}>
           <p className={cn(skillCard, "rounded-tr-none pt-2 pb-6 leading-[3.5rem]")}>
@@ -391,7 +391,7 @@ function SkillVisual({ k }: { k: string }) {
     <div className="flex w-full max-w-md flex-col gap-2">
       <Later ms={0}>
         <div className={cn(skillCard, "flex items-center gap-3")}>
-          <LogoMark size={32} accent />
+          <LogoMark size={32} />
           <span className="min-w-0 flex-1">
             <span className="block font-medium">Penawaran terkirim ke Ani</span>
             <span className="block text-xs text-rc-fg-muted">Hari ini, 14.20</span>

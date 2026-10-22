@@ -164,7 +164,7 @@ export function LandingHeader() {
           aria-label="OmniLead, ke atas"
           className="rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rc-accent"
         >
-          <Logo accent />
+          <Logo />
         </Link>
 
         <nav aria-label="Navigasi halaman" className="hidden items-center gap-1 md:flex">
@@ -418,7 +418,7 @@ export function HeroStage() {
         </svg>
         <span className="absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-rc-border bg-rc-surface">
           {frame.typing && <span className="rc-ping absolute inset-0 rounded-xl border-2 border-rc-accent" />}
-          <LogoMark size={36} accent />
+          <LogoMark size={36} />
         </span>
       </div>
 

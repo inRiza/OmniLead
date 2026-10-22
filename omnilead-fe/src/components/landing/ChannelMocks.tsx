@@ -114,7 +114,7 @@ function InstagramMock({ sc, count, typing }: MockProps) {
         <div className="flex h-14 shrink-0 items-center gap-3 border-b border-[#dbdbdb] px-4">
           <span className="rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[2px]">
             <span className="block rounded-full bg-white p-[2px]">
-              <LogoMark size={26} accent className="rounded-full" />
+              <LogoMark size={26} className="rounded-full" />
             </span>
           </span>
           <span className="min-w-0 flex-1 leading-tight">
@@ -177,7 +177,7 @@ function InstagramMock({ sc, count, typing }: MockProps) {
             </div>
           ) : (
             <div key={i} className="rc-enter ml-11 flex gap-3">
-              <LogoMark size={28} accent className="rounded-full" />
+              <LogoMark size={28} className="rounded-full" />
               <div className="min-w-0 flex-1 text-sm">
                 <p>
                   <span className="font-semibold">OmniLead</span>{" "}
@@ -193,7 +193,7 @@ function InstagramMock({ sc, count, typing }: MockProps) {
         )}
         {typing && (
           <div className="rc-enter ml-11 flex items-center gap-3 text-[#737373]">
-            <LogoMark size={28} accent className="rounded-full" />
+            <LogoMark size={28} className="rounded-full" />
             <Dots />
           </div>
         )}
@@ -258,7 +258,7 @@ function WhatsAppMock({ sc, count, typing }: MockProps) {
               className="rc-enter max-w-[80%] self-end rounded-lg rounded-tr-none bg-[#d9fdd3] px-3 py-1.5 text-sm shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]"
             >
               <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[#027eb5]">
-                <LogoMark size={14} accent />
+                <LogoMark size={14} />
                 OmniLead
               </span>
               {m.text}
@@ -271,7 +271,7 @@ function WhatsAppMock({ sc, count, typing }: MockProps) {
         )}
         {typing && (
           <div className="rc-enter flex items-center gap-2 self-end rounded-lg rounded-tr-none bg-[#d9fdd3] px-3 py-2.5 text-[#667781] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
-            <LogoMark size={14} accent />
+            <LogoMark size={14} />
             <Dots />
           </div>
         )}
@@ -317,7 +317,7 @@ function GmailMock({ sc, count, typing }: MockProps) {
           return (
             <div key={i} className="rc-enter flex gap-3 px-5 py-4">
               {agent ? (
-                <LogoMark size={36} accent className="rounded-full" />
+                <LogoMark size={36} className="rounded-full" />
               ) : (
                 <Initial name={sc.customer} className="h-9 w-9 bg-[#1a73e8] text-sm" />
               )}
@@ -340,7 +340,7 @@ function GmailMock({ sc, count, typing }: MockProps) {
         })}
         {typing && (
           <div className="rc-enter flex items-center gap-3 px-5 py-4 text-sm text-[#5e5e5e]">
-            <LogoMark size={36} accent className="rounded-full" />
+            <LogoMark size={36} className="rounded-full" />
             <span className="flex-1 rounded-lg border border-[#e0e0e0] px-3 py-3">
               <Dots />
             </span>
@@ -365,7 +365,7 @@ function FacebookMock({ sc, count, typing }: MockProps) {
       tick={tickOf(count, typing)}
       header={
         <div className="flex h-14 shrink-0 items-center gap-3 border-b border-[#ced0d4] px-4">
-          <LogoMark size={36} accent className="rounded-full" />
+          <LogoMark size={36} className="rounded-full" />
           <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-sm font-semibold text-[#050505]">OmniLead</span>
             <span className="flex items-center gap-1 text-xs text-[#65676b]">
@@ -437,7 +437,7 @@ function FacebookMock({ sc, count, typing }: MockProps) {
             </div>
           ) : (
             <div key={i} className="rc-enter ml-10 flex gap-2">
-              <LogoMark size={28} accent className="rounded-full" />
+              <LogoMark size={28} className="rounded-full" />
               <div className="min-w-0">
                 <p className="rounded-2xl bg-[#f0f2f5] px-3 py-2 text-sm text-[#050505]">
                   <span className="block text-[13px] font-semibold">OmniLead</span>
@@ -453,7 +453,7 @@ function FacebookMock({ sc, count, typing }: MockProps) {
         )}
         {typing && (
           <div className="rc-enter ml-10 flex items-center gap-2 text-[#65676b]">
-            <LogoMark size={28} accent className="rounded-full" />
+            <LogoMark size={28} className="rounded-full" />
             <span className="rounded-2xl bg-[#f0f2f5] px-3 py-2.5">
               <Dots />
             </span>

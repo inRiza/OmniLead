@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { HeroContours } from "@/components/brand/HeroContours";
 import { AnnouncementBar, HeroStage, LandingHeader, Reveal } from "@/components/landing/Interactive";
 import { SkillsExplorer, WhyToggle } from "@/components/landing/Sections";
 import { cn } from "@/lib/utils";
@@ -40,30 +41,6 @@ const FAQ: { q: string; a: ReactNode }[] = [
     a: "Ubah dulu sebelum dikirim, atau tolak dan tulis alasannya. Alasan itu dipakai supaya balasan berikutnya lebih sesuai.",
   },
 ];
-
-const CONTOURS = [
-  "M-40 120 C 120 60 220 260 380 220 S 600 40 760 140 S 980 360 1160 260 S 1400 120 1500 200",
-  "M-60 520 C 140 460 260 640 460 600 S 720 420 900 500 S 1160 700 1500 560",
-  "M180 -40 C 160 120 320 180 300 320 S 160 520 260 660 S 420 860 380 900",
-  "M1080 -40 C 1020 120 1180 220 1120 380 S 980 600 1100 720 S 1260 860 1240 900",
-];
-
-function HeroContours({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 1440 800"
-      preserveAspectRatio="xMidYMid slice"
-      className={cn("pointer-events-none absolute inset-0 h-full w-full", className)}
-    >
-      <g fill="none" stroke="white" strokeOpacity="0.09" strokeWidth="1">
-        {CONTOURS.map((d) =>
-          Array.from({ length: 9 }, (_, i) => <path key={`${d}-${i}`} d={d} transform={`translate(${i * 2.5} ${i * 3})`} />),
-        )}
-      </g>
-    </svg>
-  );
-}
 
 function Bar({ className }: { className?: string }) {
   return <span className={cn("block h-2.5 rounded-sm bg-rc-border", className)} />;
@@ -189,7 +166,7 @@ export default function Landing() {
                 className="rc-enter mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl"
                 style={{ animationDelay: "80ms" }}
               >
-                AI yang menyiapkan. Pemilik yang <Mark solid>memutuskan.</Mark>
+                Raih semua Leadsmu dengan AI, hingga <Mark solid>untung</Mark>
               </h1>
               <p
                 className="rc-enter mx-auto mt-6 max-w-2xl text-base text-white/80 sm:text-lg"
@@ -262,7 +239,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Kenapa — latar halaman */}
         <section id="kenapa" className="scroll-mt-24 py-20 lg:py-28">
           <div className={container}>
             <SectionHead
@@ -347,7 +323,7 @@ export default function Landing() {
         <div className={cn(container, "relative")}>
           <div className="flex flex-col gap-10 py-12 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <Logo accent />
+              <Logo />
               <p className="mt-3 max-w-xs text-sm text-white/70">AI yang menyiapkan, pemilik yang memutuskan.</p>
             </div>
             <nav aria-label="Tautan footer" className="grid grid-cols-2 gap-x-16 gap-y-3 text-sm">
