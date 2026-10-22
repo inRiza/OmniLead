@@ -22,6 +22,16 @@ class NotConnected(ConnectorError):
     """Token/izin belum ada atau sudah kedaluwarsa."""
 
 
+class TransientError(ConnectorError):
+    pass
+
+
+def error_for_status(status: int, message: str) -> ConnectorError:
+    if status >= 500 or status == 429:
+        return TransientError(message)
+    return ConnectorError(message)
+
+
 class ActionNotSupported(ConnectorError):
     """Aksi tidak diekspos oleh integrasi aktif. Harus lewat handoff."""
 
