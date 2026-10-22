@@ -116,6 +116,54 @@ THREAD = """- main
 """
 
 
+POST = """- main
+  - link "dapurbunda.id's profile picture" [ref=e31] [url=https://www.instagram.com/dapurbunda.id/]
+    - image "dapurbunda.id's profile picture"
+  - link "dapurbunda.id" [ref=e126] [url=https://www.instagram.com/dapurbunda.id/]
+  - StaticText "Edited"
+  - time
+    - StaticText "2d"
+  - StaticText "Nasi box ayam bakar"
+  - LineBreak "\\n"
+  - StaticText "min. 30 box "
+  - link "#katering" [ref=e60] [url=https://www.instagram.com/explore/tags/katering/]
+    - link "sari.home's profile picture" [ref=e32] [url=https://www.instagram.com/sari.home/]
+      - image "sari.home's profile picture"
+      - link "sari.home" [ref=e127] [url=https://www.instagram.com/sari.home/]
+      - link "3h" [ref=e33] [url=https://www.instagram.com/p/DQabc123/c/17000000000000001/]
+        - time
+          - StaticText "3h"
+      - StaticText "buat 40 orang bisa?"
+    - button "Reply" [ref=e34]
+    - link "dapurbunda.id" [ref=e128] [url=https://www.instagram.com/dapurbunda.id/]
+      - link "2h" [ref=e35] [url=https://www.instagram.com/p/DQabc123/c/17000000000000002/]
+      - StaticText "bisa kak, cek DM ya"
+    - link "dapurbunda.id" [ref=e131] [url=https://www.instagram.com/dapurbunda.id/]
+      - link "2h" [ref=e38] [url=https://www.instagram.com/p/DQabc123/c/17000000000000004/]
+      - StaticText "@andi makasih kak"
+    - link "andi" [ref=e129] [url=https://www.instagram.com/andi/]
+      - link "1h" [ref=e36] [url=https://www.instagram.com/p/DQabc123/c/17000000000000003/]
+      - StaticText "lucu banget"
+    - link "sari.home" [ref=e130] [url=https://www.instagram.com/sari.home/]
+      - link "8m" [ref=e37] [url=https://www.instagram.com/p/DQabc123/c/18129021832872344/]
+      - StaticText "masih ada kak?"
+  - button "View all 2 replies" [ref=e40]
+"""
+
+
+def test_parse_post_caption_and_comments():
+    from omnilead.instagram_snapshot import post as parse_post
+
+    page = parse_post(POST, "DQabc123")
+    assert page.owner == "dapurbunda.id"
+    assert page.caption == "Nasi box ayam bakar\nmin. 30 box #katering"
+    assert [(c.author, c.direction, c.text) for c in page.comments] == [
+        ("sari.home", "in", "buat 40 orang bisa?"), ("dapurbunda.id", "out", "bisa kak, cek DM ya"),
+        ("dapurbunda.id", "out", "@andi makasih kak"), ("andi", "in", "lucu banget"),
+        ("sari.home", "in", "masih ada kak?"),
+    ]
+
+
 def test_parse_conversation_from_thread_snapshot():
     messages = parse_conversation(THREAD)
     assert [(m.direction, m.text) for m in messages] == [
@@ -295,6 +343,8 @@ class FakeBrowser:
                 self.refs["e27"] = {"role": "button", "name": "user-profile-picture Rina Toko kak harga nasbox? 11h"}
             if self.page == "rina":
                 self.refs["e38"] = {"role": "article", "name": "kak mau tanya nasi box"}
+        elif self.page == "post":
+            self.refs = {"e40": {"role": "button", "name": "View all 2 replies"}}
         else:
             self.refs = {}
 
@@ -312,12 +362,12 @@ class FakeBrowser:
 
     def navigate(self, url):
         FakeBrowser.log.append(("navigate", url))
-        self.page = "notifications"
+        self.page = "post" if "/p/" in url else "notifications"
 
     def read_text(self):
         return {"primary": INBOX, "rina": INBOX + THREAD, "general": GENERAL, "requests": REQUESTS,
                 "request_thread": REQUESTS + THREAD.replace("rina.toko", "rizainfird"),
-                "notifications": NOTIFICATIONS}.get(self.page, "")
+                "notifications": NOTIFICATIONS, "post": POST}.get(self.page, "")
 
     def login_required(self):
         return FakeBrowser.login
@@ -375,6 +425,34 @@ def test_openclaw_reads_thread_history_and_sends_it_as_timeline(store, ingest, b
     browser.log.clear()
     sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
     assert ("click", "e27") not in browser.log
+
+
+def test_comment_reads_post_caption_and_customer_thread(store, ingest, browser, agent):
+    registry = FakeRegistry({Channel.INSTAGRAM: ApiConnector(error=NotConnected("token kosong"))})
+    sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert ("navigate", "https://www.instagram.com/p/DQabc123/") in browser.log
+    assert ("click", "e40") in browser.log
+    note = next(e for e in store.list_events() if e.kind == "comment")
+    assert note.meta["post_caption"].startswith("Nasi box ayam bakar")
+    assert [m["text"] for m in note.meta["conversation"]] == ["buat 40 orang bisa?", "bisa kak, cek DM ya"]
+    ingest.process(ingest.prepare(note), expected_run_id=None)
+    sent = agent.calls[-1]
+    assert sent["event"]["post_caption"].startswith("Nasi box ayam bakar")
+    assert [(t["direction"], t["text"]) for t in sent["lead"]["timeline"]][-2:] == [
+        ("in", "buat 40 orang bisa?"), ("out", "bisa kak, cek DM ya")]
+
+    browser.log.clear()
+    sync_instagram(store, registry, ingest, settings(browser_enabled=True), "ws1")
+    assert not any(kind == "navigate" and "/p/" in url for kind, url in browser.log)
+
+
+def test_comment_imported_before_account_binding_is_not_duplicated(store, ingest):
+    ev = EventIn(channel=Channel.INSTAGRAM, kind="comment", external_id="c-1", sender=Sender(handle="sari.home"),
+                 text="masih ada kak?", comment_ref="c-1")
+    ingest.ingest(ev, analyze=False)
+    ingest._queue.account_bindings = {"instagram": "1784"}
+    _, duplicate = ingest.ingest(ev, analyze=False)
+    assert duplicate and len(store.list_events()) == 1
 
 
 def _autonomy(store, mode):
@@ -540,3 +618,62 @@ def test_stale_queue_marker_is_dropped(store):
     event = Event(id="e1", channel=Channel.INSTAGRAM, kind="dm", external_id="x", sender=Sender(handle="a"), text="halo",
                   trace={"queued": True, "queued_at": old, "status": "Menunggu giliran"})
     assert visible_analysis_state(event).trace is None
+
+
+def test_recent_posts_import_unanswered_comments_from_last_week(monkeypatch):
+    nav = """- link "dapurbunda.id's profile picture" [ref=e13] [url=https://www.instagram.com/dapurbunda.id/]
+  - image "dapurbunda.id's profile picture"
+- main
+  - StaticText "No notifications"
+"""
+    profile = "- main\n" + "".join(
+        f'  - link "{c}" [ref=e{i}] [url=https://www.instagram.com/dapurbunda.id/p/{c}/]\n'
+        + ('    - image "Pinned post icon"\n' if c == "PIN" else "")
+        for i, c in enumerate(["PIN", "P1", "P2", "P3", "P4"]))
+
+    def page(code):
+        return f"""- main
+  - link "dapurbunda.id" [ref=e1] [url=https://www.instagram.com/dapurbunda.id/p/{code}/]
+  - time
+    - StaticText "1d"
+  - StaticText "caption {code}"
+    - link "rina" [ref=e2] [url=https://www.instagram.com/rina/]
+      - link "2d" [ref=e3] [url=https://www.instagram.com/p/{code}/c/{code[1:]}01/]
+      - StaticText "harga {code}?"
+    - link "budi" [ref=e4] [url=https://www.instagram.com/budi/]
+      - link "3w" [ref=e5] [url=https://www.instagram.com/p/{code}/c/{code[1:]}02/]
+      - StaticText "lama {code}"
+    - link "sari" [ref=e6] [url=https://www.instagram.com/sari/]
+      - link "5h" [ref=e7] [url=https://www.instagram.com/p/{code}/c/{code[1:]}03/]
+      - StaticText "ready {code}?"
+    - link "dapurbunda.id" [ref=e8] [url=https://www.instagram.com/dapurbunda.id/]
+      - link "4h" [ref=e9] [url=https://www.instagram.com/p/{code}/c/{code[1:]}04/]
+      - StaticText "@sari ready kak"
+"""
+
+    class Browser:
+        def __init__(self):
+            self.url, self.refs, self.opened = "", {}, []
+
+        def navigate(self, url):
+            self.url = url
+            if "/p/" in url:
+                self.opened.append(url.rstrip("/").rsplit("/", 1)[-1])
+
+        def dismiss(self, *labels):
+            return False
+
+        def inspect(self):
+            self.refs = {}
+
+        def read_text(self):
+            if "/p/" in self.url:
+                return page(self.url.rstrip("/").rsplit("/", 1)[-1])
+            return profile if self.url.endswith("/dapurbunda.id/") else nav
+
+    monkeypatch.setattr(instagram_sync.time, "sleep", lambda s: None)
+    b = Browser()
+    events = instagram_sync._browser_comments(b, known=lambda cid: cid == "201", recent_posts=3, days=7)
+    assert b.opened == ["P1", "P2", "P3"]
+    assert [(e.sender.handle, e.text) for e in events] == [("rina", "harga P1?"), ("rina", "harga P3?")]
+    assert events[0].meta["post_caption"] == "caption P1" and events[0].meta["found_in"] == "recent_post"

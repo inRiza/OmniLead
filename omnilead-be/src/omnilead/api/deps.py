@@ -127,8 +127,8 @@ def browser_sender(workspace: str):
     settings = get_settings()
     if workspace == "legacy" or not settings.browser_enabled or not _test_mode(workspace):
         return None
-    from omnilead.instagram_send import send_dm
-    return lambda name, text: send_dm(settings, workspace, name, text)
+    from omnilead.instagram_send import send_action
+    return lambda action, source: send_action(settings, workspace, action, source)
 
 
 def get_executor(request: Request, registry=Depends(get_registry), store=Depends(get_store)) -> Executor:

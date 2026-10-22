@@ -94,7 +94,7 @@ class Executor:
 
         source = self._store.get_event(action.event_id) if action.event_id else None
         if (self._browser_send and source and source.meta.get("source") == "openclaw_text"
-                and action.kind == ActionKind.SEND_MESSAGE and source.kind == "dm"):
+                and action.kind in (ActionKind.SEND_MESSAGE, ActionKind.REPLY_COMMENT)):
             return self._send_by_browser(action, source, settings)
         if (source and source.meta.get("handoff_only")) or not connector.supports(write_action):
             action.status = ActionStatus.AWAITING_MANUAL_SEND
@@ -158,7 +158,7 @@ class Executor:
         action.next_retry_at = None
         self._store.save_action(action)
         try:
-            ref = self._browser_send(source.sender.handle, action.text)
+            ref = self._browser_send(action, source)
         except BrowserSendFailed as exc:
             return self._fail(action, f"Gagal kirim ke Instagram: {exc}")
         except Exception:

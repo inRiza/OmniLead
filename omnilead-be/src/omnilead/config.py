@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     openclaw_state_dir: Path = Path("data/openclaw")
     instagram_history_limit: int = 10
     instagram_history_scrolls: int = 2
+    instagram_recent_posts: int = 3
+    instagram_comment_days: int = 7
 
     # Cloud Scheduler: token bersama (Authorization: Bearer) atau OIDC bila audience diisi.
     scheduler_token: str = ""
