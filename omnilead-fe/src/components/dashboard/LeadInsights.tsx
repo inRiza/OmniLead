@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CircleCheck, MapPin, Package, Sparkles, Wallet, Hash, Coins } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Package, Sparkles, Wallet, Hash, Coins } from "lucide-react";
 import type { LeadNeeds, LeadScore } from "@/lib/types";
 import { cn } from "@/lib/ui";
 import { ScoreBadge } from "@/components/primitives";
@@ -17,6 +17,7 @@ export function LeadInsights({
   score,
   scoreValue,
   reasons,
+  analysis,
   needs,
   estimatedValue,
   nextStep,
@@ -27,6 +28,7 @@ export function LeadInsights({
   score: LeadScore;
   scoreValue: number;
   reasons: string[];
+  analysis?: string;
   needs: LeadNeeds;
   estimatedValue?: number | null;
   nextStep?: string;
@@ -69,19 +71,10 @@ export function LeadInsights({
 
       <div className="grid gap-5 p-5 md:grid-cols-2">
         <div>
-          <p className="text-xs font-medium text-rc-fg-muted">Alasan prioritas</p>
-          {reasons.length ? (
-            <ul className="mt-2 flex flex-col gap-1.5">
-              {reasons.slice(0, 3).map((r) => (
-                <li key={r} className="flex gap-2 text-sm text-rc-fg">
-                  <CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-rc-accent" aria-hidden />
-                  {r}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-rc-fg-subtle">Belum diketahui</p>
-          )}
+          <p className="text-xs font-medium text-rc-fg-muted">Analisis skor</p>
+          <p className={cn("mt-2 text-sm leading-relaxed", analysis || reasons.length ? "text-rc-fg" : "text-rc-fg-subtle")}>
+            {analysis || (reasons.length ? `Sinyal yang ditemukan: ${reasons.slice(0, 3).join(", ").toLowerCase()}.` : "Belum diketahui")}
+          </p>
           <p className="mt-3 text-[11px] leading-relaxed text-rc-fg-subtle">
             Skor dari rubrik awal: niat membeli, nilai pesanan, tenggat, dan kebutuhan tindak lanjut. Bukan peluang beli yang sudah tervalidasi.
           </p>

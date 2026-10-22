@@ -229,7 +229,7 @@ export function useAgentRun(onFinished: () => Promise<void>) {
   const names = useRef<Record<string, string>>({});
 
   const start = useCallback(
-    async (targets: { id: string; name: string }[]) => {
+    async (targets: { id: string; name: string }[], queued = false) => {
       if (!targets.length) return;
       stop.current = false;
       names.current = Object.fromEntries(targets.map((t) => [t.id, t.name]));
@@ -240,7 +240,7 @@ export function useAgentRun(onFinished: () => Promise<void>) {
         setRun((r) => (r ? { ...r, index, current: null } : r));
         let event: BeEvent | null = null;
         try {
-          event = await api.reanalyze(id);
+          event = queued ? await api.event(id) : await api.reanalyze(id);
           setRun((r) => (r ? { ...r, current: event } : r));
           const deadline = Date.now() + TIMEOUT_MS;
           while (!FINAL.has(event.status) && Date.now() < deadline) {

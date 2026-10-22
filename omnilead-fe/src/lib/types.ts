@@ -50,6 +50,7 @@ export interface Activity {
   folder?: string;
   sentiment?: Sentiment;
   needs: LeadNeeds;
+  analysis: "none" | "queued" | "running" | "done";
 }
 
 export interface LeadNeeds {
@@ -221,6 +222,7 @@ export interface LeadProfile {
   scoreReasons: string[];
   scoredAt?: string;
   scoreRubric?: string;
+  scoreAnalysis?: string;
   needs: LeadNeeds;
   nextStep?: string;
   estimatedValue?: number | null;

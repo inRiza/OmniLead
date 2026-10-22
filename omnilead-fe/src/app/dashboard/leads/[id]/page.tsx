@@ -145,6 +145,7 @@ function LeadProfile() {
                   score={lead.score}
                   scoreValue={lead.scoreValue}
                   reasons={lead.scoreReasons}
+                  analysis={lead.scoreAnalysis}
                   needs={lead.needs}
                   estimatedValue={lead.estimatedValue}
                   nextStep={lead.nextStep}

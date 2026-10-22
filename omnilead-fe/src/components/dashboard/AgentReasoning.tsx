@@ -66,7 +66,8 @@ export function AgentReasoning({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const fresh = activity.eventStatus === "new" && !trace;
+  const queued = activity.analysis === "queued";
+  const fresh = activity.eventStatus === "new" && !trace && !queued;
   const working = activity.eventStatus === "processing" || (activity.eventStatus === "new" && !!trace);
   const lines: Line[] = [];
   const steps = trace?.activity ?? [];
@@ -86,7 +87,8 @@ export function AgentReasoning({
   trace?.guard.forEach((g, i) =>
     lines.push({ key: `g${i}`, text: g.passed ? `Pengecekan lolos: ${g.label.toLowerCase()}.` : `Perlu ditinjau: ${g.label.toLowerCase()}.`, tone: g.passed ? "ok" : "warn" }),
   );
-  if (fresh) lines.push({ key: "fresh", text: "Pesan ini diambil lewat sinkronisasi dan belum saya proses. Klik Jawab dengan agen bila ingin saya siapkan balasannya." });
+  if (queued) lines.push({ key: "queued", text: "Pesan ini sudah masuk antrean. Saya analisis setelah pesan sebelumnya selesai." });
+  if (fresh) lines.push({ key: "fresh", text: "Pesan ini belum saya proses. Klik Jawab dengan agen bila ingin saya siapkan balasannya." });
   else if (!working) {
     if (activity.eventStatus === "held") lines.push({ key: "end", text: "Agen sedang dijeda. Pesan ini saya proses setelah agen dilanjutkan.", tone: "warn" });
     else if (activity.eventStatus === "agent_error") lines.push({ key: "end", text: "Analisis saya gagal karena service agen tidak terjangkau.", tone: "bad" });
@@ -113,7 +115,7 @@ export function AgentReasoning({
       <header className="flex items-center justify-between gap-3 border-b border-rc-border px-5 py-3.5">
         <div>
           <h2 className="text-sm font-semibold text-rc-fg">Agen</h2>
-          <p className="text-xs text-rc-fg-muted">{fresh ? "Belum diproses" : working ? trace?.status || "Sedang berpikir" : "Jejak reasoning untuk pesan ini"}</p>
+          <p className="text-xs text-rc-fg-muted">{queued ? "Menunggu giliran" : fresh ? "Belum diproses" : working ? trace?.status || "Sedang berpikir" : "Jejak reasoning untuk pesan ini"}</p>
         </div>
         {fresh ? (
           <Button purpose="action" style="primary" className="gap-1.5" disabled={busy} onClick={() => void retry()}>

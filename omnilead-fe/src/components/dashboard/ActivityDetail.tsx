@@ -50,9 +50,7 @@ export function ActivityDetail({
               </p>
             </div>
           </div>
-          <Badge tone={status.tone} dot>
-            {status.label}
-          </Badge>
+          <Badge tone={status.tone}>{status.label}</Badge>
         </div>
         <div className="px-5">
           <p className="rounded-lg rounded-tl-none bg-rc-bg px-4 py-3 text-sm leading-relaxed text-rc-fg">{activity.text}</p>
@@ -61,15 +59,10 @@ export function ActivityDetail({
         <div className="flex flex-wrap gap-1.5 px-5 pt-4">
           <Meta label="Kanal" value={channelLabel[activity.channel]} />
           <Meta label="Asal" value={kindLabel[activity.kind]} />
-          <Meta label="Urgensi" value={cap(activity.urgency)} tone={urgencyTone[activity.urgency]} />
+          {activity.analysis === "done" ? <Meta label="Urgensi" value={cap(activity.urgency)} tone={urgencyTone[activity.urgency]} /> : null}
           {activity.sentiment ? <Meta label="Sentimen" value={cap(activity.sentiment)} tone={sentimentTone[activity.sentiment]} /> : null}
           {activity.folder ? <Meta label="Folder" value={activity.folder} /> : null}
         </div>
-        {activity.source === "openclaw" ? (
-          <p className="mx-5 mt-4 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">
-            Pesan ini dibaca dari layar Instagram lewat OpenClaw, bukan dari Meta. Nama bisa berupa nama tampilan, isi hanya pratinjau terakhir, dan balasan harus dikirim manual. Hubungkan Meta API untuk data resmi.
-          </p>
-        ) : null}
         {activity.reason ? (
           <div className="mx-5 mt-4 flex gap-2.5 border-t border-rc-border pt-4 text-sm text-rc-fg-muted">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-rc-accent" aria-hidden />
@@ -86,6 +79,7 @@ export function ActivityDetail({
             score={lead.score}
             scoreValue={lead.scoreValue}
             reasons={lead.scoreReasons}
+            analysis={lead.scoreAnalysis}
             needs={{ ...lead.needs, ...Object.fromEntries(Object.entries(activity.needs).filter(([, v]) => v !== undefined)) }}
             estimatedValue={lead.estimatedValue}
             nextStep={lead.nextStep}

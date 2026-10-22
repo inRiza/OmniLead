@@ -94,5 +94,5 @@ export const sentimentTone: Record<Sentiment, Tone> = { positif: "green", netral
 export const sourceMeta: Record<EventSource, { label: string; tone: Tone }> = {
   webhook: { label: "Webhook Meta", tone: "green" },
   meta_api: { label: "Meta API", tone: "green" },
-  openclaw: { label: "OpenClaw (layar)", tone: "amber" },
+  openclaw: { label: "Instagram", tone: "gray" },
 };

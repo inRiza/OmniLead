@@ -43,8 +43,7 @@ export function AgentResults({ actions, ...handlers }: { actions: ProposedAction
       </p>
     );
   return (
-    <ol className="relative flex flex-col gap-3 pl-5">
-      <span aria-hidden className="absolute top-3 bottom-3 left-[5px] w-px bg-rc-border" />
+    <ol className="flex flex-col gap-3">
       {actions.map((a) => (
         <ResultItem key={a.id} action={a} {...handlers} />
       ))}
@@ -98,11 +97,7 @@ function ResultItem({ action, onFeedback, onApprove, onSent, onRetry }: { action
   }
 
   return (
-    <li className="relative rounded-xl border border-rc-border bg-rc-surface p-4">
-      <span
-        aria-hidden
-        className={`absolute top-5 -left-5 h-2.5 w-2.5 rounded-full ring-4 ring-rc-surface ${status.tone === "green" ? "bg-emerald-500" : status.tone === "red" ? "bg-red-500" : status.tone === "amber" ? "bg-amber-500" : "bg-rc-accent"}`}
-      />
+    <li className="rounded-xl border border-rc-border bg-rc-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-rc-fg">{action.title}</p>
@@ -113,9 +108,7 @@ function ResultItem({ action, onFeedback, onApprove, onSent, onRetry }: { action
         </div>
         <span className="flex items-center gap-1.5">
           {delivery && action.status === "executed" ? <Badge tone={delivery.tone}>{delivery.label}</Badge> : null}
-          <Badge tone={status.tone} dot>
-            {status.label}
-          </Badge>
+          <Badge tone={status.tone}>{status.label}</Badge>
         </span>
       </div>
       {action.text ? <p className="mt-3 rounded-lg bg-rc-bg px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-rc-fg">{action.text}</p> : null}

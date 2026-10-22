@@ -102,6 +102,14 @@ export function adaptEvent(
     folder: typeof e.meta?.folder === "string" ? e.meta.folder : undefined,
     sentiment: e.triage?.sentiment,
     needs: asNeeds(e.triage?.entities),
+    analysis:
+      e.trace?.queued
+        ? "queued"
+        : e.status === "processing" || (e.status === "new" && e.trace?.run_id)
+          ? "running"
+          : e.status === "new" && !e.trace?.goal
+            ? "none"
+            : "done",
   };
 }
 
@@ -262,6 +270,7 @@ export function adaptLead(l: BeLead): LeadProfile {
     scoreReasons: l.score_reasons?.length ? l.score_reasons : (l.score_reason ?? "").split(";").map((r) => r.trim()).filter(Boolean),
     scoredAt: l.scored_at ?? undefined,
     scoreRubric: l.score_rubric || undefined,
+    scoreAnalysis: l.score_analysis || undefined,
     needs: asNeeds(l.needs),
     nextStep: l.next_step || undefined,
     estimatedValue: l.estimated_value ?? null,
