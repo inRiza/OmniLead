@@ -106,12 +106,12 @@ UI terkait: Lead detail (Profil yang digabung), Workspace (kartu lead).
 
 UI terkait: Lead (tabel dan pipeline), Lead detail, Beranda (Lead prioritas tinggi, Potensi closing).
 
-- [ ] **4.1 (P0) Endpoint ubah lead.** Belum ada `PATCH /leads/{id}`. Perlu untuk tahap, catatan internal, nilai peluang, alasan batal, dan tag. Executor juga mengabaikan `tags` di payload `crm_update`.
-- [ ] **4.2 (P0) Tahap Deal dan Batal dari alur nyata.**
+- [x] **4.1 (P0) Endpoint ubah lead.** Belum ada `PATCH /leads/{id}`. Perlu untuk tahap, catatan internal, nilai peluang, alasan batal, dan tag. Executor juga mengabaikan `tags` di payload `crm_update`. **Selesai 22 Okt:** `PATCH /leads/{id}` (tahap, catatan, nilai peluang, alasan batal, tag) dengan audit `lead_updated`; executor kini menerapkan `tags`. UI: kartu Kelola lead di detail lead. Tes: `tests/test_lead_update.py`.
+- [x] **4.2 (P0) Tahap Deal dan Batal dari alur nyata.** **Selesai 22 Okt:** intent `konfirmasi_bayar` dan `batal_pesan` di triage aturan dan LLM; agen mengusulkan Deal atau Batal tanpa mengirim ulang penawaran, dan balasan tidak menyatakan pembayaran sudah diterima. Di izin Hybrid, perubahan ke Deal/Batal tetap menunggu pemilik.
   - Agen hanya mengusulkan `baru`, `tertarik`, dan `penawaran`. `deal` dan `batal` hanya ada di seed, sehingga grafik Closing di Beranda kosong untuk bisnis asli.
   - Perlu deteksi closing, misalnya konfirmasi bayar atau DP, ditambah ubah manual lewat 4.1.
 - [ ] **4.3 (P1) Validasi tahap dan tahap Negosiasi.** Tahap disimpan sebagai string bebas. Jadikan enum, dan tambahkan `negosiasi` sesuai spesifikasi (Baru, Tertarik, Penawaran, Negosiasi, Deal, Batal).
-- [ ] **4.4 (P1) Field lead yang belum ada:**
+- [ ] **4.4 (P1) Field lead yang belum ada:** Sebagian 22 Okt: `closed_at` (diisi saat Deal/Batal), `estimated_value`, `notes` (satu teks), `lost_reason`, `tags` sudah ada. Sisa: `first_contact_at`, `last_interaction_at`, `next_follow_up_at`, `owner`, `notes[]`.
   - `first_contact_at`: sekarang UI memakai `created_at`.
   - `last_interaction_at`: sekarang UI memakai `updated_at`, yang ikut berubah saat agen berjalan.
   - `closed_at`: sekarang tanggal closing di grafik Beranda dihampiri dengan `updated_at` lead berstatus deal.
@@ -160,7 +160,7 @@ UI terkait: Audit (filter pelaku, hasil, kanal, pencarian, grup per hari).
   - Hasil (Berhasil, Disiapkan, Perlu tinjauan, Ditahan, Gagal) dan jenis pelaku (AI, Pengguna, Sistem) sekarang ditebak di frontend dari nama event dan string actor (`lib/adapt.ts` `AUDIT_OUTCOME`, `lib/ui.ts` `actorKind`).
 - [ ] **7.2 (P1) Konsistensi actor.** Nilai actor bercampur: ingest, system, agent, executor, scheduler, owner, dan email pengguna. Jalur merge memakai `owner` secara tetap. Standarkan ke `actor_type` ditambah `actor_id`.
 - [ ] **7.3 (P1) Filter dan pagination di server.** `GET /audit` hanya punya `limit` (maksimal 500) dan `channel`. Perlu filter lead, actor, event, outcome, rentang tanggal, pencarian, dan cursor.
-- [ ] **7.4 (P2) Label event lengkap.** Event `channel_connected`, `knowledge_saved`, dan `agent_channel_configured` belum punya label di `AUDIT_LABEL`. Lebih baik backend mengirim label yang mudah dibaca.
+- [x] **7.4 (P2) Label event lengkap.** Event `channel_connected`, `knowledge_saved`, dan `agent_channel_configured` belum punya label di `AUDIT_LABEL`. Lebih baik backend mengirim label yang mudah dibaca. **Selesai 22 Okt:** label untuk `channel_connected`, `channel_disconnected`, `knowledge_saved`, `knowledge_deleted`, `agent_channel_configured`, `instagram_notification`, `lead_updated`, `auto_approved`, `auto_held`.
 
 
 

@@ -3,6 +3,21 @@
 Bukti pengujian OmniLead per 22 Okt 2026. Semua angka di sini hasil eksekusi di mesin pengembang;
 kasus yang gagal tetap dicantumkan.
 
+## Tahap Deal dan Batal, ubah lead, label audit (22 Okt 2026, siang)
+
+| Yang diuji | Tes | Hasil |
+|---|---|---|
+| "sudah transfer DP 50% ya buat pesanan 60 pax" menjadi usulan tahap Deal; balasan berbunyi "kami cek" dan tidak mengirim ulang penawaran | `test_payment_confirmation_proposes_deal_without_claiming_receipt` | lulus |
+| "ga jadi pesan" menjadi usulan tahap Batal; "DP-nya berapa?" tidak dianggap pembayaran | `test_cancellation_proposes_batal_and_dp_question_is_not_payment` | lulus |
+| Izin Hybrid menahan perubahan ke Deal atau Batal | `test_hybrid_keeps_deal_and_batal_for_the_owner` | lulus |
+| `PATCH /leads/{id}`: field, `closed_at` diisi dan dikosongkan saat dibuka lagi, audit; tahap tak dikenal 422; lead tak ada 404 | `tests/test_lead_update.py` | lulus |
+| Executor menerapkan tahap, tag, dan `closed_at` dari `crm_update` | `test_crm_update_applies_stage_tags_and_closed_at` | lulus |
+
+Temuan saat pengujian: pesan konfirmasi bayar yang memuat kata "pesanan" ikut terdeteksi sebagai order, sehingga
+agen mengirim ulang penawaran dan follow-up. Diperbaiki: konfirmasi bayar dan pembatalan menutup jalur penawaran.
+
+Tes otomatis: BE **171**, agen **59**, FE **23** lulus; evalset aturan tetap 18/18, persona fashion 6/6.
+
 ## Izin agen dan perbaikan build develop (22 Okt 2026, siang)
 
 **Izin agen** (`omnilead-be/tests/test_autonomy.py`, 5 tes, agen tiruan):
@@ -284,8 +299,8 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 
 | Komponen | Cara uji | Hasil |
 |---|---|---|
-| Backend `omnilead-be` | `uv run pytest` | 167 lulus (22 Okt) |
-| Agen `omnilead-agent` | `uv run pytest` | 57 lulus (22 Okt) |
+| Backend `omnilead-be` | `uv run pytest` | 171 lulus (22 Okt) |
+| Agen `omnilead-agent` | `uv run pytest` | 59 lulus (22 Okt) |
 | Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
 | Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 17/18 pass^3, 13,3 detik per kasus (21 Okt: 14/18, 40,9 detik) |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |

@@ -14,7 +14,7 @@ Pembaruan 22 Okt 2026 (freeze kode 15.00):
   satu logo, navigasi bawah di HP, dan teks tanpa istilah internal.
 - [x] Izin agen (Selalu tanya (default), Hybrid, dan Percaya penuh) dengan pagar Guard, Jeda, dan batas platform; tombol Setujui/Edit/Salin & buka/Coba ulang di hasil kerja agen.
 - [x] Build `develop` dipulihkan setelah refactor dashboard (lockfile, context, halaman Agen).
-- [x] Tes: BE 167, agen 57, FE 23 lulus.
+- [x] Tes: BE 171, agen 59, FE 23 lulus.
 - [ ] Uji kanal nyata (Gmail, WhatsApp nomor uji, Instagram, Facebook): butuh kredensial dari tim.
 - [ ] Merge `feat/app-design-hitl` ke `develop`, deploy final, screenshot Revisions, tag `v1.0-freeze`.
 - [ ] README kontribusi anggota, bagian AI di SOURCES.md, deck seleksi, video cadangan.
@@ -44,8 +44,8 @@ Pembaruan login/koneksi akun 21 Okt 2026:
 - [ ] Aktivasi aplikasi dan kredensial provider oleh pengelola sekali, kemudian uji login/izin dengan akun nyata.
   Petunjuk: [docs/account-connections.md](docs/account-connections.md).
 
-Acuan: [PRD](docs/crm-agentic-multikanal-6.0.md) (bagian *Status Implementasi*), tiket di
-[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-6.0.md#lampiran-b-deploy-ke-google-cloud).
+Acuan: [PRD](docs/crm-agentic-multikanal-6.1.md) (bagian *Status Implementasi*), tiket di
+[docs/tiket-kanban.md](docs/tiket-kanban.md). Bukti uji dan batasnya: [TESTING.md](TESTING.md). Deploy: [Lampiran B PRD](docs/crm-agentic-multikanal-6.1.md#lampiran-b-deploy-ke-google-cloud).
 
 Per 21 Okt 2026 semua yang bisa dikerjakan tanpa kredensial platform **sudah ada di kode dan lulus tes** (BE 72,
 agen 38, FE 22). Yang tersisa hampir seluruhnya butuh akun, kredensial, atau orang: tercatat di bawah.

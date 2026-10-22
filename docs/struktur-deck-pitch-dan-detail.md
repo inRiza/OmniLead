@@ -1,6 +1,6 @@
 ---
 title: Struktur Dua Deck (Pitch 10 Menit dan Deck Detail)
-related: crm-agentic-multikanal-6.0.md, rencana-deck-demo-top10.md, demo-nyata.md
+related: crm-agentic-multikanal-6.1.md, rencana-deck-demo-top10.md, demo-nyata.md
 updated: 2026-10-22
 ---
 
@@ -42,7 +42,7 @@ Aturan untuk keduanya:
 | Evalset engine aturan | 18/18, 0,4 detik | [U] | TESTING.md |
 | Kasus berbahaya | 6/7 ditangani benar oleh Gemini; 0 kesalahan harga lolos ke pelanggan | [U] | TESTING.md |
 | Percepatan Gemini | 40,9 ke 13,3 detik per pesan, mutu sama | [U] | TESTING.md |
-| Tes otomatis | BE 167, agen 57, FE 23 lulus; uji E2E 36 cek | [U] | TESTING.md |
+| Tes otomatis | BE 171, agen 59, FE 23 lulus; uji E2E 36 cek | [U] | TESTING.md |
 | Harga pesaing | Qontak ±Rp750rb, SleekFlow Rp1,8 juta, Barantum AI mulai Rp1,797 juta per 3 user (tahunan) per bulan | [V] | Halaman harga masing-masing |
 | Biaya WhatsApp | Pesan layanan gratis 1.000 per nomor per bulan | [V] | Meta pricing |
 | Hipotesis harga OmniLead | Rp149–299rb per bulan untuk 1–3 user | [A] | PRD, perlu divalidasi |
@@ -120,7 +120,7 @@ dan sumber kecil di kaki slide.
 | B9 | Batas platform dipatuhi di kode | WA jendela 24 jam, private reply IG/FB 7 hari dan sekali per komentar, batas karakter; dicek executor sebelum kirim |
 | B10 | Keamanan dan privasi | Sesi HttpOnly, token kanal terenkripsi (Fernet) per bisnis, isolasi data per workspace, signature webhook, rahasia di Secret Manager, audit log setiap aksi; selaras UU PDP |
 | B11 | Evaluasi: metodologi dan hasil apa adanya | Evalset 18 kasus x 3 (pass^3), kategori happy/keamanan/batas platform/spam/informal; hasil aturan vs Gemini; kasus gagal S3 dan alasannya; catatan bahwa evalset adalah dev-set |
-| B12 | Pengujian berlapis | Tes unit/integrasi (BE 167, agen 57, FE 23), uji E2E lewat proxy (36 cek), verifikasi deploy dari luar, audit UI dengan screenshot |
+| B12 | Pengujian berlapis | Tes unit/integrasi (BE 171, agen 59, FE 23), uji E2E lewat proxy (36 cek), verifikasi deploy dari luar, audit UI dengan screenshot |
 | B13 | Deploy dan operasi | Perintah deploy, min/max instance, alasan SQLite untuk demo, rencana Firestore dan Cloud Scheduler |
 | B14 | Keterbatasan dan rencana teknis | Kanal belum diuji ke akun asli, App Review Meta, Firestore, penahan klaim di luar knowledge base (TSK-24), observabilitas |
 

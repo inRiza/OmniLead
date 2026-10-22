@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 6.0
+version: 6.1
 ---
 
 Label sumber data di dokumen ini:
@@ -17,6 +17,11 @@ Label sumber data di dokumen ini:
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
 - **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 6.1 (22 Okt 2026).** Tahap **Deal** dan **Batal** dari alur nyata: agen mengenali konfirmasi
+bayar atau DP dan pembatalan, lalu mengusulkan perubahan tahap (di izin Hybrid tetap menunggu pemilik karena
+berasal dari klaim pelanggan). Pemilik bisa mengubah tahap, nilai peluang, alasan batal, dan catatan lewat
+`PATCH /leads/{id}`; tanggal closing tersimpan. Label audit dilengkapi.
 
 **Versi 6.0 (22 Okt 2026).** Perubahan mayor pada prinsip kendali: **izin agen diatur pemilik**, seperti
 mode izin pada coding assistant. Tiga mode: **Selalu tanya** (default, setiap aksi menunggu persetujuan),
@@ -1490,7 +1495,7 @@ penyimpanan token terenkripsi, proxy FE, serta tombol Hubungkan/Hubungkan ulang/
 akun untuk Instagram, Gmail, dan WhatsApp. Aktivasi aplikasi provider sekali oleh
 pengelola dan verifikasi dengan akun nyata masih diperlukan. Setiap bisnis saat ini satu pemilik
 dan satu akun per kanal. Panduan: [account-connections.md](account-connections.md).
-Hasil pengujian terbaru (22 Okt 2026): BE 162, agen 57, FE 23; alur provider (termasuk Facebook dan
+Hasil pengujian terbaru (22 Okt 2026): BE 171, agen 59, FE 23; alur provider (termasuk Facebook dan
 nomor uji WhatsApp) diuji dengan HTTP tiruan. Uji E2E lokal lewat proxy FE: 36 cek lulus.
 
 Snapshot repo per 22 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bukti uji dan batasnya di
@@ -1522,6 +1527,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
 | Deploy Cloud Run (agen, BE, FE) | Must | Selesai | Berjalan di `asia-southeast2` dengan engine `adk`; link juri dan akun demo diuji dari luar. Cloud Scheduler belum dibuat |
 | Akun demo berisi katalog dan usulan nyata | Must | Selesai | Knowledge base katalog di 4 kanal; 4 pesan contoh dianalisis agen saat akun dibuat |
+| Tahap Deal/Batal dari percakapan dan ubah lead manual | Must | Selesai | Intent `konfirmasi_bayar` dan `batal_pesan`; `PATCH /leads/{id}`; `closed_at`; kartu Kelola lead; tes BE dan agen |
 | Izin agen: Selalu tanya, Hybrid, Percaya penuh | Must | Selesai | `autonomy.py`; pagar Guard, Jeda, dan batas platform di semua mode; 5 tes BE; pilihan di halaman Pengaturan, tombol Setujui/Edit/Salin & buka/Coba ulang di hasil kerja agen |
 | Koneksi nomor uji WhatsApp | Should | Selesai (tiruan) | Phone Number ID, WABA ID, token; diverifikasi ke Meta sebelum disimpan; 3 tes BE |
 | Persona P2 sebagai konfigurasi | Could | Selesai | `OMNILEAD_AGENT_PERSONA=fashion`: katalog, stok per ukuran, reseller, ambang skor; evalset 6 kasus |
