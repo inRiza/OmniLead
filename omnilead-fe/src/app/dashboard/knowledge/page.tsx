@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { BookOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { api, type ChannelAgentConfig, type KnowledgeBase, type KnowledgeProduct } from "@/lib/api";
 import { useAccount } from "@/components/dashboard/AccountProvider";
 import { Topbar } from "@/components/dashboard/Topbar";
@@ -8,18 +9,23 @@ import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Button } from "@/components/action/button";
 import { ChannelIcon } from "@/components/primitives";
 import { Select } from "@/components/ui/select";
-import type { Channel } from "@/lib/types";
-import { channelLabel } from "@/lib/ui";
-import { BookOpen, ChevronRight, Plus } from "lucide-react";
 import { SettingsDialog } from "@/components/dashboard/SettingsDialog";
+import type { Channel } from "@/lib/types";
+import { channelLabel, cn } from "@/lib/ui";
 
 const channels: Channel[] = ["instagram", "facebook", "whatsapp", "email"];
 const tones: Record<ChannelAgentConfig["tone"], string> = {
-  friendly: "Ramah & hangat", professional: "Profesional", casual: "Santai", concise: "Singkat & jelas", custom: "Gaya sendiri",
+  friendly: "Ramah & hangat",
+  professional: "Profesional",
+  casual: "Santai",
+  concise: "Singkat & jelas",
+  custom: "Gaya sendiri",
 };
 const emptyConfig: ChannelAgentConfig = { knowledge_base_ids: [], tone: "friendly", custom_tone: "" };
-const field = "mt-1 block w-full rounded-lg border border-rc-border bg-rc-bg px-3 py-2 text-base text-rc-fg outline-none focus:border-rc-primary";
 const emptyEditor = { id: "", name: "", content: "", products: [] as KnowledgeProduct[] };
+const field =
+  "mt-1.5 block min-h-10 w-full rounded-md border border-rc-border bg-rc-surface px-3 py-2 text-sm text-rc-fg outline-none placeholder:text-rc-fg-subtle focus:border-rc-accent focus:ring-2 focus:ring-rc-accent/15";
+const section = "rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6";
 
 export default function KnowledgePage() {
   const { session } = useAccount();
@@ -27,126 +33,459 @@ export default function KnowledgePage() {
   const [settings, setSettings] = useState<Record<string, ChannelAgentConfig>>({});
   const [editor, setEditor] = useState(emptyEditor);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
+  const [sourcesFor, setSourcesFor] = useState<Channel | null>(null);
+  const [customFor, setCustomFor] = useState<Channel | null>(null);
+  const [draft, setDraft] = useState<ChannelAgentConfig>(emptyConfig);
   const [loaded, setLoaded] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [dirtyChannels, setDirtyChannels] = useState<string[]>([]);
   const business = session.user?.business ?? "bisnis Anda";
 
   const load = useCallback(async () => {
     try {
       const [documents, configs] = await Promise.all([api.knowledgeBases(), api.agentChannelSettings()]);
-      setKnowledge(documents); setSettings(configs); setLoaded(true);
-    } catch (e) { setError(e instanceof Error ? e.message : "Gagal memuat pengetahuan"); }
+      setKnowledge(documents);
+      setSettings(configs);
+      setLoaded(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal memuat pengetahuan");
+    }
   }, []);
-  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
 
-  async function run(action: () => Promise<void>) {
+  useEffect(() => {
+    const timer = setTimeout(() => void load(), 0);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  async function run(key: string, action: () => Promise<void>) {
     if (busy) return;
-    setBusy(true); setError(""); setNotice("");
-    try { await action(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Gagal menyimpan perubahan"); }
-    finally { setBusy(false); }
+    setBusy(key);
+    setError("");
+    setNotice("");
+    try {
+      await action();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menyimpan perubahan");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  function updateChannel(channel: string, patch: Partial<ChannelAgentConfig>) {
-    setSettings((current) => ({ ...current, [channel]: { ...(current[channel] ?? emptyConfig), ...patch } }));
-    setDirtyChannels((current) => current.includes(channel) ? current : [...current, channel]);
+  function config(channel: Channel) {
+    return settings[channel] ?? emptyConfig;
+  }
+
+  async function saveChannel(channel: Channel, next: ChannelAgentConfig, message: string) {
+    const saved = await api.saveAgentChannelSettings(channel, next);
+    setSettings((current) => ({ ...current, [channel]: saved }));
+    setNotice(message);
+  }
+
+  function changeTone(channel: Channel, tone: ChannelAgentConfig["tone"]) {
+    if (tone === "custom") {
+      setDraft({ ...config(channel), tone });
+      setCustomFor(channel);
+      return;
+    }
+    void run(`tone-${channel}`, () => saveChannel(channel, { ...config(channel), tone }, `Tone ${channelLabel[channel]} diubah menjadi ${tones[tone]}.`));
   }
 
   async function saveKnowledge(event: FormEvent) {
     event.preventDefault();
-    await run(async () => {
+    await run("editor", async () => {
       const saved = await api.saveKnowledge({ name: editor.name, content: editor.content, products: editor.products }, editor.id || undefined);
       setKnowledge((current) => [...current.filter((document) => document.id !== saved.id), saved]);
       setEditor(emptyEditor);
       setEditorOpen(false);
-      setNotice("Pengetahuan disimpan. Pilih sumber ini pada kanal di bawah agar digunakan agen.");
+      setNotice("Pengetahuan disimpan. Pilih sumber ini pada kanal di bawah agar dipakai agen.");
     });
   }
 
   function product(index: number, patch: Partial<KnowledgeProduct>) {
-    setEditor((current) => ({ ...current, products: current.products.map((item, i) => i === index ? { ...item, ...patch } : item) }));
+    setEditor((current) => ({ ...current, products: current.products.map((item, i) => (i === index ? { ...item, ...patch } : item)) }));
   }
 
-  return <>
-    <Topbar title="Pengetahuan & Tone" subtitle="Kelola sumber informasi dan gaya balasan agen bisnis ini" />
-    <ContentInset className="rc-scrollbar overflow-y-auto">
-      <div className="flex w-full mx-auto w-full max-w-6xl flex-col gap-5 pt-1 pb-10">
-        <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
-          <p className="text-sm font-medium text-rc-fg-muted">PENGETAHUAN BISNIS</p>
-          <h2 className="mt-1 break-words text-xl font-semibold">Agen untuk {business}</h2>
-          <p className="mt-2 text-base text-rc-fg-muted">Simpan informasi tentang {business}, lalu pilih pengetahuan yang digunakan pada setiap kanal. Semua sumber di halaman ini hanya tersedia untuk bisnis ini.</p>
-          <div className="mt-4 flex flex-wrap gap-2"><Button purpose="nav" href="/dashboard/integrasi">Kelola akun & kanal</Button><Button purpose="nav" href="/dashboard/inbox">Coba lewat Tempel pesan</Button></div>
-        </section>
-        {error && <p role="alert" className="rounded-lg border border-rc-danger p-4 text-sm text-rc-danger">{error}</p>}
-        {notice && <p role="status" className="rounded-lg border border-rc-border bg-rc-surface-hover p-4 text-sm">{notice}</p>}
-        {!loaded && <p role="status" className="text-sm text-rc-fg-muted">Memuat pengetahuan…</p>}
+  return (
+    <>
+      <Topbar title="Pengetahuan & Tone" subtitle="Atur informasi bisnis dan gaya balasan agen di setiap kanal" />
+      <ContentInset className="rc-scrollbar overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-4 pb-10 md:p-6">
+          {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          {notice && <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
 
-          <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="break-words text-lg font-semibold">Pengetahuan {business}</h2><p className="mt-1 text-sm text-rc-fg-muted">FAQ, katalog produk, layanan, atau kebijakan bisnis.</p></div><Button purpose="action" style="primary" className="gap-2" disabled={busy || !loaded} onClick={() => { setError(""); setEditor(emptyEditor); setEditorOpen(true); }}><Plus size={16} />Tambah pengetahuan</Button></div>
-            {!knowledge.length && loaded && <p className="mt-4 text-sm text-rc-fg-muted">Belum ada pengetahuan. Mulai dengan profil bisnis atau daftar pertanyaan pelanggan.</p>}
-            <ul className="mt-5 flex flex-col gap-3">{knowledge.map((document) => <li key={document.id} className="rounded-lg border border-rc-border p-4">
-              <div className="flex flex-wrap items-center gap-3"><BookOpen size={20} className="shrink-0 text-rc-fg-muted" /><div className="min-w-0 flex-1"><h3 className="break-words text-base font-medium">{document.name}</h3><p className="mt-1 text-sm text-rc-fg-muted">{document.content.length.toLocaleString("id-ID")} karakter, {document.products.length} produk, {channels.filter((channel) => settings[channel]?.knowledge_base_ids.includes(document.id)).length} kanal</p></div>
-              <div className="flex gap-2"><Button purpose="action" disabled={busy} aria-label={`Edit ${document.name}`} onClick={() => { setError(""); setEditor({ id: document.id, name: document.name, content: document.content, products: document.products.map((item) => ({ ...item })) }); setEditorOpen(true); }}>Edit</Button><Button purpose="action" disabled={busy} aria-label={`Hapus ${document.name}`} className="border-red-200/90 bg-red-50 text-rc-danger hover:border-red-300 hover:bg-red-100" onClick={() => setDeleting(document.id)}>Hapus</Button></div></div>
-              {deleting === document.id && <div className="mt-3 text-sm"><p>Hapus sumber ini dan lepaskan dari semua kanal?</p><div className="mt-2 flex gap-2"><Button purpose="action" disabled={busy} onClick={() => void run(async () => { await api.deleteKnowledge(document.id); await load(); if (editor.id === document.id) setEditor(emptyEditor); setDeleting(null); setDirtyChannels([]); setNotice("Pengetahuan dihapus dan dilepas dari kanal."); })}>Ya, hapus</Button><Button purpose="action" onClick={() => setDeleting(null)}>Batal</Button></div></div>}
-            </li>)}</ul>
+          <section className={section}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-rc-fg">Pengetahuan bisnis</h2>
+                <p className="mt-2 text-sm text-rc-fg-muted">
+                  FAQ, katalog produk, layanan, atau kebijakan {business}. Hanya dipakai agen untuk bisnis ini.
+                </p>
+              </div>
+              <Button
+                purpose="action"
+                style="primary"
+                className="min-h-10 gap-1.5"
+                disabled={busy !== null || !loaded}
+                onClick={() => {
+                  setError("");
+                  setEditor(emptyEditor);
+                  setEditorOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Tambah pengetahuan
+              </Button>
+            </div>
+
+            {!loaded ? <p role="status" className="mt-5 text-sm text-rc-fg-muted">Memuat pengetahuan…</p> : null}
+            {loaded && !knowledge.length ? (
+              <p className="mt-5 rounded-lg border border-dashed border-rc-border-strong px-4 py-8 text-center text-sm text-rc-fg-muted">
+                Belum ada pengetahuan. Mulai dengan profil bisnis atau daftar pertanyaan pelanggan.
+              </p>
+            ) : null}
+
+            <div className="mt-5 divide-y divide-rc-border">
+              {knowledge.map((document) => {
+                const used = channels.filter((channel) => config(channel).knowledge_base_ids.includes(document.id));
+                return (
+                  <div key={document.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rc-accent-soft text-rc-accent">
+                          <BookOpen className="h-[18px] w-[18px]" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-semibold text-rc-fg">{document.name}</p>
+                          <p className="mt-1 text-sm text-rc-fg-muted">
+                            {document.content.length.toLocaleString("id-ID")} karakter, {document.products.length} produk,{" "}
+                            {used.length ? `dipakai di ${used.map((c) => channelLabel[c]).join(", ")}` : "belum dipakai kanal mana pun"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          purpose="action"
+                          className="gap-1.5"
+                          disabled={busy !== null}
+                          aria-label={`Edit ${document.name}`}
+                          onClick={() => {
+                            setError("");
+                            setEditor({ id: document.id, name: document.name, content: document.content, products: document.products.map((item) => ({ ...item })) });
+                            setEditorOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden />
+                          Edit
+                        </Button>
+                        <button
+                          type="button"
+                          aria-label={`Hapus ${document.name}`}
+                          disabled={busy !== null}
+                          onClick={() => setDeleting(deleting === document.id ? null : document.id)}
+                          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-rc-fg-muted transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    {deleting === document.id ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+                        Hapus sumber ini dan lepaskan dari semua kanal?
+                        <div className="flex gap-2">
+                          <Button purpose="action" onClick={() => setDeleting(null)}>
+                            Batal
+                          </Button>
+                          <Button
+                            purpose="action"
+                            disabled={busy !== null}
+                            className="border-red-600 bg-red-600 text-white hover:bg-red-700"
+                            onClick={() =>
+                              void run(`delete-${document.id}`, async () => {
+                                await api.deleteKnowledge(document.id);
+                                await load();
+                                setDeleting(null);
+                                setNotice("Pengetahuan dihapus dan dilepas dari semua kanal.");
+                              })
+                            }
+                          >
+                            Ya, hapus
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </section>
 
-        <SettingsDialog open={editorOpen} onOpenChange={setEditorOpen} busy={busy} wide title={`${editor.id ? "Edit" : "Tambah"} pengetahuan untuk ${business}`} description="Beri nama sesuai topiknya, misalnya FAQ pengiriman atau katalog produk. Setelah disimpan, pilih sumber ini pada kanal yang akan menggunakannya.">
-          <form onSubmit={saveKnowledge} className="flex flex-col gap-4">
-            {error && <p role="alert" className="text-sm text-rc-danger">{error}</p>}
-            <label className="text-sm font-medium">Nama / topik pengetahuan<input required value={editor.name} maxLength={100} onChange={(e) => setEditor({ ...editor, name: e.target.value })} placeholder="Contoh: FAQ pengiriman, katalog produk, kebijakan retur" className={field} /></label>
-            <label className="text-sm font-medium">Impor Markdown atau teks<input type="file" accept=".md,.txt,.markdown,text/plain,text/markdown" className="mt-2 block w-full text-sm text-rc-fg-muted file:mr-3 file:rounded-md file:border file:border-rc-border file:bg-rc-surface file:px-3 file:py-2 file:text-rc-fg" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (!/\.(md|txt|markdown)$/i.test(file.name) || file.size > 100_000) { setError("Pilih file .md atau .txt maksimal 100 KB."); e.target.value = ""; return; }
-              void file.text().then((content) => { setEditor((current) => ({ ...current, name: current.name || file.name.replace(/\.[^.]+$/, ""), content: content.replace(/^\uFEFF/, "") })); setError(""); }).catch(() => setError("File tidak dapat dibaca."));
-              e.target.value = "";
-            }} /><span className="mt-1 block text-sm text-rc-fg-muted">Maksimal 100 KB. Isi file dapat Anda edit sebelum disimpan.</span></label>
-            <label className="text-sm font-medium">Isi pengetahuan<textarea value={editor.content} maxLength={100_000} rows={10} onChange={(e) => setEditor({ ...editor, content: e.target.value })} placeholder={"# Jam operasional\nSenin–Sabtu, pukul 09.00–17.00 WIB.\n\n# Pengiriman\nPesanan dikirim setiap hari kerja."} className={`${field} resize-y font-mono`} /></label>
-            <div><h3 className="text-sm font-semibold">Produk & harga (opsional)</h3><p className="mt-1 text-sm text-rc-fg-muted">Tambahkan harga produk agar agen dapat membuat penawaran dan menghitung total dengan tepat.</p></div>
-            {editor.products.map((item, index) => <fieldset key={index} className="grid grid-cols-2 gap-3 rounded-lg border border-rc-border p-3">
-              <legend className="px-1 text-sm">Produk {index + 1}</legend>
-              <label className="col-span-2 text-sm">Nama produk<input value={item.name} onChange={(e) => product(index, { name: e.target.value })} required maxLength={120} className={field} /></label>
-              <label className="text-sm">Harga (Rp)<input type="number" value={item.unit_price} onChange={(e) => product(index, { unit_price: Number(e.target.value) })} min={0} max={1_000_000_000} step={1} required className={field} /></label>
-              <label className="text-sm">Satuan<input value={item.unit} onChange={(e) => product(index, { unit: e.target.value })} required maxLength={30} placeholder="pcs / box / pax" className={field} /></label>
-              <label className="text-sm">Minimal pesanan<input type="number" value={item.min_order} onChange={(e) => product(index, { min_order: Number(e.target.value) })} min={1} max={1_000_000} step={1} required className={field} /></label>
-              <div className="flex items-end"><Button purpose="action" onClick={() => setEditor({ ...editor, products: editor.products.filter((_, i) => i !== index) })}>Hapus produk</Button></div>
-            </fieldset>)}
-            <div><Button purpose="action" className="gap-2" disabled={editor.products.length >= 30 || busy} onClick={() => setEditor({ ...editor, products: [...editor.products, { name: "", unit_price: 0, unit: "pcs", min_order: 1 }] })}><Plus size={16} />Tambah produk</Button></div>
-            <div className="flex flex-wrap justify-end gap-2 border-t border-rc-border pt-4"><Button purpose="action" disabled={busy} onClick={() => setEditorOpen(false)}>Batal</Button><Button purpose="action" style="primary" type="submit" disabled={busy || !loaded}>{busy ? "Menyimpan…" : "Simpan pengetahuan"}</Button></div>
+          <section className={section}>
+            <h2 className="text-lg font-semibold text-rc-fg">Tone dan sumber per kanal</h2>
+            <p className="mt-2 text-sm text-rc-fg-muted">Perubahan tersimpan langsung dan berlaku untuk balasan berikutnya.</p>
+            <div className="mt-5 divide-y divide-rc-border">
+              {channels.map((channel) => {
+                const c = config(channel);
+                const sources = knowledge.filter((document) => c.knowledge_base_ids.includes(document.id));
+                return (
+                  <div key={channel} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4 first:pt-0 last:pb-0">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <ChannelIcon channel={channel} size="md" />
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold text-rc-fg">{channelLabel[channel]}</p>
+                        <p className="mt-1 truncate text-sm text-rc-fg-muted" title={sources.map((s) => s.name).join(", ")}>
+                          {sources.length ? sources.map((s) => s.name).join(", ") : "Belum ada sumber pengetahuan"}
+                          {c.tone === "custom" && c.custom_tone ? `. Gaya: ${c.custom_tone}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        purpose="action"
+                        disabled={busy !== null || !loaded}
+                        onClick={() => {
+                          setError("");
+                          setDraft(c);
+                          setSourcesFor(channel);
+                        }}
+                      >
+                        Sumber ({sources.length})
+                      </Button>
+                      <Select
+                        label={`Tone ${channelLabel[channel]}`}
+                        className="w-44"
+                        align="right"
+                        value={c.tone}
+                        disabled={busy !== null || !loaded}
+                        onChange={(tone) => changeTone(channel, tone)}
+                        options={(Object.entries(tones) as [ChannelAgentConfig["tone"], string][]).map(([value, label]) => ({ value, label }))}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </ContentInset>
+
+      <SettingsDialog
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        busy={busy === "editor"}
+        wide
+        title={editor.id ? "Edit pengetahuan" : "Tambah pengetahuan"}
+        description="Beri nama sesuai topiknya, misalnya FAQ pengiriman atau katalog produk. Setelah disimpan, pilih sumber ini pada kanal yang memakainya."
+      >
+        <form onSubmit={saveKnowledge} className="flex flex-col gap-5">
+          <label className="block text-sm font-medium">
+            Nama atau topik
+            <input
+              required
+              value={editor.name}
+              maxLength={100}
+              onChange={(e) => setEditor({ ...editor, name: e.target.value })}
+              placeholder="Contoh: FAQ pengiriman, katalog produk, kebijakan retur"
+              className={field}
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            Impor Markdown atau teks
+            <input
+              type="file"
+              accept=".md,.txt,.markdown,text/plain,text/markdown"
+              className="mt-1.5 block w-full text-sm text-rc-fg-muted file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-rc-border file:bg-rc-surface file:px-3 file:py-2 file:text-rc-fg"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!/\.(md|txt|markdown)$/i.test(file.name) || file.size > 100_000) {
+                  setError("Pilih file .md atau .txt maksimal 100 KB.");
+                  e.target.value = "";
+                  return;
+                }
+                void file
+                  .text()
+                  .then((content) => {
+                    setEditor((current) => ({ ...current, name: current.name || file.name.replace(/\.[^.]+$/, ""), content: content.replace(/^﻿/, "") }));
+                    setError("");
+                  })
+                  .catch(() => setError("File tidak dapat dibaca."));
+                e.target.value = "";
+              }}
+            />
+            <span className="mt-1 block text-xs font-normal text-rc-fg-muted">Maksimal 100 KB. Isinya bisa diedit sebelum disimpan.</span>
+          </label>
+          <label className="block text-sm font-medium">
+            Isi pengetahuan
+            <textarea
+              value={editor.content}
+              maxLength={100_000}
+              rows={10}
+              onChange={(e) => setEditor({ ...editor, content: e.target.value })}
+              placeholder={"# Jam operasional\nSenin sampai Sabtu, pukul 09.00 sampai 17.00 WIB.\n\n# Pengiriman\nPesanan dikirim setiap hari kerja."}
+              className={cn(field, "resize-y font-mono")}
+            />
+          </label>
+
+          <div className="border-t border-rc-border pt-5">
+            <p className="text-sm font-semibold text-rc-fg">Produk dan harga</p>
+            <p className="mt-1 text-sm text-rc-fg-muted">Opsional. Dipakai agen untuk membuat penawaran dan menghitung total dengan tepat.</p>
+            <div className="mt-4 flex flex-col gap-3">
+              {editor.products.map((item, index) => (
+                <div key={index} className="grid grid-cols-2 gap-3 rounded-lg bg-rc-bg p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                  <label className="col-span-2 text-xs font-medium text-rc-fg-muted sm:col-span-1">
+                    Nama produk
+                    <input value={item.name} onChange={(e) => product(index, { name: e.target.value })} required maxLength={120} className={field} />
+                  </label>
+                  <label className="text-xs font-medium text-rc-fg-muted">
+                    Harga (Rp)
+                    <input type="number" value={item.unit_price} onChange={(e) => product(index, { unit_price: Number(e.target.value) })} min={0} max={1_000_000_000} step={1} required className={field} />
+                  </label>
+                  <label className="text-xs font-medium text-rc-fg-muted">
+                    Satuan
+                    <input value={item.unit} onChange={(e) => product(index, { unit: e.target.value })} required maxLength={30} placeholder="pcs, box, pax" className={field} />
+                  </label>
+                  <label className="text-xs font-medium text-rc-fg-muted">
+                    Minimal
+                    <input type="number" value={item.min_order} onChange={(e) => product(index, { min_order: Number(e.target.value) })} min={1} max={1_000_000} step={1} required className={field} />
+                  </label>
+                  <button
+                    type="button"
+                    aria-label={`Hapus produk ${index + 1}`}
+                    onClick={() => setEditor({ ...editor, products: editor.products.filter((_, i) => i !== index) })}
+                    className="inline-flex h-10 w-10 cursor-pointer items-center justify-center justify-self-end rounded-md text-rc-fg-muted hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button
+              purpose="action"
+              className="mt-3 gap-1.5"
+              disabled={editor.products.length >= 30 || busy !== null}
+              onClick={() => setEditor({ ...editor, products: [...editor.products, { name: "", unit_price: 0, unit: "pcs", min_order: 1 }] })}
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Tambah produk
+            </Button>
+          </div>
+
+          {error && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <div className="flex justify-end gap-2 border-t border-rc-border pt-4">
+            <Button purpose="action" disabled={busy === "editor"} onClick={() => setEditorOpen(false)}>
+              Batal
+            </Button>
+            <Button purpose="action" style="primary" type="submit" disabled={busy === "editor" || !loaded}>
+              {busy === "editor" ? "Menyimpan…" : "Simpan pengetahuan"}
+            </Button>
+          </div>
+        </form>
+      </SettingsDialog>
+
+      {sourcesFor ? (
+        <SettingsDialog
+          open
+          onOpenChange={(open) => !open && setSourcesFor(null)}
+          busy={busy === "sources"}
+          title={`Sumber pengetahuan ${channelLabel[sourcesFor]}`}
+          description="Pilih pengetahuan yang boleh dipakai agen saat membalas di kanal ini."
+        >
+          <div className="flex flex-col gap-5">
+            {knowledge.length ? (
+              <div className="divide-y divide-rc-border rounded-lg border border-rc-border">
+                {knowledge.map((document) => {
+                  const on = draft.knowledge_base_ids.includes(document.id);
+                  return (
+                    <label key={document.id} className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 hover:bg-rc-surface-hover">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-rc-fg">{document.name}</span>
+                        <span className="block text-xs text-rc-fg-muted">{document.products.length} produk</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            knowledge_base_ids: e.target.checked
+                              ? [...draft.knowledge_base_ids, document.id]
+                              : draft.knowledge_base_ids.filter((id) => id !== document.id),
+                          })
+                        }
+                        className="h-4 w-4 shrink-0 accent-[var(--rc-accent)]"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-rc-fg-muted">Tambahkan pengetahuan terlebih dahulu.</p>
+            )}
+            <div className="flex justify-end gap-2 border-t border-rc-border pt-4">
+              <Button purpose="action" disabled={busy === "sources"} onClick={() => setSourcesFor(null)}>
+                Batal
+              </Button>
+              <Button
+                purpose="action"
+                style="primary"
+                disabled={busy === "sources"}
+                onClick={() =>
+                  void run("sources", async () => {
+                    await saveChannel(sourcesFor, draft, `Sumber pengetahuan ${channelLabel[sourcesFor]} disimpan.`);
+                    setSourcesFor(null);
+                  })
+                }
+              >
+                {busy === "sources" ? "Menyimpan…" : "Simpan"}
+              </Button>
+            </div>
+          </div>
+        </SettingsDialog>
+      ) : null}
+
+      {customFor ? (
+        <SettingsDialog
+          open
+          onOpenChange={(open) => !open && setCustomFor(null)}
+          busy={busy === "custom"}
+          title={`Gaya balasan ${channelLabel[customFor]}`}
+          description="Tulis gaya balasan yang diinginkan. Agen mengikutinya untuk balasan berikutnya di kanal ini."
+        >
+          <form
+            className="flex flex-col gap-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void run("custom", async () => {
+                await saveChannel(customFor, { ...draft, tone: "custom" }, `Gaya balasan ${channelLabel[customFor]} disimpan.`);
+                setCustomFor(null);
+              });
+            }}
+          >
+            <label className="block text-sm font-medium">
+              Gaya balasan
+              <textarea
+                value={draft.custom_tone}
+                onChange={(e) => setDraft({ ...draft, custom_tone: e.target.value })}
+                rows={4}
+                maxLength={500}
+                required
+                placeholder="Contoh: sapa pelanggan dengan Kak, tanpa emoji, maksimal dua paragraf."
+                className={field}
+              />
+            </label>
+            <div className="flex justify-end gap-2 border-t border-rc-border pt-4">
+              <Button purpose="action" disabled={busy === "custom"} onClick={() => setCustomFor(null)}>
+                Batal
+              </Button>
+              <Button purpose="action" style="primary" type="submit" disabled={busy === "custom" || !draft.custom_tone.trim()}>
+                {busy === "custom" ? "Menyimpan…" : "Simpan gaya"}
+              </Button>
+            </div>
           </form>
         </SettingsDialog>
-
-        <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
-          <h2 className="text-lg font-semibold">Pengaturan agen per kanal</h2>
-          <p className="mt-2 text-sm text-rc-fg-muted">Pilih Atur untuk menentukan pengetahuan dan tone {business} di setiap kanal.</p>
-          <div className="mt-5 divide-y divide-rc-border">{channels.map((channel) => {
-            const config = settings[channel] ?? emptyConfig;
-            const sources = knowledge.filter((document) => config.knowledge_base_ids.includes(document.id));
-            return <div key={channel} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0"><ChannelIcon channel={channel} /><div className="min-w-0 flex-1"><h3 className="text-base font-semibold">{channelLabel[channel]}</h3><p className="mt-1 text-sm text-rc-fg-muted">{sources.length ? `${sources.length} sumber pengetahuan` : "Belum ada pengetahuan"}, {tones[config.tone]}</p>{sources.length > 0 && <p className="mt-1 truncate text-sm text-rc-fg-muted" title={sources.map((source) => source.name).join(", ")}>{sources.map((source) => source.name).join(", ")}</p>}{dirtyChannels.includes(channel) && <p className="mt-1 text-sm text-rc-fg-muted">Perubahan belum disimpan</p>}</div><Button purpose="action" className="shrink-0 gap-1" aria-label={`Atur ${channelLabel[channel]}`} disabled={busy || !loaded} onClick={() => { setError(""); setActiveChannel(channel); }}>Atur<ChevronRight size={16} /></Button></div>;
-          })}</div>
-        </section>
-        {activeChannel && <SettingsDialog open wide onOpenChange={(open) => { if (!open) setActiveChannel(null); }} busy={busy} title={`Atur agen ${channelLabel[activeChannel]}`} description={`Pengaturan untuk ${business}. Pilih sumber pengetahuan dan gaya balasan yang akan digunakan pada draf ${channelLabel[activeChannel]}.`}>
-          {(() => {
-            const channel = activeChannel;
-            const config = settings[channel] ?? emptyConfig;
-            return <form className="flex flex-col gap-5" onSubmit={(e) => {
-              e.preventDefault(); void run(async () => { const saved = await api.saveAgentChannelSettings(channel, config); setSettings((current) => ({ ...current, [channel]: saved })); setDirtyChannels((current) => current.filter((id) => id !== channel)); setActiveChannel(null); setNotice(`Pengaturan ${channelLabel[channel]} untuk ${business} disimpan. Berlaku untuk draf berikutnya.`); });
-            }}>
-              {error && <p role="alert" className="text-sm text-rc-danger">{error}</p>}
-              <fieldset><legend className="mb-2 text-sm font-medium">Sumber pengetahuan</legend>{knowledge.length ? knowledge.map((document) => <label key={document.id} className="mb-2 flex items-start gap-2 text-sm"><input type="checkbox" checked={config.knowledge_base_ids.includes(document.id)} onChange={(e) => updateChannel(channel, { knowledge_base_ids: e.target.checked ? [...config.knowledge_base_ids, document.id] : config.knowledge_base_ids.filter((id) => id !== document.id) })} className="mt-1" /><span>{document.name}</span></label>) : <p className="text-sm text-rc-fg-muted">Tambahkan knowledge base terlebih dahulu.</p>}</fieldset>
-              <div className="text-sm font-medium">Tone {channelLabel[channel]}<Select className="mt-1" label={`Tone ${channelLabel[channel]}`} value={config.tone} onChange={(tone) => updateChannel(channel, { tone })} options={(Object.entries(tones) as [ChannelAgentConfig["tone"], string][]).map(([value, label]) => ({ value, label }))} /></div>
-              {config.tone === "custom" && <label className="text-sm font-medium">Gaya balasan yang diinginkan<textarea value={config.custom_tone} onChange={(e) => updateChannel(channel, { custom_tone: e.target.value })} rows={3} maxLength={500} required placeholder="Contoh: Sapa pelanggan dengan kak, tanpa emoji, maksimal dua paragraf." className={field} /></label>}
-              <div className="flex justify-end gap-2 border-t border-rc-border pt-4"><Button purpose="action" disabled={busy} onClick={() => setActiveChannel(null)}>Tutup</Button><Button purpose="action" style="primary" type="submit" disabled={busy || !loaded}>{busy ? "Menyimpan…" : `Simpan ${channelLabel[channel]}`}</Button></div>
-            </form>;
-          })()}
-        </SettingsDialog>}
-      </div>
-    </ContentInset>
-  </>;
+      ) : null}
+    </>
+  );
 }
