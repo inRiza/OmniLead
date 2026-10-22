@@ -152,6 +152,15 @@ def test_history_and_tool_results_are_sent_to_model_in_order():
     assert "DATA TIDAK TEPERCAYA" in sent["config"].system_instruction
 
 
+def test_bulk_reply_and_paging_tools_are_declared_and_explained():
+    assert clean_args("siapkan_balasan_massal", {"sasaran": "semua_lead", "instruksi": "tawarkan merch", "mulai": 20, "x": "y"}) == {
+        "sasaran": "semua_lead", "instruksi": "tawarkan merch", "mulai": "20"}
+    assert clean_args("cari_lead", {"mulai": 8}) == {"mulai": "8"}
+    prompt = system_instruction(ChatStepRequest(turns=[ChatTurn(role="user", text="halo")]))
+    assert "siapkan_balasan_massal" in prompt and "24 jam" in prompt and "mulai=`berikutnya`" in prompt
+    assert not any("kirim" in name for name in TOOLS)  # tetap tanpa tool kirim
+
+
 def test_string_tool_result_is_wrapped():
     contents = build_contents([ChatTurn(role="tool_result", tool="daftar_menunggu", result="kosong")])
     assert contents[0].parts[0].function_response.response == {"hasil": "kosong"}

@@ -131,6 +131,8 @@ def execute_task(store, task_id: str, tools, agent) -> dict:
                 used_tool = True
             if event["type"] == "message":
                 task["result"] = event["text"]
+                if event.get("truncated"):
+                    failed = True  # pekerjaan terhenti oleh pengaman; perlu dilanjutkan atau dicek pemilik
             save()
         if not used_tool:
             task["result"] = "Belum ada tool yang dijalankan. " + task["result"]

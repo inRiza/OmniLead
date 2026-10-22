@@ -87,6 +87,27 @@ konfigurasi sebelumnya menyebabkan draf selalu jatuh ke template. Guard pesan
 browser lama/tanpa timestamp tepercaya mencegah balasan otomatis pada arsip.
 Permintaan eksplisit draf melewati pengiriman otomatis.
 
+### Pekerjaan panjang dan banyak prospek
+
+Chat tidak lagi berhenti setelah 5 langkah. Yang ada hanya pengaman terhadap loop liar,
+karena pada Akses penuh tool bisa mengirim pesan (`omnilead-be/src/omnilead/chat.py`):
+
+- Panggilan identik (tool dan argumen sama) dijalankan paling banyak `MAX_REPEAT` (2) kali.
+- Batas atas longgar `MAX_STEPS` (40) dan anggaran waktu `MAX_SECONDS` (540 dtk, di bawah timeout FE).
+- Bila pengaman tercapai, chat berakhir dengan ringkasan kemajuan (event `message` dengan
+  `truncated: true`), bukan error. Pemilik mengetik "lanjutkan". Tugas terjadwal yang terpotong
+  berstatus `blocked`, bukan `done`.
+- Konteks langkah lama dipadatkan menjadi satu catatan; hanya 8 langkah terakhir dikirim utuh,
+  supaya request tidak melewati batas 40 turn pada validasi service agen.
+- Tool yang tidak dikenal dikembalikan ke model sebagai hasil gagal (bukan menghentikan chat).
+- `cari_lead` memakai halaman 20 prospek dengan argumen `mulai` dan field `berikutnya`.
+- `siapkan_balasan_massal` memproses banyak prospek dalam satu langkah dengan kemajuan per
+  prospek, tetap melewati Guard dan mode izin. Satu prospek gagal tidak menghentikan batch;
+  hasilnya dikelompokkan per status (disiapkan, terkirim, sudah dibalas, tanpa pesan masuk,
+  perlu tinjauan, gagal) dan memuat `masih_antre` untuk dilanjutkan dengan `mulai`.
+- Agen hanya membalas pesan masuk. Prospek tanpa DM masuk dilaporkan, tidak dihubungi duluan,
+  dan balasan untuk pesan di luar 24 jam tetap ditahan. DM pembuka/broadcast belum ada.
+
 ## Verifikasi lokal
 
 - Backend: 62 tes terarah untuk sesi, jadwal, chat, freshness, otonomi dan sync.

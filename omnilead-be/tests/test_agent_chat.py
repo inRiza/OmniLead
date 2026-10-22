@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from omnilead.agent_client import AgentClient
 from omnilead.api import deps
-from omnilead.chat import MAX_STEPS, UNTRUSTED
+from omnilead.chat import MAX_REPEAT, UNTRUSTED
 from omnilead.ingest import IngestService
 from omnilead.main import create_app
 from omnilead.models import Channel, Event, Lead, Sender
@@ -161,15 +161,148 @@ def test_paused_agent_blocks_actions(make, store):
     assert events[3]["ok"] is False and "dijeda" in events[3]["summary"]
 
 
-def test_step_limit_and_unknown_tool_do_not_loop(make):
+def distinct_calls(n):
+    return [tool("ringkas_lead", lead=f"Tak Ada {i}") for i in range(n)]
+
+
+def test_long_runs_are_not_capped_at_a_handful_of_steps(make):
+    client, agent = make(distinct_calls(12) + [final("Semua selesai.")])
+    events = chat(client, "cek semua prospek")
+    assert sum(e["type"] == "step" for e in events) == 12
+    assert events[-1] == {"type": "message", "text": "Semua selesai.", "thoughts": ""}
+
+
+def test_runaway_identical_calls_end_with_a_summary_not_an_error(make):
     client, agent = make([tool("daftar_menunggu")] * 10)
     events = chat(client, "terus")
-    assert sum(e["type"] == "step" for e in events) == MAX_STEPS
-    assert events[-1]["type"] == "error" and "berhenti" in events[-1]["message"]
+    assert sum(e["type"] == "step" for e in events) == MAX_REPEAT
+    last = events[-1]
+    assert last["type"] == "message" and last["truncated"] is True
+    assert "berulang" in last["text"] and "lanjutkan" in last["text"]
+    assert not any(e["type"] == "error" for e in events)
 
-    client, _ = make([tool("kirim_semua", to="x")])
+
+def test_step_ceiling_ends_with_progress_summary(make, monkeypatch):
+    monkeypatch.setattr("omnilead.chat.MAX_STEPS", 3)
+    client, _ = make(distinct_calls(10))
+    events = chat(client, "cek")
+    assert sum(e["type"] == "step" for e in events) == 3
+    last = events[-1]
+    assert last["type"] == "message" and last["truncated"] is True
+    assert "3 langkah" in last["text"] and "lanjutkan" in last["text"]
+
+
+def test_time_budget_ends_gracefully(make, monkeypatch):
+    monkeypatch.setattr("omnilead.chat.MAX_SECONDS", 0)
+    client, _ = make(distinct_calls(3))
+    events = chat(client, "cek")
+    assert [e["type"] for e in events] == ["message"] and events[0]["truncated"] is True
+    assert "waktu" in events[0]["text"].lower()
+
+
+def test_context_is_compacted_so_long_runs_stay_within_the_agent_turn_limit(make):
+    client, agent = make(distinct_calls(25) + [final("ok")])
+    events = chat(client, "cek semua")
+    assert events[-1]["type"] == "message" and not events[-1].get("truncated")
+    assert max(len(call["turns"]) for call in agent.chat_calls) <= 30  # batas validasi agen: 40
+    last = agent.chat_calls[-1]["turns"]
+    assert last[0]["role"] == "user" and last[0]["text"] == "cek semua"
+    assert any(t["role"] == "user" and "Langkah sebelumnya" in t["text"] for t in last)
+    assert all(len(t.get("text", "")) <= 2000 for t in last)
+
+
+def test_unknown_tool_is_reported_back_to_the_model_without_running(make):
+    client, agent = make([tool("kirim_semua", to="x"), final("Maaf, saya tidak punya tool itu.")])
     events = chat(client, "kirim promo")
-    assert [e["type"] for e in events] == ["error"]  # tool tidak dikenal tidak dijalankan
+    assert [e["type"] for e in events] == ["message"]
+    fed_back = agent.chat_calls[1]["turns"][-1]
+    assert fed_back["role"] == "tool_result" and fed_back["result"]["ok"] is False
+
+    client, _ = make([tool("kirim_semua"), tool("kirim_lagi"), tool("kirim_terus"), final("x")])
+    events = chat(client, "kirim promo")
+    assert [e["type"] for e in events] == ["error"]  # model terus meminta tool yang tidak ada
+
+
+def test_cari_lead_pages_through_every_lead(make, store):
+    for i in range(25):
+        lead(store, f"l{i:02d}", f"Pelanggan {i:02d}", score=100 - i)
+        message(store, f"l{i:02d}", eid=f"e{i:02d}")
+    client, _ = make([tool("cari_lead"), tool("cari_lead", mulai="20"), final("ok")])
+    events = chat(client, "cari semua lead")
+    first, second = events[1], events[3]
+    assert len(first["data"]["daftar"]) == 20 and first["data"]["berikutnya"] == 20
+    assert "mulai=20" in first["summary"]
+    assert [d["nama"] for d in second["data"]["daftar"]] == [f"Pelanggan {i:02d}" for i in range(20, 25)]
+    assert second["data"]["berikutnya"] is None and "mulai=" not in second["summary"]
+
+
+def seed_prospects(store, n=3):
+    settings = store.get_settings()
+    settings.autonomy = "hybrid"  # tes tidak boleh mengirim apa pun
+    store.save_settings(settings)
+    for i in range(n):
+        lead(store, f"p{i}", f"Prospek {i}", score=90 - i, handles=[f"instagram:prospek{i}"])
+        message(store, f"p{i}", text="harga merch berapa?", eid=f"pe{i}")
+
+
+def test_bulk_reply_handles_every_prospect_in_one_step(make, store):
+    seed_prospects(store, 3)
+    lead(store, "z0", "Tanpa Pesan")  # tidak punya DM masuk: tidak bisa dibalas
+    client, agent = make([tool("siapkan_balasan_massal", sasaran="semua_lead", instruksi="tawarkan merch 10-30 ribu"),
+                          final("Selesai.")])
+    events = chat(client, "DM semua lead")
+    assert [e["type"] for e in events if e["type"] != "tool_progress"] == ["step", "tool_result", "message"]
+    data = next(e for e in events if e["type"] == "tool_result")["data"]
+    assert data["jumlah"] == {"disiapkan": 3, "tanpa_pesan_masuk": 1}
+    assert data["masih_antre"] == 0 and len(agent.analyze_calls) == 3
+    assert all("Instruksi pemilik untuk balasan ini: tawarkan merch 10-30 ribu" in c["preferences"] for c in agent.analyze_calls)
+    rows = {r["untuk"]: r for r in data["daftar"]}
+    assert rows["Tanpa Pesan"]["status"] == "tanpa_pesan_masuk"
+    assert not any(a.status.value == "executed" for a in store.list_actions())
+
+
+def test_bulk_reply_resumes_where_it_stopped(make, store, monkeypatch):
+    monkeypatch.setattr("omnilead.chat_tools.BATCH_MAX", 2)
+    seed_prospects(store, 5)
+    client, agent = make([tool("siapkan_balasan_massal", sasaran="semua_lead", instruksi="promo"),
+                          tool("siapkan_balasan_massal", sasaran="semua_lead", instruksi="promo", mulai="2"),
+                          tool("siapkan_balasan_massal", sasaran="semua_lead", instruksi="promo", mulai="4"),
+                          final("ok")])
+    events = chat(client, "DM semua lead")
+    results = [e for e in events if e["type"] == "tool_result"]
+    assert [r["data"]["diproses"] for r in results] == [2, 2, 1]
+    assert [r["data"]["masih_antre"] for r in results] == [3, 1, 0]
+    assert "mulai=2" in results[0]["summary"] and "mulai=" not in results[2]["summary"]
+    assert len(agent.analyze_calls) == 5
+
+
+def test_bulk_reply_survives_one_prospect_failing(make, store, monkeypatch):
+    from omnilead.chat_tools import ChatTools
+    seed_prospects(store, 3)
+    original = ChatTools.siapkan_balasan
+
+    def flaky(self, lead, instruksi=""):
+        if lead == "p1":
+            raise RuntimeError("boom")
+        return original(self, lead, instruksi)
+
+    monkeypatch.setattr(ChatTools, "siapkan_balasan", flaky)
+    client, _ = make([tool("siapkan_balasan_massal", sasaran="semua_lead"), final("ok")])
+    events = chat(client, "DM semua lead")
+    data = next(e for e in events if e["type"] == "tool_result")["data"]
+    assert data["jumlah"]["disiapkan"] == 2 and data["jumlah"]["gagal"] == 1
+    assert {r["untuk"]: r["status"] for r in data["daftar"]}["Prospek 1"] == "gagal"
+
+
+def test_bulk_reply_is_blocked_while_paused(make, store):
+    s = store.get_settings()
+    s.paused = True
+    store.save_settings(s)
+    seed_prospects(store, 2)
+    client, _ = make([tool("siapkan_balasan_massal", sasaran="semua_lead"), final("dijeda")])
+    events = chat(client, "DM semua lead")
+    result = next(e for e in events if e["type"] == "tool_result")
+    assert result["ok"] is False and "dijeda" in result["summary"]
 
 
 def test_agent_down_is_reported_not_crashed(make):

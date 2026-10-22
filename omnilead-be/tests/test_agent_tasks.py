@@ -84,6 +84,15 @@ def test_failed_tool_marks_task_blocked(store, monkeypatch):
     assert execute_task(store, task["id"], None, None)["status"] == "blocked"
 
 
+def test_task_cut_short_by_the_safety_stop_is_blocked_not_done(store, monkeypatch):
+    task = create_task(store, payload())
+    monkeypatch.setattr("omnilead.chat.run_chat", lambda *a, **k: iter([
+        {"type": "tool_result", "tool": "x", "ok": True},
+        {"type": "message", "text": 'Batas pengaman tercapai. Ketik "lanjutkan".', "truncated": True}]))
+    out = execute_task(store, task["id"], None, None)
+    assert out["status"] == "blocked" and "Batas pengaman" in out["result"]
+
+
 def test_clock_claims_due_occurrence_once(store, monkeypatch):
     task = create_task(store, payload(schedule="once", at=datetime.now(timezone.utc) + timedelta(hours=1)))
     monkeypatch.setattr("omnilead.chat.run_chat", lambda *a, **k: iter([{"type": "tool_result", "tool": "x", "ok": True}, {"type": "message", "text": "Selesai"}]))
