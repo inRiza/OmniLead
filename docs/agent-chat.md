@@ -67,6 +67,11 @@ sync tidak memutus pengiriman atau login manual. Error cleanup tidak mengubah
 pengiriman yang sudah terkonfirmasi menjadi gagal. Error operasi browser yang
 dikenali diteruskan; exception lain dicatat di log dengan jenis gangguannya.
 
+Kolom balasan komentar diresolusi ulang setelah snapshot berubah saat mengetik:
+ref OpenClaw lama dapat menunjuk tautan/tombol lain. Isi editor diverifikasi
+sebelum Enter. Pengiriman komentar diverifikasi dari komentar terbit milik akun
+bisnis, bukan teks draf di editor; balasan identik yang sudah terbit tidak diulang.
+
 Nama toko per kanal berasal dari field bisnis yang disimpan pemilik, lalu
 fallback ke nama eksplisit dan tidak ambigu dalam KB terpilih. Tidak memakai
 nama workspace sebagai merek. Fakta produk/harga mengikuti KB/katalog.

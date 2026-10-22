@@ -182,7 +182,8 @@ class SocialBrowser:
     def inspect(self):
         self.text = POST_PAGE if self.page.startswith("post") else ""
         if self.page == "post_reply":
-            self.text += f'- textbox "Add a comment…" [ref=e50] value="{SocialBrowser.value}"\n'
+            editor = "e50" if SocialBrowser.value == "@sari.home " else "e51"
+            self.text += f'- textbox "Add a comment…" [ref={editor}] value="{SocialBrowser.value}"\n'
 
         self.refs = {
             "inbox": {"e22": {"role": "textbox", "name": "Search"}},
@@ -192,6 +193,9 @@ class SocialBrowser:
             "post": {"e34": {"role": "button", "name": "Reply"}},
             "post_reply": {"e50": {"role": "textbox", "name": "Add a comment…"}},
         }.get(self.page, {})
+        if self.page == "post_reply" and SocialBrowser.value != "@sari.home ":
+            self.refs = {"e50": {"role": "link", "name": "Other post"},
+                         "e51": {"role": "textbox", "name": "Add a comment…"}}
 
     def act(self, kind, **fields):
         if kind == "click":
@@ -203,7 +207,8 @@ class SocialBrowser:
             SocialBrowser.pressed.append(fields["key"])
             SocialBrowser.typed.append(("e50", SocialBrowser.value, True))
         if kind == "type":
-            if fields["ref"] == "e50":
+            if fields["ref"] in ("e50", "e51"):
+                assert self.refs[fields["ref"]]["role"] == "textbox", "Cannot type into a stale ref"
                 slow = fields.get("slowly") and SocialBrowser.appends
                 SocialBrowser.value = SocialBrowser.value + fields["text"] if slow else fields["text"]
                 return
@@ -212,7 +217,12 @@ class SocialBrowser:
                 self.page = "searched"
 
     def read_text(self):
-        return POST_PAGE + " ".join(t for _, t, _ in SocialBrowser.typed)
+        snapshot = POST_PAGE + " ".join(t for _, t, _ in SocialBrowser.typed)
+        if self.page == "post_reply" and SocialBrowser.pressed:
+            snapshot += ('\n    - link "dapurbunda.id" [url=https://www.instagram.com/dapurbunda.id/]\n'
+                         '      - link "now" [url=https://www.instagram.com/p/DQabc123/c/1901/]\n'
+                         f'      - StaticText "{SocialBrowser.value}"\n')
+        return snapshot
 
     def close(self):
         pass
