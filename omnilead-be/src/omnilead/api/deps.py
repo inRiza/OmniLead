@@ -79,7 +79,17 @@ def get_platform_http():
     return httpx.Client(timeout=25, follow_redirects=False)
 
 
+def _test_mode(workspace: str) -> bool:
+    from omnilead.test_mode import test_mode_active
+    return workspace != "legacy" and test_mode_active(get_settings(), store_for_workspace(workspace))
+
+
 def registry_for_workspace(workspace: str) -> Registry:
+    if _test_mode(workspace):
+        from omnilead.test_mode import env_bindings
+        registry = Registry(get_settings(), client=get_platform_http())
+        registry.account_ids = env_bindings(get_settings())
+        return registry
     settings = get_settings() if workspace == "legacy" else get_oauth().connector_settings(workspace)
     def invalid(channel):
         provider = "gmail" if channel.value == "email" else channel.value
@@ -92,6 +102,9 @@ def registry_for_workspace(workspace: str) -> Registry:
 
 def account_bindings(workspace: str) -> dict:
     from omnilead.oauth import CHANNELS
+    if _test_mode(workspace):
+        from omnilead.test_mode import env_bindings
+        return env_bindings(get_settings())
     bindings = {}
     for provider, channel in CHANNELS.items():
         data = get_accounts().connection(workspace, provider)

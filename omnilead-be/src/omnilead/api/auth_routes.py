@@ -11,6 +11,7 @@ from omnilead.accounts import COOKIE, MANAGERS, ROLES, digest, hash_password, pa
 from omnilead.api.deps import current_user, get_accounts, get_oauth, store_for_workspace
 from omnilead.config import get_settings
 from omnilead.oauth import OAuthError, PROVIDERS
+from omnilead.test_mode import env_accounts, env_statuses, test_mode_active
 
 router = APIRouter(tags=["accounts"])
 log = logging.getLogger(__name__)
@@ -406,14 +407,57 @@ def _provider(provider: str) -> str:
     return provider
 
 
+def _in_test_mode(workspace: str) -> bool:
+    return test_mode_active(get_settings(), store_for_workspace(workspace))
+
+
+def _no_test_mode(workspace: str) -> None:
+    if _in_test_mode(workspace):
+        raise HTTPException(status_code=409, detail="Mode pengujian aktif. Matikan mode pengujian untuk menghubungkan akun asli.")
+
+
+class TestModeRequest(BaseModel):
+    enabled: bool
+
+
+def _test_mode_payload(workspace: str) -> dict:
+    settings = get_settings()
+    return {"available": settings.test_mode_enabled, "enabled": _in_test_mode(workspace),
+            "accounts": [{"provider": a["provider"], "channel": a["channel"], "configured": a["configured"]}
+                         for a in env_accounts(settings).values()]}
+
+
+@router.get("/test-mode")
+def get_test_mode(user=Depends(current_user)) -> dict:
+    return _test_mode_payload(user["workspace_id"])
+
+
+@router.put("/test-mode")
+def set_test_mode(body: TestModeRequest, user=Depends(current_user)) -> dict:
+    _role(user, user["workspace_id"], MANAGERS)
+    if body.enabled and not get_settings().test_mode_enabled:
+        raise HTTPException(status_code=403, detail="Mode pengujian belum diizinkan di server ini (OMNILEAD_TEST_MODE_ENABLED).")
+    store = store_for_workspace(user["workspace_id"])
+    settings = store.get_settings()
+    settings.test_mode = body.enabled
+    store.save_settings(settings)
+    store.audit("test_mode_on" if body.enabled else "test_mode_off",
+                "Mode pengujian memakai akun dari .env" if body.enabled else "Kembali memakai akun yang dihubungkan",
+                actor=user["email"])
+    return _test_mode_payload(user["workspace_id"])
+
+
 @router.get("/connections")
 def connections(user=Depends(current_user)) -> list[dict]:
+    if _in_test_mode(user["workspace_id"]):
+        return env_statuses(get_settings())
     return get_oauth().statuses(user["workspace_id"])
 
 
 @router.post("/connections/{provider}/start")
 def connect(provider: str, request: Request, user=Depends(current_user)) -> dict:
     _role(user, user["workspace_id"], MANAGERS)
+    _no_test_mode(user["workspace_id"])
     try:
         return get_oauth().start(_provider(provider), user["workspace_id"], request.cookies[COOKIE])
     except OAuthError as exc:
@@ -514,6 +558,7 @@ def facebook_select(body: FacebookSelection, request: Request, user=Depends(curr
 @router.delete("/connections/{provider}")
 def disconnect(provider: str, user=Depends(current_user)) -> dict:
     _role(user, user["workspace_id"], MANAGERS)
+    _no_test_mode(user["workspace_id"])
     get_oauth().disconnect(user["workspace_id"], _provider(provider))
     store_for_workspace(user["workspace_id"]).audit("channel_disconnected", provider, actor=user["email"], channel="email" if provider == "gmail" else provider)
     return {"ok": True}
