@@ -145,6 +145,8 @@ export interface ProposedAction {
   internal: boolean;
   isPublic: boolean;
   error?: string;
+  deliveryStatus?: "sent" | "delivered" | "read" | "failed" | null;
+  feedback?: { rating: "good" | "bad"; reason: string; at: string }[];
   /** Data tambahan dari agen (mis. merge: source/target, bukti, keyakinan). */
   payload: Record<string, unknown>;
 }

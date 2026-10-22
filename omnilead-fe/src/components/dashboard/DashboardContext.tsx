@@ -93,6 +93,7 @@ interface DashboardState {
   setAutonomy: (value: "manual" | "hybrid" | "auto") => Promise<void>;
   approve: (id: string, editedText?: string) => Promise<void>;
   reject: (id: string, reason: string) => Promise<void>;
+  feedback: (id: string, rating: "good" | "bad", reason?: string) => Promise<void>;
   retry: (id: string) => Promise<void>;
   markSent: (id: string) => Promise<void>;
 }
@@ -216,6 +217,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setAutonomy: (v) => mutate(() => api.patchSettings({ autonomy: v })),
     approve: (id, text) => mutate(() => api.approve(id, text)),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),
+    feedback: (id, rating, reason) => mutate(() => api.feedback(id, rating, reason)),
     retry: (id) => mutate(() => api.retry(id)),
     markSent: (id) => mutate(() => api.markSent(id)),
   };

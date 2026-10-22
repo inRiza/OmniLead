@@ -123,3 +123,8 @@ class AuthAwareConnector(ChannelConnector):
 
     def watch(self):
         return self._call("watch")
+
+    def user_profile(self, user_id):
+        if not hasattr(self.inner, "user_profile"):
+            return {}
+        return self._call("user_profile", user_id)

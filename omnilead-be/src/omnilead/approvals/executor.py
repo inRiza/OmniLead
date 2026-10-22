@@ -12,7 +12,7 @@
 
 from datetime import datetime, timedelta, timezone
 
-from omnilead.connectors.base import ActionNotSupported, ConnectorError
+from omnilead.connectors.base import ActionNotSupported, ConnectorError, TransientError
 from omnilead.connectors.registry import Registry
 from omnilead.approvals.merge import build_snapshot
 from omnilead.models import EXTERNAL_KINDS, Action, ActionKind, ActionStatus, set_stage
@@ -25,6 +25,7 @@ DONE = (
     ActionStatus.AWAITING_MANUAL_SEND,
 )
 RUNNABLE = (ActionStatus.APPROVED, ActionStatus.EDITED)
+RETRY_BACKOFF = (timedelta(minutes=1), timedelta(minutes=5), timedelta(minutes=30))
 
 WRITE_ACTION = {
     ActionKind.COMMENT_POST: "post_comment",
@@ -68,8 +69,9 @@ class Executor:
             self._log(action, "blocked_channel", f"Kanal {action.channel.value} dimatikan")
             raise ChannelDisabled(f"Kanal {action.channel.value} dimatikan")
 
-        sent_last_hour = self._store.count_audit_since(
-            "executed", action.channel.value, timedelta(hours=1)
+        sent_last_hour = sum(
+            self._store.count_audit_since(kind, action.channel.value, timedelta(hours=1))
+            for kind in ("executed", "dry_run")
         )
         if sent_last_hour >= settings.rate_limit_per_hour:
             self._log(action, "blocked_rate_limit", f"{sent_last_hour} pengiriman/jam")
@@ -105,19 +107,26 @@ class Executor:
             self._log(action, "dry_run", "Dry-run: tidak dikirim ke platform", actor="executor")
             return action
 
+        now = datetime.now(timezone.utc)
         action.status = ActionStatus.EXECUTING
+        action.attempts += 1
+        action.last_attempt_at = now
+        action.next_retry_at = None
         self._store.save_action(action)
         try:
             ref = self._send(connector, action)
+        except TransientError as exc:
+            return self._fail(action, str(exc), retry=True)
         except (ConnectorError, ActionNotSupported) as exc:
-            action.status = ActionStatus.FAILED
-            action.error = str(exc)
-            self._store.save_action(action)
-            self._log(action, "execute_failed", str(exc), actor="executor")
-            return action
+            return self._fail(action, str(exc))
+        except Exception as exc:
+            return self._fail(action, f"Kesalahan tak terduga saat mengirim: {exc}")
 
         action.status = ActionStatus.EXECUTED
         action.result_ref = ref
+        action.error = None
+        action.delivery_status = "sent"
+        action.delivery_at = now
         self._store.save_action(action)
         self._log(action, "executed", f"ref={ref}", actor="executor")
         return action
@@ -183,6 +192,11 @@ class Executor:
         for field in ("phones", "emails", "handles"):
             merged = getattr(dst, field)
             merged += [v for v in getattr(src, field) if v not in merged]
+        confidence = float(action.payload.get("confidence") or 1.0)
+        merged_at = datetime.now(timezone.utc).isoformat()
+        for key, meta in src.identity_sources.items():
+            dst.identity_sources.setdefault(key, {**meta, "source": "merge", "confidence": confidence,
+                                                  "merged_from": src.id, "at": merged_at})
         dst.name = dst.name or src.name
         dst.company = dst.company or src.company
         if (src.score or -1) > (dst.score or -1):
@@ -197,21 +211,28 @@ class Executor:
         action.status = ActionStatus.EXECUTED
         action.result_ref = f"merged:{src.id}->{dst.id}"
         self._store.save_action(action)
+        auto = bool(action.payload.get("_auto"))
         self._store.audit(
             "identity_merged",
-            f"Disetujui pemilik: {src.name} digabung ke {dst.name}. Bukti: {evidence}",
+            f"{'Digabung otomatis oleh agen' if auto else 'Disetujui pemilik'}: {src.name} digabung ke {dst.name}. Bukti: {evidence}",
             action.id,
-            actor="owner",
+            actor="agent" if auto else "owner",
             channel=action.channel.value,
             lead_id=dst.id,
         )
         return action
 
-    def _fail(self, action: Action, error: str) -> Action:
+    def _fail(self, action: Action, error: str, retry: bool = False) -> Action:
         action.status = ActionStatus.FAILED
         action.error = error
+        detail = error
+        if retry and action.attempts <= len(RETRY_BACKOFF):
+            action.next_retry_at = datetime.now(timezone.utc) + RETRY_BACKOFF[action.attempts - 1]
+            detail = f"{error}. Dicoba ulang otomatis pukul {action.next_retry_at.strftime('%H:%M')} UTC"
+        else:
+            action.next_retry_at = None
         self._store.save_action(action)
-        self._log(action, "execute_failed", error, actor="executor")
+        self._log(action, "execute_failed", detail, actor="executor")
         return action
 
     def _log(self, action: Action, event: str, detail: str, actor: str = "executor") -> None:

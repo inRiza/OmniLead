@@ -6,6 +6,7 @@ from functools import lru_cache
 from fastapi import Depends, Header, HTTPException, Request
 
 from omnilead.agent_client import AgentClient, google_id_token_provider
+from omnilead.approvals.auto import AutoSender
 from omnilead.approvals.executor import Executor
 from omnilead.approvals.queue import ApprovalQueue
 from omnilead.config import get_settings
@@ -120,15 +121,30 @@ def get_agent_client() -> AgentClient:
     return AgentClient(s.agent_url, s.agent_api_key, s.agent_timeout_s, token_provider=provider)
 
 
-def get_ingest(store=Depends(get_store), queue=Depends(get_queue), agent=Depends(get_agent_client),
-               executor=Depends(get_executor)) -> IngestService:
-    return IngestService(store, queue, agent, executor)
+def get_auto_sender(store=Depends(get_store), queue=Depends(get_queue), executor=Depends(get_executor)) -> AutoSender:
+    return AutoSender(store, queue, executor)
+
+
+def get_ingest(request: Request, store=Depends(get_store), queue=Depends(get_queue), agent=Depends(get_agent_client),
+               executor=Depends(get_executor), auto=Depends(get_auto_sender)) -> IngestService:
+    workspace = workspace_for_request(request)
+    profile = (lambda: get_accounts().workspace_profile(workspace)) if workspace != "legacy" else None
+    return IngestService(store, queue, agent, executor, on_proposed=auto.handle, profile=profile)
+
+
+def auto_sender_for_workspace(workspace: str) -> AutoSender:
+    store = store_for_workspace(workspace)
+    queue = ApprovalQueue(store, account_bindings=account_bindings(workspace))
+    return AutoSender(store, queue, Executor(registry_for_workspace(workspace), store))
 
 
 def ingest_for_workspace(workspace: str) -> IngestService:
     store = store_for_workspace(workspace)
-    return IngestService(store, ApprovalQueue(store, account_bindings=account_bindings(workspace)), get_agent_client(),
-                         Executor(registry_for_workspace(workspace), store))
+    queue = ApprovalQueue(store, account_bindings=account_bindings(workspace))
+    executor = Executor(registry_for_workspace(workspace), store)
+    auto = AutoSender(store, queue, executor)
+    profile = (lambda: get_accounts().workspace_profile(workspace)) if workspace != "legacy" else None
+    return IngestService(store, queue, get_agent_client(), executor, on_proposed=auto.handle, profile=profile)
 
 
 def require_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:

@@ -37,6 +37,6 @@ def auto_approvable(action: Action, event: Event | None, mode: Mode) -> bool:
         return False
     if event is not None and event.status == "review":
         return False
-    if not action.guard or any(note.status != "pass" for note in action.guard):
+    if action.guard and any(note.status != "pass" for note in action.guard):
         return False
     return mode == "auto" or is_low_risk(action, event)

@@ -22,6 +22,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from omnilead.api.deps import (
     get_agent_client,
+    get_auto_sender,
     get_executor,
     get_ingest,
     get_queue,
@@ -36,11 +37,15 @@ from omnilead.api.schemas import (
     PasteImageRequest,
     ApproveRequest,
     ChannelSettingsRequest,
+    FeedbackRequest,
+    MergeRequest,
     PasteRequest,
     PauseRequest,
     RejectRequest,
 )
+from omnilead.approvals.auto import AutoSender
 from omnilead.approvals.executor import ChannelDisabled, Executor, Paused, RateLimited
+from omnilead.dedup import scan_duplicates
 from omnilead.approvals.merge import can_undo, undo_merge
 from omnilead.approvals.queue import ApprovalQueue, InvalidTransition
 from omnilead.connectors import handoff
@@ -51,6 +56,7 @@ from omnilead.analysis_state import visible_analysis_state
 from omnilead.scheduler import daily_summary
 from omnilead.models import (
     Action,
+    ActionKind,
     ActionStatus,
     AppSettings,
     AuditEntry,
@@ -283,13 +289,49 @@ def update_lead(lead_id: str, patch: LeadPatch, store: Store = Depends(get_store
     return lead
 
 
+@router.post("/leads/find-duplicates")
+def find_duplicates(
+    store: Store = Depends(get_store),
+    queue: ApprovalQueue = Depends(get_queue),
+    auto: AutoSender = Depends(get_auto_sender),
+) -> dict:
+    proposed = scan_duplicates(store, queue, on_proposed=auto.handle)
+    return {"proposed": len(proposed), "merged": sum(1 for a in proposed if a.status == ActionStatus.EXECUTED),
+            "actions": [a.id for a in proposed]}
+
+
+@router.post("/leads/{lead_id}/merge", response_model=Action)
+def merge_leads(
+    lead_id: str,
+    req: MergeRequest,
+    store: Store = Depends(get_store),
+    queue: ApprovalQueue = Depends(get_queue),
+    executor: Executor = Depends(get_executor),
+) -> Action:
+    target, source = store.get_lead(lead_id), store.get_lead(req.source_lead_id)
+    if target is None or source is None:
+        raise NOT_FOUND
+    if target.id == source.id:
+        raise HTTPException(status_code=409, detail="Tidak bisa menggabungkan profil dengan dirinya sendiri")
+    channel = Channel(next(iter(source.identity_sources.values()), {}).get("channel", "whatsapp"))
+    proposed = queue.propose(ProposedAction(
+        channel=channel,
+        kind=ActionKind.MERGE,
+        reason=f"Digabung manual ke {target.name or target.id}",
+        payload={"source_lead_id": source.id, "target_lead_id": target.id, "confidence": 1.0,
+                 "evidence": ["Digabung manual oleh pengguna"], "manual": True},
+        lead_id=source.id,
+    ))
+    return _run_executor(executor, queue.approve(proposed.id))
+
+
 @router.get("/leads/{lead_id}")
 def get_lead(lead_id: str, store: Store = Depends(get_store)) -> dict:
     lead = store.get_lead(lead_id)
     if lead is None:
         raise NOT_FOUND
     events = store.list_events(lead_id=lead_id, limit=200)
-    actions = [a for a in store.list_actions() if a.lead_id == lead_id]
+    actions = store.list_actions(lead_id=lead_id)
     timeline = [
         {"ts": e.ts, "direction": "in", "channel": e.channel, "text": e.text, "event_id": e.id}
         for e in events
@@ -300,7 +342,7 @@ def get_lead(lead_id: str, store: Store = Depends(get_store)) -> dict:
         if a.result_ref and a.text
     ]
     timeline.sort(key=lambda t: t["ts"] or _MIN_TS, reverse=True)
-    audit = [x for x in store.list_audit(limit=500) if x.lead_id == lead_id]
+    audit = store.list_audit(limit=500, lead_id=lead_id)
     evidence = [x for x in audit if x.event == "identity_merged"]
     merges = [
         {
@@ -308,7 +350,7 @@ def get_lead(lead_id: str, store: Store = Depends(get_store)) -> dict:
             "source_name": a.payload["undo"]["source"].get("name"),
             "evidence": a.payload.get("evidence", []),
         }
-        for a in store.list_actions()
+        for a in store.list_actions(ActionStatus.EXECUTED, kind=ActionKind.MERGE)
         if can_undo(a) and a.payload.get("target_lead_id") == lead_id
     ]
     return {
@@ -369,6 +411,18 @@ def reject(
         raise NOT_FOUND
     except InvalidTransition as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.post("/actions/{action_id}/feedback", response_model=Action)
+def feedback(
+    action_id: str,
+    req: FeedbackRequest,
+    queue: ApprovalQueue = Depends(get_queue),
+) -> Action:
+    try:
+        return queue.feedback(action_id, req.rating, req.reason)
+    except KeyError:
+        raise NOT_FOUND
 
 
 @router.post("/actions/{action_id}/retry", response_model=Action)

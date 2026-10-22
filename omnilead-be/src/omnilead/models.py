@@ -128,6 +128,12 @@ class Action(ProposedAction):
     result_ref: str | None = None
     error: str | None = None
     reject_reason: str | None = None
+    attempts: int = 0
+    last_attempt_at: datetime | None = None
+    next_retry_at: datetime | None = None
+    delivery_status: Literal["sent", "delivered", "read", "failed"] | None = None
+    delivery_at: datetime | None = None
+    feedback: list[dict] = Field(default_factory=list)
 
 
 class Sender(BaseModel):
@@ -180,6 +186,7 @@ class Lead(BaseModel):
     closed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    identity_sources: dict[str, dict] = Field(default_factory=dict)
 
 
 LEAD_STAGES = ("baru", "tertarik", "penawaran", "deal", "batal")
@@ -224,6 +231,7 @@ class AppSettings(BaseModel):
     agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
     # Izin agen: manual (selalu tanya), hybrid (risiko rendah otomatis), auto (percaya penuh).
     autonomy: Literal["manual", "hybrid", "auto"] = "manual"
+    auto_merge_threshold: float = Field(default=0.9, ge=0.5, le=1.0)
 
 
 class AuditEntry(BaseModel):

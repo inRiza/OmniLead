@@ -189,7 +189,13 @@ function InboxView() {
                 <ActivityDetail activity={selected} lead={lead} trace={trace} />
                 <div>
                   <h2 className="mb-3 text-sm font-semibold text-rc-fg">Hasil kerja agen</h2>
-                  <AgentResults actions={activityActions} onFeedback={d.reject} onApprove={d.approve} onSent={d.markSent} onRetry={d.retry} />
+                  <AgentResults
+                    actions={activityActions}
+                    onFeedback={(id, reason) => d.feedback(id, "bad", reason)}
+                    onApprove={d.approve}
+                    onSent={d.markSent}
+                    onRetry={d.retry}
+                  />
                 </div>
               </SheetBody>
             </>

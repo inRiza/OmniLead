@@ -15,6 +15,8 @@ from omnilead.connectors.base import (
     ChannelConnector,
     ConnectorError,
     NotConnected,
+    TransientError,
+    error_for_status,
 )
 from omnilead.models import Capability, Channel, ChannelStatus, Comment, Post
 
@@ -67,7 +69,7 @@ class WhatsAppConnector(ChannelConnector):
                 params={"fields": "display_phone_number,verified_name,quality_rating"},
             )
         except httpx.HTTPError as exc:
-            raise ConnectorError(f"WhatsApp tidak terjangkau: {exc}") from exc
+            raise TransientError(f"WhatsApp tidak terjangkau: {exc}") from exc
         try:
             body = resp.json()
         except ValueError:
@@ -76,8 +78,9 @@ class WhatsAppConnector(ChannelConnector):
             raise NotConnected("Token WhatsApp kedaluwarsa atau tidak valid")
         if resp.status_code >= 400 or "error" in body:
             err = body.get("error", {})
-            raise ConnectorError(
-                f"WhatsApp error {resp.status_code}: {err.get('message', body)} (code {err.get('code')})"
+            raise error_for_status(
+                resp.status_code,
+                f"WhatsApp error {resp.status_code}: {err.get('message', body)} (code {err.get('code')})",
             )
         return body
 
@@ -120,7 +123,7 @@ class WhatsAppConnector(ChannelConnector):
                 },
             )
         except httpx.HTTPError as exc:
-            raise ConnectorError(f"WhatsApp tidak terjangkau: {exc}") from exc
+            raise TransientError(f"WhatsApp tidak terjangkau: {exc}") from exc
         try:
             body = resp.json()
         except ValueError:
@@ -129,8 +132,9 @@ class WhatsAppConnector(ChannelConnector):
             raise NotConnected("Token WhatsApp kedaluwarsa atau tidak valid")
         if resp.status_code >= 400 or "error" in body:
             err = body.get("error", {})
-            raise ConnectorError(
-                f"WhatsApp error {resp.status_code}: {err.get('message', body)} (code {err.get('code')})"
+            raise error_for_status(
+                resp.status_code,
+                f"WhatsApp error {resp.status_code}: {err.get('message', body)} (code {err.get('code')})",
             )
         try:
             return body["messages"][0]["id"]
