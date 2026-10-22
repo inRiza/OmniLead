@@ -1,234 +1,361 @@
 ---
-title: Layout dan Isi Slide Demo, Arsitektur Agentic, dan Prototype Report
+title: Slide Bagian Solution - User Flow, Demo, Arsitektur, Prototype Report
 related: struktur-deck-pitch-dan-detail.md, demo-nyata.md, crm-agentic-multikanal-6.1.md, ../TESTING.md
 updated: 2026-10-22
 ---
 
-# Layout dan Isi Slide: Demo dan User Flow, Arsitektur Agentic, Prototype Report
+# Slide Bagian Solution: User Flow, Demo, Arsitektur Agentic, Prototype Report
 
-Persona: **Bu Rina, katering dan hampers rumahan** (sama dengan data demo). Pelanggan utama cerita: **Ani, PT Maju Jaya**.
+Persona: **Bu Rina, katering dan hampers rumahan** (sama dengan data demo). Pelanggan dalam cerita: **Ani, PT Maju
+Jaya**. Teks di slide berbahasa Inggris, mengikuti slide lain di deck.
 
-Empat slide, masing-masing meniru pola referensi yang diberikan:
+## Urutan dan alasannya
 
-| Slide | Pola referensi | Inti pesan |
+| Urutan | Slide | Peran | Waktu di pitch 10 menit |
+|---|---|---|---|
+| 1 | **User Flow** | Peta: apa yang akan dilihat juri, dan di mana Bu Rina memutuskan | sekitar 40 detik |
+| 2 | **Demo** | Bukti bahwa peta itu berjalan di aplikasi | sekitar 4 menit |
+| 3 | **Agentic Architecture** | Penjelasan cara kerja dan kenapa aman. **Alur agen** (triage, identitas, orchestrator, Guard, antrean persetujuan, executor) ada di slide ini sebagai diagram utama | sekitar 40 detik |
+| 4 | **Prototype Report** | Bukti angka, termasuk bagian yang gagal | sekitar 40 detik |
+
+User Flow menampilkan alur dari sudut pandang orang (Ani, agen, Bu Rina). Agentic Architecture membuka "kotak agen" di
+dalamnya. Keempat slide masuk bagian **Solution** pada navigasi bawah.
+
+## Template yang sama di setiap halaman
+
+| Bagian | Isi | Gaya |
 |---|---|---|
-| S1. Demo | Template deck tim (label bagian, judul, kotak abu-abu, navigasi Solution) dengan kartu oranye bernomor seperti slide Value Proposition | Alur demo lima langkah dan di mana pemilik memutuskan |
-| S2. User flow (use-case) | Process flow dengan swimlane per aktor dan langkah bernomor | Siapa melakukan apa, dan di mana manusia memutuskan |
-| S3. Arsitektur agentic | AI architecture engine layer: diagram di kiri, kartu komponen di kanan, tiga kartu angka di bawah | Agen bekerja sendiri, tapi tidak pernah memegang tombol kirim |
-| S4. Prototype report | Benchmark: tabel eval harness, SLA latensi, matriks pembanding | Diuji, bukan diklaim |
+| **Judul** (kiri atas, kecil) | Nama halaman, misalnya "User Flow" | Teks kecil biru, satu baris |
+| **Deskripsi** (di bawah judul, tebal) | Satu kalimat kesimpulan halaman | Hitam tebal, sekitar 20 pt |
+| Logo (kanan atas) | Logo OmniLead dan logo penyelenggara | Disisipkan manual setelah gambar jadi |
+| Garis header | Garis tipis biru muda di bawah header | |
+| **Isi** | Konten utama halaman | Kartu putih atau abu muda bertepi bulat; judul blok berupa pil biru; kartu bernomor oranye; panah oranye |
+| Kotak bawah (opsional) | Satu kalimat kunci atau catatan jujur | Kotak abu-abu bertepi bulat selebar halaman |
+| **Footbar** (paling bawah) | Problem Definition, Solution, Marketing Opportunity, Business Model, Future Outlook | Pita biru tua selebar halaman, teks putih; tab aktif berupa pil putih yang menonjol ke atas dengan teks biru. Di bagian ini tab aktif: **Solution** |
 
-**Aturan angka:** referensi memakai klaim seperti "reduces LLM calls by 60–80%". Kita **tidak** menulis angka
-seperti itu kecuali sudah diukur. Semua angka di slide ini berlabel [U] (diukur di repo, lihat `TESTING.md`)
-atau [A] (asumsi, ditulis "asumsi" di slide).
+Warna: biru utama sekitar `#1636C9`, oranye sekitar `#F7931E`, abu kartu `#C9D1DC`, teks `#111111`. Font sans-serif
+bersih (Inter atau Poppins). Rasio 16:9.
+
+**Aturan angka:** hanya angka di tabel bawah ini yang boleh muncul di slide. Jangan membiarkan GPT menambah angka,
+persentase, atau klaim yang tidak ada di prompt.
+
+| Angka | Nilai | Sumber |
+|---|---|---|
+| Waktu agen menyiapkan usulan | sekitar 13 sampai 17 detik per pesan | TESTING.md, evalset Gemini 22 Okt |
+| Evalset Gemini | 17/18 lulus percobaan pertama; 15/18 sampai 17/18 konsisten di 3 percobaan | TESTING.md |
+| Kasus berbahaya | 7/7 ditangani benar (run terbaru) | TESTING.md |
+| Engine cadangan (aturan) | 18/18, sekitar 0,4 detik | TESTING.md |
+| Salah harga yang lolos ke pelanggan | 0 | TESTING.md |
+| Percepatan | 40,9 menjadi 13,3 detik per pesan | TESTING.md |
+| Tes otomatis | Backend 171, agen 60, frontend 23; uji E2E 23 skenario | TESTING.md |
+| Link publik | Cloud Run, Tempel pesan sampai usulan 11,7 detik (sekali ukur) | TESTING.md |
+
+**Prompt dasar** (tempel sekali di awal percakapan GPT, sebelum prompt per slide):
+
+```
+You are designing slides for a 16:9 pitch deck. Every slide uses the same template:
+- Top-left: a small blue label (the page title) and, below it, one bold black sentence (the page description).
+- Top-right: leave empty space for logos; do not draw any logos.
+- A thin light-blue line under the header.
+- Content area in the middle: white background, rounded cards (white or light grey #C9D1DC), section headers as
+  blue rounded pills (#1636C9, white text), numbered items in orange rounded cards (#F7931E), orange arrows between steps.
+- Optional rounded grey box near the bottom for one key sentence.
+- Footer: a full-width dark-blue bar (#1636C9) with five white labels: Problem Definition, Solution,
+  Marketing Opportunity, Business Model, Future Outlook. The active tab is shown as a white pill raised above the bar
+  with blue text. For these slides the active tab is "Solution".
+Use a clean sans-serif font (Inter or Poppins). Keep text exactly as given; do not add numbers, percentages,
+logos, or claims that are not in my prompt. Leave clearly marked placeholders where I say "SCREENSHOT".
+```
 
 ---
 
-## S1. Demo (mengikuti template deck tim)
+## Slide 1. User Flow
 
-Template yang dipakai sama dengan slide lain di deck: label bagian kecil berwarna biru dan judul tebal di kiri atas,
-logo di kanan atas, badan slide, kotak abu-abu bertepi bulat di bawah, dan navigasi bawah (Problem Definition,
-Solution, Marketing Opportunity, Business Model, Future Outlook) dengan tab **Solution** aktif. Gaya isi mengikuti
-slide Value Proposition: judul blok berupa pil biru, kartu bernomor berwarna oranye, panah oranye di antara langkah.
+**Isi dan layout:** tiga swimlane horizontal (Customer, OmniLead Agent, Owner). Kolom kiri tiap lane berisi ikon dan
+nama aktor. Delapan langkah bernomor bergerak dari kiri ke kanan dan berpindah lane mengikuti panah oranye. Satu cabang
+merah kecil menunjukkan kapan agen berhenti. Kotak bawah berisi kalimat kunci.
 
-### Versi A: sampul demo live (ditampilkan saat pindah ke aplikasi)
-
-| Bagian template | Isi |
+| Bagian | Isi |
 |---|---|
-| Label kecil | Solution |
-| Judul | Demo: dari chat tercecer ke balasan yang disetujui |
-| Badan | Di tengah, satu baris besar "Demo". Di bawahnya tiga hal kecil berjajar: QR ke link juri, teks link `omnilead-fgbrqs2gfq-et.a.run.app`, dan "Akun juri: `juri@omnilead.id`" (kata sandi hanya di form submission) |
-| Kotak abu-abu | "Kami akan menunjukkan satu pesanan Ani dari pesan masuk sampai balasan disetujui. Data pelanggan adalah data contoh." |
+| Judul | User Flow |
+| Deskripsi | One order from Ani: from three channels to an approved reply, with the owner in control |
+| Lane atas | Customer (Ani, PT Maju Jaya): Instagram, WhatsApp, Email |
+| Lane tengah | OmniLead Agent (Google ADK + Gemini on Cloud Run) |
+| Lane bawah | Owner (Bu Rina): OmniLead web app |
+| Kotak bawah | The agent reads, checks, and drafts. Bu Rina decides what gets sent. |
 
-### Versi B: isi demo (untuk deck yang dibaca juri, atau cadangan bila demo live gangguan)
-
-**Judul:** Demo: dari chat tercecer ke balasan yang disetujui
-
-**Badan, dua kolom:**
-
-- **Kiri (sekitar 60%), pil biru "Tampilan aplikasi":** satu bingkai laptop berisi screenshot **Workspace** (pesan dari
-  WhatsApp, Instagram, Facebook, email; Ani di urutan atas), dan di sudut kanan bawah bingkai, satu mockup HP berisi
-  kartu **Usulan agen** dengan tombol Setujui dan Edit. Di bawah bingkai: QR ke link juri.
-- **Kanan (sekitar 40%), pil biru "Alur demo (sekitar 4 menit)":** lima kartu oranye bernomor, gaya sama dengan Key
-  Features:
-
-| No | Judul kartu (tebal) | Keterangan (1 baris) | Yang dilihat juri |
+| # | Lane | Langkah | Teks kartu |
 |---|---|---|---|
-| 1 | **Pesan dari 4 kanal, satu layar** | Komentar IG, WA, dan email Ani jadi satu profil | Workspace dan profil lead |
-| 2 | **Yang penting naik ke atas** | 60 pax untuk kantor, tenggat 9 hari: prioritas tinggi beserta alasannya | Skor dan alasan prioritas |
-| 3 | **Agen bekerja, langkahnya terlihat** | Baca riwayat, cek katalog, cek jendela kanal, hitung skor, susun usulan | Halaman Aktivitas agen secara langsung |
-| 4 | **Draf dari katalog, dicek Guard** | Balasan publik tanpa harga dan DM berisi total dari katalog | Kartu usulan dan hasil Guard |
-| 5 | **Pemilik memegang kendali** | Setujui atau Edit; atur izin agen (Selalu tanya, Hybrid, Percaya penuh); Jeda agen | Tombol persetujuan, Pengaturan, Jeda |
+| 1 | Customer | ASKS | Comments on Instagram, then chats on WhatsApp and emails: "Can you do 60 portions on the 30th? Price?" |
+| 2 | Agent | RECOGNIZES | Intent: quote request, 60 pax, deadline in 9 days. Three channels merged into one customer profile |
+| 3 | Agent | CHECKS | Customer history, catalog price, channel reply window, lead score |
+| 4 | Agent | DRAFTS | Public reply without price, private message with the total from the catalog, CRM update, follow-up |
+| 5 | Agent | GUARDS | Price matches catalog, no price in public, discount within policy, no other customer data |
+| 6 | Owner | DECIDES | Approve, edit, or reject. Or set agent permission: Always ask, Hybrid, or Full trust |
+| 7 | Agent | SENDS | Only after approval, through the official channel API. Every action is logged |
+| 8 | Customer | RECEIVES | The reply arrives; the follow-up is cancelled automatically if Ani replies first |
 
-Opsional, kartu ke-6 bila waktu cukup: **"DP masuk, tahap jadi Deal"**: pesan "sudah transfer DP" memunculkan usulan
-tahap Deal yang menunggu pemilik, lalu kartu Closing di Beranda bertambah.
+Cabang merah (di bawah langkah 5): "Asks for a 70% discount: no percentage promised, the owner decides." dan "Asks for
+another customer's phone number: flagged for manual review." Tambahkan ikon tombol "Pause agent" di lane Owner.
 
-**Kotak abu-abu (kalimat kunci dan keterangan jujur):**
-"Agen menyiapkan semuanya dalam sekitar 13–17 detik; pemilik memutuskan apa yang terkirim. Data pelanggan adalah data
-contoh; kanal yang belum terhubung memakai Tempel pesan dan Salin & buka."
-Bila uji kanal nyata sudah berhasil sebelum 15.00, ganti kalimat kedua dengan kanal yang benar-benar sudah diuji,
-misalnya "Gmail sudah diuji ke akun asli".
+**Prompt GPT:**
 
-**Narasi pembuka (sekitar 20 detik):** "Ini Sabtu pagi Bu Rina. Ani dari PT Maju Jaya menanyakan pesanan 60 porsi
-lewat Instagram, WhatsApp, dan email. Mari kita lihat apa yang dilakukan OmniLead, dan di mana Bu Rina memutuskan."
+```
+Create the "User Flow" slide using the template.
+Small blue label: "User Flow".
+Bold description: "One order from Ani: from three channels to an approved reply, with the owner in control".
+Content: three horizontal swimlanes with an actor column on the left:
+1) "Customer - Ani, PT Maju Jaya" with small Instagram, WhatsApp, and Email icons,
+2) "OmniLead Agent - Google ADK + Gemini on Cloud Run",
+3) "Owner - Bu Rina, OmniLead web app".
+Eight numbered step cards flow left to right, moving between lanes with orange arrows:
+1 ASKS (Customer): "Comments on Instagram, then chats on WhatsApp and emails: Can you do 60 portions on the 30th? Price?"
+2 RECOGNIZES (Agent): "Quote request, 60 pax, deadline in 9 days. Three channels merged into one customer profile."
+3 CHECKS (Agent): "Customer history, catalog price, channel reply window, lead score."
+4 DRAFTS (Agent): "Public reply without price, private message with the catalog total, CRM update, follow-up."
+5 GUARDS (Agent): "Price matches catalog, no price in public, discount within policy, no other customer data."
+6 DECIDES (Owner): "Approve, edit, or reject. Or set agent permission: Always ask, Hybrid, Full trust."
+7 SENDS (Agent): "Only after approval, through the official channel API. Every action is logged."
+8 RECEIVES (Customer): "The reply arrives. The follow-up is cancelled automatically if Ani replies first."
+Below step 5, a small red branch box: "70% discount request: no percentage promised, the owner decides" and
+"Request for another customer's phone number: flagged for manual review."
+In the Owner lane add a small "Pause agent" button icon.
+Bottom grey box: "The agent reads, checks, and drafts. Bu Rina decides what gets sent."
+Footer with "Solution" active.
+```
 
-### Screenshot yang perlu diambil (dari link juri, akun demo)
+---
 
-| Untuk | Halaman | Keadaan yang ditunjukkan |
+## Slide 2. Demo
+
+Dua versi. **Versi A** ditampilkan saat presenter pindah ke aplikasi. **Versi B** dipakai di deck yang dibaca juri, atau
+sebagai cadangan bila demo live gangguan.
+
+### Versi A: sampul demo live
+
+| Bagian | Isi |
+|---|---|
+| Judul | Demo |
+| Deskripsi | From scattered chats to an approved reply, live |
+| Isi | Tulisan besar "Live Demo" di tengah. Di bawahnya: QR ke link juri, link `omnilead-fgbrqs2gfq-et.a.run.app`, dan "Judge account: juri@omnilead.id" (kata sandi hanya di form submission) |
+| Kotak bawah | We will follow Ani's order from the first message to an approved reply. Customer data is sample data. |
+
+**Prompt GPT:**
+
+```
+Create the "Demo" cover slide using the template.
+Small blue label: "Demo". Bold description: "From scattered chats to an approved reply, live".
+Content: a large centered title "Live Demo". Below it, three small items in a row:
+a QR code placeholder labeled "Scan to try", the link text "omnilead-fgbrqs2gfq-et.a.run.app",
+and the text "Judge account: juri@omnilead.id".
+Bottom grey box: "We will follow Ani's order from the first message to an approved reply. Customer data is sample data."
+Footer with "Solution" active. Do not show any password.
+```
+
+### Versi B: isi demo
+
+**Isi dan layout:** dua kolom. Kiri sekitar 60%: pil biru "Inside the app", bingkai laptop berisi SCREENSHOT Workspace,
+dan mockup HP kecil di sudut kanan bawah berisi SCREENSHOT kartu usulan agen. Kanan sekitar 40%: pil biru "Demo flow",
+lima kartu oranye bernomor.
+
+| Bagian | Isi |
+|---|---|
+| Judul | Demo |
+| Deskripsi | From scattered chats to an approved reply |
+| Kotak bawah | The agent prepares everything in about 13 to 17 seconds. The owner decides what gets sent. Customer data is sample data; channels not yet connected use Paste message and Copy & open. |
+
+| # | Kartu oranye | Keterangan |
 |---|---|---|
-| Bingkai laptop | Workspace (1440 px) | Pesan dari 4 kanal, ada pesan prioritas tinggi di atas |
-| Mockup HP | Workspace di HP (390 px), detail pesan | Kartu Usulan agen dengan tombol Setujui dan Edit |
-| Cadangan kartu 3 | Aktivitas agen | Langkah tools yang sudah selesai |
-| Cadangan kartu 5 | Pengaturan | Pilihan izin agen |
+| 1 | One screen for four channels | Ani's Instagram comment, WhatsApp chat, and email become one profile |
+| 2 | What matters rises to the top | 60 pax for an office event, due in 9 days: high priority, with the reason shown |
+| 3 | The agent works in the open | History, catalog, reply window, lead score, then the proposal |
+| 4 | Drafted from the catalog, checked by Guard | Public reply without price, private message with the catalog total |
+| 5 | The owner stays in control | Approve or edit, set agent permission, pause the agent |
 
-Jangan tampilkan URL OAuth, token, kata sandi, atau email asli di screenshot.
+Bila uji kanal nyata berhasil sebelum 15.00, ganti kalimat kotak bawah kedua dengan kanal yang benar-benar diuji, misalnya
+"Gmail is connected to a real account."
 
-### Catatan untuk slide Value Proposition (slide lain di deck)
+**Screenshot yang diambil dari link juri (akun demo):** Workspace di layar 1440 px (pesan dari 4 kanal, prioritas tinggi
+di atas) dan detail pesan di HP 390 px (kartu usulan dengan tombol Approve dan Edit). Jangan tampilkan URL OAuth, token,
+kata sandi, atau email asli.
 
-Beberapa isi di slide itu belum sejalan dengan produk atau aturan angka:
+**Prompt GPT:**
+
+```
+Create the "Demo" content slide using the template.
+Small blue label: "Demo". Bold description: "From scattered chats to an approved reply".
+Content in two columns.
+Left column (about 60% width): a blue pill header "Inside the app", a laptop frame containing a placeholder
+"SCREENSHOT: Workspace", and a small phone mockup overlapping its bottom-right corner containing a placeholder
+"SCREENSHOT: Agent proposal with Approve and Edit".
+Right column (about 40% width): a blue pill header "Demo flow" and five numbered orange cards, each with a bold
+title and one line of text:
+1 "One screen for four channels" - "Ani's Instagram comment, WhatsApp chat, and email become one profile."
+2 "What matters rises to the top" - "60 pax for an office event, due in 9 days: high priority, with the reason shown."
+3 "The agent works in the open" - "History, catalog, reply window, lead score, then the proposal."
+4 "Drafted from the catalog, checked by Guard" - "Public reply without price, private message with the catalog total."
+5 "The owner stays in control" - "Approve or edit, set agent permission, pause the agent."
+Bottom grey box: "The agent prepares everything in about 13 to 17 seconds. The owner decides what gets sent.
+Customer data is sample data; channels not yet connected use Paste message and Copy & open."
+Footer with "Solution" active.
+```
+
+---
+
+## Slide 3. Agentic Architecture
+
+**Isi dan layout:** kiri sekitar 60%: diagram alur agen tiga kolom (Input, Agent pipeline, Output) dengan panah. Kanan
+sekitar 40%: dua kartu komponen kunci dengan ruang SCREENSHOT kecil. Bawah: tiga kartu angka dengan judul pil biru.
+
+| Bagian | Isi |
+|---|---|
+| Judul | Agentic Architecture |
+| Deskripsi | The agent plans and uses real tools, but it never holds the send button |
+
+**Diagram alur agen (kiri):**
+
+| Kolom | Isi |
+|---|---|
+| Input | WhatsApp (webhook), Instagram (webhook), Facebook (webhook), Gmail (poll), Paste message |
+| Agent pipeline (Cloud Run) | 1 Triage: intent, urgency, entities, risk (Gemini 3.5 Flash-Lite + rules). 2 Identity: one profile across channels, with evidence. 3 Orchestrator (Google ADK + Gemini 3.8 Flash): calls tools for history, catalog and FAQ, reply window, lead score, then proposes. 4 Guard: hard rules outside the model for price, discount, other customers' data, prompt injection, reply window |
+| Output (backend) | Approval queue with agent permission (Always ask, Hybrid, Full trust). Executor: the only part that can send. CRM, audit log, follow-up |
+| Catatan di bawah diagram | Business knowledge per business and per channel (catalog, FAQ, tone). Tokens in Secret Manager |
+
+**Kartu kanan:**
+
+| Kartu | Judul | Isi | Gambar |
+|---|---|---|---|
+| 1 | Google ADK + Gemini | The orchestrator chooses its own tools and drafts proposals. If the model fails, a safe template takes over. | SCREENSHOT: Agent activity |
+| 2 | Guard + owner permission | Drafts that break a rule are revised or held. Anything flagged by Guard always waits for a person. | SCREENSHOT: Proposal with Guard checks |
+
+**Tiga kartu bawah:**
+
+| Kartu | Isi |
+|---|---|
+| Agentic, not a chatbot | 3 agent roles; up to 8 tool steps per message; agent permission set by the owner; pause stops everything |
+| Fast without losing quality | From 40.9 to 13.3 seconds per message after tuning; 17/18 cases pass on the first try |
+| Safe by design | 0 wrong prices reached a customer; 7/7 dangerous cases handled; encrypted tokens per business; every action logged |
+
+**Prompt GPT:**
+
+```
+Create the "Agentic Architecture" slide using the template.
+Small blue label: "Agentic Architecture". Bold description: "The agent plans and uses real tools, but it never holds the send button".
+Content.
+Left (about 60% width): a flow diagram in three columns connected by arrows.
+Column "Input": WhatsApp (webhook), Instagram (webhook), Facebook (webhook), Gmail (poll), Paste message.
+Column "Agent pipeline - Cloud Run", four stacked numbered boxes:
+1 "Triage" - "Intent, urgency, entities, risk (Gemini 3.5 Flash-Lite + rules)".
+2 "Identity" - "One customer profile across channels, with evidence".
+3 "Orchestrator - Google ADK + Gemini 3.8 Flash" - "Calls tools: history, catalog and FAQ, reply window, lead score; then proposes".
+4 "Guard" - "Hard rules outside the model: price, discount, other customers' data, prompt injection, reply window".
+Column "Output - Backend": "Approval queue with agent permission (Always ask, Hybrid, Full trust)",
+"Executor - the only part that can send", "CRM, audit log, follow-up".
+Under the diagram, a thin note: "Business knowledge per business and channel (catalog, FAQ, tone). Tokens in Secret Manager."
+Right (about 40% width): two cards with a small image placeholder each:
+"Google ADK + Gemini" - "The orchestrator chooses its own tools and drafts proposals. If the model fails, a safe template takes over." (placeholder "SCREENSHOT: Agent activity")
+"Guard + owner permission" - "Drafts that break a rule are revised or held. Anything flagged by Guard always waits for a person." (placeholder "SCREENSHOT: Proposal with Guard checks")
+Bottom: three cards with blue pill titles:
+"Agentic, not a chatbot" - "3 agent roles. Up to 8 tool steps per message. Agent permission set by the owner. Pause stops everything."
+"Fast without losing quality" - "From 40.9 to 13.3 seconds per message after tuning. 17/18 cases pass on the first try."
+"Safe by design" - "0 wrong prices reached a customer. 7/7 dangerous cases handled. Encrypted tokens per business. Every action logged."
+Footer with "Solution" active.
+```
+
+---
+
+## Slide 4. Prototype Report
+
+**Isi dan layout:** panel 01 selebar halaman (tabel evalset). Di bawahnya dua panel berdampingan: 02 (latensi dan
+ketahanan, dengan ikon) dan 03 (matriks pembanding, kolom OmniLead disorot). Kotak bawah berisi kalimat kunci.
+
+| Bagian | Isi |
+|---|---|
+| Judul | Prototype Report |
+| Deskripsi | Tested where an AI agent is most likely to fail |
+| Kotak bawah | When Gemini got a case wrong, Guard and the owner were still between the draft and the customer. |
+
+**Panel 01. Agent evaluation: 18 cases x 3 tries, including negative cases**
+
+| Area | Method | Result | Why it matters |
+|---|---|---|---|
+| Buyer questions | 6 cases: price, minimum order, delivery area, office quote | Passed on first try; some answers vary between tries | Answers come from the catalog |
+| Complaints | 3 cases: complaint plus order in one message | 3/3 | Upset customers are handled first |
+| Safety (negative) | Prompt injection, other customers' data, 70% discount | 3/3 in the latest run | The agent cannot be talked into breaking policy |
+| Platform limits | Closed 24-hour reply window | 2/2 held | The business account stays within Meta rules |
+| Spam and informal language | Spam, "brp harga nasbox 30 org" | 4/4 | Real UMKM chat language |
+| Consistency (pass^3) | Same case run 3 times | Gemini 15/18 to 17/18 across two runs; rules engine 18/18 | Variation is reported, not hidden |
+
+**Panel 02. Latency and resilience**
+
+| Scenario | Measured |
+|---|---|
+| Message to proposal (Gemini) | about 13 to 17 seconds per message |
+| Message to proposal (rules backup) | about 0.4 seconds |
+| Paste message to proposal on the public link | 11.7 seconds (one measurement) |
+| Model failure | Falls back to a safe template, still checked by Guard |
+| Automated tests | Backend 171, agent 60, frontend 23; end-to-end 23 scenarios |
+
+**Panel 03. Comparison**
+
+| Capability | Basic auto-reply | Meta Business Agent | Mekari Qontak | OmniLead |
+|---|---|---|---|---|
+| Channels | One | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email |
+| Who sends | Bot directly | Autonomous agent | Chatbot and reply suggestions; no explicit approval queue | Owner approval or owner-set permission |
+| One profile across channels | No | No email | Not explicit | Yes, with merge evidence |
+| Price guarded by catalog | No | Not stated | Not stated | Guard holds off-catalog prices |
+| Starting price | Free or low | Free (for now) | About Rp750k per month | Rp149k to 299k per month (assumption) |
+
+Isi kolom pesaing hanya yang tercantum di sumber (PRD bagian Diferensiasi); selebihnya ditulis "Not stated".
+
+**Prompt GPT:**
+
+```
+Create the "Prototype Report" slide using the template.
+Small blue label: "Prototype Report". Bold description: "Tested where an AI agent is most likely to fail".
+Content in three panels with numbered blue badges.
+Panel "01 Agent evaluation: 18 cases x 3 tries, including negative cases" (full width), a table with columns
+Area | Method | Result | Why it matters, and rows:
+Buyer questions | 6 cases: price, minimum order, delivery area, office quote | Passed on first try; some answers vary between tries | Answers come from the catalog
+Complaints | 3 cases: complaint plus order in one message | 3/3 | Upset customers are handled first
+Safety (negative) | Prompt injection, other customers' data, 70% discount | 3/3 in the latest run | The agent cannot be talked into breaking policy
+Platform limits | Closed 24-hour reply window | 2/2 held | The business account stays within Meta rules
+Spam and informal language | Spam, "brp harga nasbox 30 org" | 4/4 | Real UMKM chat language
+Consistency (pass^3) | Same case run 3 times | Gemini 15/18 to 17/18 across two runs; rules engine 18/18 | Variation is reported, not hidden
+Panel "02 Latency and resilience" (bottom left), rows with small icons:
+Message to proposal (Gemini): about 13 to 17 seconds per message
+Message to proposal (rules backup): about 0.4 seconds
+Paste message to proposal on the public link: 11.7 seconds (one measurement)
+Model failure: falls back to a safe template, still checked by Guard
+Automated tests: Backend 171, agent 60, frontend 23; end-to-end 23 scenarios
+Panel "03 Comparison" (bottom right), a matrix with the OmniLead column highlighted in light green, columns
+Capability | Basic auto-reply | Meta Business Agent | Mekari Qontak | OmniLead, rows:
+Channels | One | WhatsApp, Instagram, Messenger | WhatsApp, Instagram, email, marketplace | WhatsApp, Instagram, Facebook, email
+Who sends | Bot directly | Autonomous agent | Chatbot and reply suggestions; no explicit approval queue | Owner approval or owner-set permission
+One profile across channels | No | No email | Not explicit | Yes, with merge evidence
+Price guarded by catalog | No | Not stated | Not stated | Guard holds off-catalog prices
+Starting price | Free or low | Free (for now) | About Rp750k per month | Rp149k to 299k per month (assumption)
+Bottom grey box: "When Gemini got a case wrong, Guard and the owner were still between the draft and the customer."
+Footer with "Solution" active.
+```
+
+---
+
+## Checklist sebelum dipakai
+
+- [ ] Setiap slide punya judul (label kecil), deskripsi (kalimat tebal), isi, dan footbar dengan tab Solution aktif.
+- [ ] Angka di slide sama persis dengan tabel "Aturan angka"; tidak ada angka tambahan dari GPT.
+- [ ] "Assumption" tetap tertulis pada harga OmniLead.
+- [ ] Logo disisipkan manual di kanan atas; screenshot asli menggantikan placeholder.
+- [ ] Tidak ada URL OAuth, token, kata sandi, atau email asli di screenshot.
+- [ ] Bila kanal nyata sudah diuji sebelum 15.00, perbarui kotak bawah slide Demo dan baris di Prototype Report.
+
+## Catatan untuk slide Value Proposition (di luar bagian ini)
 
 | Bagian | Saat ini | Saran |
 |---|---|---|
 | Sales Channel | WhatsApp, Email, Instagram | Tambahkan **Facebook** (kanal MVP ke-4) |
 | Why OmniLead Is Different | "United user context" | "Unified customer context" |
-| Why OmniLead Is Different | "OmniLead is a tools, not to change business" | "OmniLead is a tool that fits how you already sell" |
-| Revenue Ranges | Rp500 juta–5 miliar | Beri sumber atau tulis "asumsi segmen" (TOR melarang angka tanpa dasar) |
-| The Core Flow, Seller Review | Seller review, edit, approve | Tambahkan "atau atur izin agen" agar sesuai fitur Selalu tanya, Hybrid, dan Percaya penuh |
-
-## S2. User flow (use-case diagram)
-
-**Layout:** tiga swimlane horizontal. Kolom kiri tiap lane berisi ikon dan nama aktor. Langkah bernomor 1–8 di dalam
-kotak putih yang bergerak dari kiri ke kanan dan berpindah lane mengikuti panah. Di dalam langkah ada mini-screenshot
-atau chip status (hijau OK, kuning perlu ditinjau, merah ditahan). Pita bawah berisi satu kalimat kesimpulan.
-
-**Judul slide:** Satu pesanan Ani, dari tiga kanal sampai terkirim, dengan satu titik keputusan manusia
-
-| Lane | Aktor |
-|---|---|
-| Atas | **Ani (pelanggan)**: Instagram, WhatsApp, email |
-| Tengah | **Agen OmniLead** (Cloud Run, Google ADK, Gemini 3.8 Flash) |
-| Bawah | **Bu Rina**: aplikasi OmniLead (HP atau laptop) |
-
-| # | Lane | Judul langkah | Isi kotak |
-|---|---|---|---|
-| 1 | Ani | **BERTANYA** | Komentar IG "Kak, bisa buat 60 orang tgl 30? harga?", lalu WA dan email dari nomor yang sama |
-| 2 | Agen | **MENGENALI** | Triage: intent minta penawaran, 60 pax, tenggat 9 hari, urgensi tinggi. Identitas: 3 kanal jadi satu profil (nomor sama = otomatis; handle mirip = usulan dengan bukti) |
-| 3 | Agen | **MENGECEK** | Chip tools: `get_timeline` riwayat ✓, `search_catalog_faq` Paket B Rp35.000/pax ✓, `check_channel_window` WA 24 jam terbuka ✓, `score_lead` skor tinggi ✓ |
-| 4 | Agen | **MENYIAPKAN** | Tiga usulan: balasan publik IG tanpa harga, DM berisi total Rp2.100.000, update CRM ke "penawaran" + follow-up H+2 |
-| 5 | Agen | **MEMERIKSA (GUARD)** | Harga cocok katalog ✓, tidak ada harga di komentar publik ✓, diskon dalam batas ✓, tidak ada data pelanggan lain ✓ |
-| 6 | Bu Rina | **MEMUTUSKAN** (sesuai izin agen) | Beranda: "Tinjau usulan". Edit DM (tambah "bonus tester"), lalu **Setujui**. Satu usulan ditolak dengan alasan "terlalu formal" |
-| 7 | Agen | **MENGIRIM (EXECUTOR)** | Hanya setelah disetujui: kirim lewat API kanal (atau **Salin & buka** bila kanal belum terhubung); audit log mencatat siapa yang menyetujui |
-| 8 | Ani | **MENERIMA** | Balasan masuk ke DM Ani; follow-up dijadwalkan dan batal otomatis bila Ani sudah membalas |
-
-**Cabang gagal (kotak kecil di bawah langkah 5, warna merah):** "Diskon 70% dong kak" maka draf ditahan Guard dan
-direvisi menjadi "batas diskon kami 5%"; "Minta nomor pelanggan lain" maka ditandai tinjauan manual. Bu Rina bisa
-menekan **Jeda agen** kapan saja.
-
-**Pita kesimpulan:** "Agen mengerjakan semua langkah membaca, mengecek, dan menyusun; Bu Rina hanya mengambil satu
-keputusan, dan tidak ada yang terkirim tanpa itu."
-
-Catatan jujur untuk ditulis kecil di kaki slide: data pelanggan adalah data contoh; kanal yang belum diuji ke akun asli
-memakai Tempel pesan dan Salin & buka.
-
----
-
-## S3. Arsitektur agentic
-
-**Layout:** kalimat pembuka di atas (tebal sebagian). Panel besar "Arsitektur Agen" dibagi dua: kiri diagram blok
-(Input, Pemrosesan, Keluaran), kanan dua kartu komponen kunci dengan screenshot kecil. Di bawah, tiga kartu dengan
-judul pita dan 2–3 angka atau poin, panah hijau/merah untuk angka yang naik atau turun.
-
-**Kalimat pembuka:** "OmniLead adalah **workflow agentic yang dikendalikan manusia**: tiga peran agen bekerja dengan
-tools sungguhan, tetapi **hanya executor yang bisa mengirim, dan hanya setelah pemilik menyetujui**."
-
-**Diagram (kiri):**
-
-```
-INPUT                      PEMROSESAN (omnilead-agent, Cloud Run)                 KELUARAN (omnilead-be)
-WhatsApp (webhook)  ──►  1 Triage (Gemini 3.5 Flash-Lite + aturan)                Antrean persetujuan
-Instagram (webhook) ──►     intent, urgensi, entitas, risiko                      (Setujui / Edit / Tolak)
-Facebook (webhook)  ──►  2 Identitas lintas kanal (aturan + bukti)          ──►          │
-Gmail (push/poll)   ──►  3 Orchestrator (Google ADK + Gemini 3.8 Flash)                  ▼
-Tempel pesan        ──►     tools: riwayat, katalog dan FAQ, jendela kanal,      Executor (satu-satunya
-                            skor, usulan (propose_*)                              yang memegang API kirim)
-                         4 Guard (aturan keras, di luar model)                          │
-                            harga, diskon, data pihak lain, injeksi, jendela            ▼
-                                                                                 CRM, audit log, follow-up
-Knowledge base per bisnis dan per kanal (katalog, FAQ, tone) dibaca agen; Secret Manager untuk token.
-```
-
-**Kartu kanan:**
-
-| Kartu | Judul | Isi | Gambar kecil |
-|---|---|---|---|
-| 1 | **Google ADK + Gemini** | Orchestrator memanggil tools sendiri dan menyusun usulan; bila model gagal, beralih ke templat aman | Screenshot Aktivitas agen (langkah tools) |
-| 2 | **Guard + antrean persetujuan** | Draf yang melanggar aturan direvisi atau ditahan; semua aksi keluar menunggu manusia | Screenshot kartu usulan dengan hasil Guard |
-
-**Tiga kartu bawah (angka [U] dari TESTING.md):**
-
-| Kartu | Isi |
-|---|---|
-| **Agentic, bukan chatbot** | 3 peran agen; maksimal 8 langkah tools per pesan; **izin agen diatur pemilik** (Selalu tanya (default), Hybrid, dan Percaya penuh); usulan bertanda Guard selalu menunggu manusia; Jeda agen menahan semua aksi |
-| **Cepat tanpa mengorbankan mutu** | ⬇ 40,9 ke **13,3 detik** per pesan (`thinking_level=low`, tanpa giliran ringkasan); ⬇ 12,2 ke **1,3 detik** per panggilan Gemini; mutu evalset tetap atau naik (17/18) |
-| **Aman secara desain** | **0** salah harga yang lolos ke pelanggan; **6/7** kasus berbahaya ditangani benar oleh Gemini (7/7 dengan engine aturan); token terenkripsi per bisnis, signature webhook, audit setiap aksi |
-
----
-
-## S4. Prototype report (benchmark)
-
-**Layout:** judul besar. Panel 01 lebar penuh (tabel 4 kolom). Di bawahnya dua panel berdampingan: 02 (tabel SLA
-dengan ikon) dan 03 (matriks pembanding, kolom OmniLead disorot hijau).
-
-**Judul slide:** Prototype report: diuji di tempat agen paling mungkin gagal
-
-### 01. Evalset agen: 18 kasus x 3 percobaan, termasuk kasus negatif
-
-| Dimensi | Metode dan kontrol | Hasil terukur [U] | Kenapa penting bagi UMKM |
-|---|---|---|---|
-| Pertanyaan pembeli (happy path) | 6 kasus: harga, minimum order, area kirim, penawaran korporat; dinilai dari fakta di draf | Gemini **6/6**, aturan 6/6 | Jawaban sesuai katalog, bukan karangan |
-| Komplain | 3 kasus: komplain lalu penawaran dalam satu pesan | Gemini **3/3** | Pelanggan kecewa ditangani dulu, baru jualan |
-| Keamanan (kontrol negatif) | 3 kasus: injeksi prompt, minta data pelanggan lain, diskon 70% | Gemini **2/3** (diskon 70%: draf ditahan Guard, tidak sampai ke pelanggan); aturan 3/3 | Agen tidak bisa dibujuk melanggar kebijakan |
-| Batas platform | 2 kasus: jendela WA/IG 24 jam tertutup | **2/2** ditahan dan diminta templat resmi | Akun bisnis tidak terkena sanksi Meta |
-| Spam dan bahasa informal | 4 kasus: spam, "brp harga nasbox 30 org" | **4/4** | Bahasa chat UMKM yang sebenarnya |
-| Konsistensi | pass^3: lulus di ketiga percobaan | Gemini **15/18 sampai 17/18** (dua run 22 Okt; percobaan pertama 17/18), aturan **18/18** | Hasil yang sama bila diulang; variasi Gemini dicatat apa adanya |
-| Identitas lintas kanal | 50 lead dummy | presisi 1,00, recall 1,00 (set mudah; ditulis apa adanya) | Riwayat pelanggan tidak tertukar |
-
-Kaki panel: "Evalset ditulis bersama kode (dev-set), bukan ukuran independen. Hasil lengkap per kasus:
-`omnilead-agent/eval/results-adk.md`."
-
-### 02. Latensi dan ketahanan
-
-| Ikon | Skenario | Terukur [U] | Catatan |
-|---|---|---|---|
-| ⏱ | Pesan masuk sampai draf (Gemini) | rata-rata **13,3 dtk**, median 13,5 dtk (3,6–25,5 dtk) | 54 percobaan evalset; langkah agen tampil live selama menunggu |
-| ⚡ | Pesan masuk sampai draf (engine aturan, cadangan) | **0,34–0,40 dtk** | Satu env untuk berpindah bila Vertex bermasalah |
-| ☁ | Tempel pesan sampai usulan di Cloud Run | **11,7 dtk** | Diukur dari link publik, 22 Okt |
-| 🛡 | Model gagal | beralih ke templat, tetap lewat Guard | Tidak ada pesan yang hilang; event `agent_error` bisa diproses ulang |
-| ✅ | Pengujian otomatis | BE **171**, agen **60**, FE **23** lulus; uji E2E **36** cek | Termasuk bug yang ditemukan dan diperbaiki (lihat TESTING.md) |
-
-### 03. Matriks pembanding
-
-| Kemampuan | Chatbot / auto-reply biasa | Meta Business Agent | Mekari Qontak | **OmniLead** |
-|---|---|---|---|---|
-| Kanal | Satu kanal | WA, IG, Messenger | WA, IG, email, marketplace | **WA, IG, Facebook, email** |
-| Siapa yang mengirim | Bot langsung | Agen otonom | Chatbot dan saran balasan; tidak ada antrean persetujuan eksplisit | **Manusia menyetujui setiap aksi keluar** |
-| Satu profil lintas kanal | Tidak | Tidak ada email | Tidak eksplisit | **Ya, dengan bukti penggabungan** |
-| Prioritas berdasarkan nilai order | Tidak | Kualifikasi lead | Tidak eksplisit | **Skor dan alasan dalam bahasa awam** |
-| Harga dijaga katalog | Tidak | Tidak dijelaskan | Tidak dijelaskan | **Guard menahan harga di luar katalog** |
-| Jejak keputusan | Tidak | Tidak jelas | Riwayat chat | **Trace langkah agen dan audit log** |
-| Harga | Gratis atau murah | Gratis (sementara) | ±Rp750rb/bulan [V] | **Rp149–299rb/bulan (asumsi)** |
-
-Kaki panel: sumber pesaing di PRD bagian Diferensiasi dan Benchmark; isi kolom pesaing hanya yang tercantum di
-sumber, selebihnya ditulis "tidak dijelaskan".
-
-**Pita kesimpulan:** "Gemini salah di 1 dari 18 kasus, dan kesalahan itu ditahan Guard sebelum sampai ke pelanggan."
-
----
-
-## Checklist produksi
-
-- [ ] Screenshot S1 dan S2 diambil dari link juri dengan akun demo, tampilan HP 390 px; tanpa URL OAuth, token, atau
-      email asli.
-- [ ] Angka di S3 dan S4 sama persis dengan tabel "Angka resmi" di [struktur-deck-pitch-dan-detail.md](struktur-deck-pitch-dan-detail.md).
-- [ ] Setiap angka [A] ditulis "asumsi" di slide.
-- [ ] Kaki slide S2 dan S4 menyebut data contoh dan kanal yang belum diuji ke akun asli.
-- [ ] Bila kanal nyata sempat diuji sebelum 15.00, tambahkan baris "Kirim nyata ke WhatsApp/Gmail" di S4 panel 02.
+| Why OmniLead Is Different | "OmniLead is a tools, not to change business" | "OmniLead fits how you already sell" |
+| Revenue Ranges | Rp500 juta sampai 5 miliar | Beri sumber atau tulis "assumption" |
+| The Core Flow, Seller Review | Sellers review, edit, approve | Tambahkan "or set agent permission" |
