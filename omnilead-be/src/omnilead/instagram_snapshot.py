@@ -5,12 +5,19 @@ LINE = re.compile(r'^(\s*)-\s+([A-Za-z]+)(?:\s+"((?:[^"\\]|\\.)*)")?(.*)$')
 URL = re.compile(r"\[url=([^\]]+)\]")
 REF = re.compile(r"\[ref=([^\]]+)\]")
 COMMENT_URL = re.compile(r"instagram\.com/([^/]+)/([^/]+)/c/(\d+)/?")
+POST_URL = re.compile(r"instagram\.com/([A-Za-z0-9._]+)/(?:p|reel)/([^/]+)/?$")
 PROFILE_URL = re.compile(r"instagram\.com/([A-Za-z0-9._]+)/?$")
 COMMENT_LABEL = re.compile(r"^(commented|replied to your comment|mentioned you in a comment)\s*:\s*", re.I)
 OWN_PREVIEW = re.compile(r"^(you|anda|kamu)\s*:\s*", re.I)
 STATUS_TEXT = re.compile(r"^(unread|belum dibaca|active( now|\s+\d+\s*\w+(\s+ago)?)?|aktif( sekarang|\s+\d+\s*\w+(\s+(yang )?lalu)?)?|seen|dilihat)$", re.I)
 NOTICE_LABEL = re.compile(r"\s(commented|replied to your comment|mentioned you in a comment)\s*:", re.I)
 AVATAR = "user-profile-picture"
+VIEW_REPLIES = re.compile(r"^(view|lihat)( all| semua)?\s+\d+\s+(repl|balasan)", re.I)
+AGE = re.compile(r"^(\d+)\s*([smhdw])$", re.I)
+AGE_NOW = re.compile(r"^(now|just now|sekarang|baru saja)$", re.I)
+AGE_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+PINNED = re.compile(r"\bpinned\b|disematkan", re.I)
+REPLY_LABELS = {"reply", "balas"}
 UNSUPPORTED = re.compile(r"^(unsupported message|pesan tidak didukung)\b", re.I)
 MEDIA = "[media]"
 TAB_COUNT = re.compile(r"\s*\(\d+\+?\)\s*$")
@@ -56,6 +63,22 @@ class Message:
     direction: str
     author: str
     text: str
+
+
+@dataclass
+class PostComment:
+    comment_id: str
+    author: str
+    text: str
+    direction: str
+    age: str = ""
+
+
+@dataclass
+class Post:
+    owner: str
+    caption: str
+    comments: list[PostComment]
 
 
 @dataclass
@@ -216,6 +239,117 @@ def conversation(snapshot: str, limit: int = 10) -> list[Message]:
             incoming = bool(before and before.role == "link" and PROFILE_URL.search(before.url))
         out.append(Message(direction="in" if incoming else "out", author=author, text=text[:2000]))
     return out[-limit:] if limit > 0 else []
+
+
+def _avatar(node: Node) -> bool:
+    return any(c.role == "image" for c in node.children)
+
+
+def _sibling_text(anchor: Node) -> str:
+    siblings = anchor.parent.children if anchor.parent else []
+    parts = []
+    for node in siblings[siblings.index(anchor) + 1:]:
+        if node.role == "StaticText":
+            parts.append(node.name)
+        elif node.role == "link" and node.name and not _avatar(node):
+            parts.append(node.name)
+        elif node.role == "LineBreak":
+            parts.append("\n")
+    return re.sub(r"[ \t]+", " ", "".join(parts)).strip()
+
+
+def post(snapshot: str, code: str) -> Post:
+    main = next((n for n in walk(parse_tree(snapshot)) if n.role == "main"), None)
+    if main is None:
+        return Post("", "", [])
+    nodes = list(walk(main))
+    owner = next((m.group(1).lower() for n in nodes if n.role == "link" and (m := POST_URL.search(n.url))
+                  and m.group(2) == code), "")
+    first_time = next((i for i, n in enumerate(nodes) if n.role == "time"), None)
+    if not owner and first_time is not None:
+        owner = next((m.group(1).lower() for n in reversed(nodes[:first_time])
+                      if n.role == "link" and not _avatar(n) and (m := PROFILE_URL.search(n.url))), "")
+    caption: list[str] = []
+    if first_time is not None:
+        inside = set(map(id, walk(nodes[first_time])))
+        for node in nodes[first_time + 1:]:
+            if id(node) in inside:
+                continue
+            if node.role == "button" or (node.role == "link" and _avatar(node)) or COMMENT_URL.search(node.url):
+                break
+            if node.role == "StaticText" or (node.role == "link" and node.name and node.parent is nodes[first_time].parent):
+                caption.append(node.name)
+            elif node.role == "LineBreak":
+                caption.append("\n")
+    comments: list[PostComment] = []
+    author = ""
+    for node in nodes:
+        m = PROFILE_URL.search(node.url)
+        if node.role == "link" and m and not _avatar(node):
+            author = m.group(1).lower()
+        target = COMMENT_URL.search(node.url)
+        if node.role != "link" or not target or target.group(2) != code:
+            continue
+        text = _sibling_text(node)
+        if text and all(c.comment_id != target.group(3) for c in comments):
+            comments.append(PostComment(comment_id=target.group(3), author=author, text=text[:2000],
+                                        direction="out" if owner and author == owner else "in",
+                                        age=node.name.strip() or _abbr_text(node)))
+    return Post(owner=owner, caption=re.sub(r"\n{3,}", "\n\n", "".join(caption)).strip()[:3000], comments=comments)
+
+
+def age_seconds(label: str) -> int | None:
+    label = label.strip()
+    if AGE_NOW.match(label):
+        return 0
+    m = AGE.match(label)
+    return int(m.group(1)) * AGE_SECONDS[m.group(2).lower()] if m else None
+
+
+def own_username(snapshot: str) -> str:
+    for node in walk(parse_tree(snapshot)):
+        if node.role == "main":
+            break
+        m = PROFILE_URL.search(node.url)
+        user = m.group(1).lower() if m else ""
+        if node.role == "link" and user and any(
+                c.role == "image" and c.name.lower().startswith(user) and c.name.lower() != user for c in walk(node)):
+            return user
+    return ""
+
+
+def profile_posts(snapshot: str, username: str, limit: int) -> list[str]:
+    codes: list[str] = []
+    for node in walk(parse_tree(snapshot)):
+        m = POST_URL.search(node.url)
+        if node.role != "link" or not m or m.group(1).lower() != username.lower() or m.group(2) in codes:
+            continue
+        if any(PINNED.search(c.name) for c in walk(node)):
+            continue
+        codes.append(m.group(2))
+        if len(codes) >= limit:
+            break
+    return codes
+
+
+def reply_ref(snapshot: str, comment_id: str) -> str:
+    nodes = list(walk(parse_tree(snapshot)))
+    start = next((i for i, n in enumerate(nodes) if n.role == "link" and f"/c/{comment_id}" in n.url), None)
+    if start is None:
+        return ""
+    for node in nodes[start + 1:]:
+        if COMMENT_URL.search(node.url):
+            return ""
+        if node.role == "button" and _norm(node.name) in REPLY_LABELS:
+            return node.ref
+    return ""
+
+
+def comment_box_ref(refs: dict) -> str:
+    boxes = [(ref, _norm(str(item.get("name", "")))) for ref, item in refs.items()
+             if isinstance(item, dict) and item.get("role") == "textbox"]
+    named = [ref for ref, name in boxes if "comment" in name or "komentar" in name]
+    return named[0] if named else (boxes[0][0] if len(boxes) == 1 else "")
 
 
 def _norm(text: str) -> str:

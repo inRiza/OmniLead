@@ -32,6 +32,7 @@ class EventIn(BaseModel):
     ts: datetime | None = None
     post_ref: str | None = None
     comment_ref: str | None = None
+    post_caption: str | None = Field(default=None, max_length=3000)
 
 
 class TimelineItem(BaseModel):

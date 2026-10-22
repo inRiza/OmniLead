@@ -50,6 +50,15 @@ export function activityStatus(a: Pick<Activity, "status" | "eventStatus">): { l
   return { label: "Perlu dibalas", tone: "blue" };
 }
 
+/** Open queue for beranda KPI + list + inbox filter `status=Perlu dibalas`. */
+export function needsReply(a: Pick<Activity, "status" | "eventStatus">): boolean {
+  return activityStatus(a).label === "Perlu dibalas";
+}
+
+export function isOpenHotLead(l: Pick<LeadProfile, "score" | "stage">): boolean {
+  return l.score === "hot" && l.stage !== "deal" && l.stage !== "batal";
+}
+
 export const urgencyTone: Record<Urgency, Tone> = { tinggi: "red", sedang: "amber", rendah: "gray" };
 
 export const stageLabel: Record<LeadProfile["stage"], string> = {

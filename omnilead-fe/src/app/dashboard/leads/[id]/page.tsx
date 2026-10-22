@@ -14,7 +14,6 @@ import { Button } from "@/components/action/button";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Badge, ChannelIcon } from "@/components/primitives";
-import { LeadManage } from "@/components/dashboard/LeadManage";
 import { LeadInsights } from "@/components/dashboard/LeadInsights";
 
 export default function LeadProfilePage() {
@@ -151,8 +150,6 @@ function LeadProfile() {
                   nextStep={lead.nextStep}
                   scoredAt={lead.scoredAt}
                 />
-
-                <LeadManage key={`${lead.id}-${lead.stage}`} lead={lead} onSaved={load} />
 
                 {detail.undoableMerges.length > 0 || detail.mergeEvidence.length > 0 ? (
                   <section className="rounded-xl border border-rc-border bg-rc-surface p-5">

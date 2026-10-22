@@ -148,6 +148,8 @@ class IngestService:
             account = meta["business_account_id"]
             ev = ev.model_copy(update={"meta": meta, "external_id": f"{account}:{original}" if account else original})
         existing = self._store.find_event(ev.channel.value, ev.external_id)
+        if not existing and ev.meta.get("platform_external_id", ev.external_id) != ev.external_id:
+            existing = self._store.find_event(ev.channel.value, ev.meta["platform_external_id"])
         if existing:
             return existing, True
 
@@ -451,6 +453,7 @@ class IngestService:
                 "ts": event.ts.isoformat() if event.ts else None,
                 "post_ref": event.post_ref,
                 "comment_ref": event.comment_ref,
+                "post_caption": str((event.meta or {}).get("post_caption") or "")[:3000] or None,
             },
             "lead": self._lead_context(event, lead) if lead else None,
             "preferences": settings.preferences + ([f"Instruksi pemilik untuk balasan ini: {instruction}"] if instruction else []),
@@ -487,7 +490,9 @@ class IngestService:
         if conversation:
             if conversation[-1].get("direction") == "in" and conversation[-1]["text"].strip() == event.text.strip():
                 conversation = conversation[:-1]
-            timeline = [i for i in timeline if i["channel"] != event.channel.value] + [
+            if event.kind == "dm":
+                timeline = [i for i in timeline if i["channel"] != event.channel.value]
+            timeline = timeline + [
                 {"ts": None, "channel": event.channel.value,
                  "direction": "out" if m.get("direction") == "out" else "in", "text": str(m["text"])}
                 for m in conversation
