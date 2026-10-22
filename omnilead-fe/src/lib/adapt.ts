@@ -272,6 +272,8 @@ const AUDIT_LABEL: Record<string, string> = {
   flag_for_review: "Ditandai untuk tinjauan manual",
   proposed: "Draf disiapkan",
   approved: "Disetujui",
+  auto_approved: "Disetujui otomatis oleh agen",
+  auto_held: "Dikembalikan ke pemilik",
   "approved (edited)": "Disetujui (diedit)",
   rejected: "Ditolak",
   retry: "Dicoba ulang",
@@ -295,6 +297,7 @@ const AUDIT_LABEL: Record<string, string> = {
 
 const AUDIT_OUTCOME: Record<string, AuditEntry["outcome"]> = {
   proposed: "pending",
+  auto_held: "pending",
   handoff: "pending",
   followup_due: "pending",
   flag_for_review: "review",
@@ -310,6 +313,36 @@ const AUDIT_OUTCOME: Record<string, AuditEntry["outcome"]> = {
   agent_error: "failed",
 };
 
+const ACTION_WORD: Record<string, string> = {
+  send_message: "Balasan pesan",
+  send_email: "Balasan email",
+  reply_comment: "Balasan komentar",
+  post_comment: "Komentar baru",
+  followup: "Follow-up",
+  crm_update: "Update CRM",
+  merge: "Gabung profil",
+};
+
+const ACTOR_LABEL: Record<string, string> = { agent: "Agen", ingest: "Sistem", system: "Sistem", owner: "Pemilik" };
+
+// Detail audit dari backend memakai istilah internal; tampilkan dalam bahasa awam.
+function auditDetail(detail: string): string {
+  const action = detail.match(/^(\w+) di (\w+)(?: untuk (.+))?$/);
+  if (action && ACTION_WORD[action[1]]) {
+    const channel = channelLabel[action[2] as keyof typeof channelLabel] ?? action[2];
+    const target = action[3] && action[3] !== "-" ? ` untuk ${action[3]}` : "";
+    return `${ACTION_WORD[action[1]]} di ${channel}${target}`;
+  }
+  const score = detail.match(/^skor=(\d+)\s*(\w*)$/);
+  if (score) return `Skor ${score[1]}${score[2] ? ` (${score[2]})` : ""}`;
+  const mode = detail.match(/^mode (manual|hybrid|auto)$/);
+  if (mode) return `Mode izin: ${AUTONOMY_LABEL[mode[1] as Autonomy]}`;
+  return detail;
+}
+
+export type Autonomy = "manual" | "hybrid" | "auto";
+export const AUTONOMY_LABEL: Record<Autonomy, string> = { manual: "Selalu tanya", hybrid: "Hybrid", auto: "Percaya penuh" };
+
 export function adaptAudit(a: BeAudit): AuditEntry {
   return {
     id: a.id,
@@ -319,8 +352,8 @@ export function adaptAudit(a: BeAudit): AuditEntry {
     outcome: AUDIT_OUTCOME[a.event] ?? "success",
     leadId: a.lead_id,
     actionId: a.action_id,
-    detail: a.detail,
-    actor: a.actor,
+    detail: auditDetail(a.detail),
+    actor: ACTOR_LABEL[a.actor] ?? a.actor,
     channel: a.channel,
   };
 }

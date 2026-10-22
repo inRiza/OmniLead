@@ -15,6 +15,12 @@ import { useDashboard } from "@/components/dashboard/DashboardContext";
 
 const CHANNELS: Channel[] = ["whatsapp", "instagram", "facebook", "email"];
 
+const AUTONOMY_OPTIONS: { value: "manual" | "hybrid" | "auto"; label: string; detail: string }[] = [
+  { value: "manual", label: "Selalu tanya", detail: "Setiap balasan dan perubahan menunggu persetujuan Anda." },
+  { value: "hybrid", label: "Hybrid", detail: "Jawaban umum tanpa harga dan update CRM dijalankan otomatis. Penawaran, komplain, dan komentar publik tetap Anda periksa." },
+  { value: "auto", label: "Percaya penuh", detail: "Semua usulan yang lolos Guard dijalankan otomatis. Anda tetap bisa memberi masukan." },
+];
+
 function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
     <button
@@ -85,6 +91,35 @@ export default function SettingsPage() {
               <Row title="Mode latihan" body="Agen tetap bekerja, tetapi tidak ada pesan yang benar-benar terkirim ke pelanggan.">
                 <Toggle on={d.dryRun} label="Mode latihan" disabled={busy !== null || !d.loaded} onChange={() => void run("dry", () => d.setDryRun(!d.dryRun))} />
               </Row>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-rc-border bg-rc-surface p-5 md:p-6">
+            <h2 className="text-lg font-semibold text-rc-fg">Izin agen</h2>
+            <p className="mt-2 text-sm text-rc-fg-muted">
+              Atur seberapa jauh agen boleh bertindak sendiri. Usulan yang ditandai Guard selalu menunggu Anda, dan Jeda agen menghentikan semuanya.
+            </p>
+            <div role="radiogroup" aria-label="Izin agen" className="mt-5 grid gap-3 sm:grid-cols-3">
+              {AUTONOMY_OPTIONS.map((o) => {
+                const on = d.autonomy === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    disabled={busy !== null || !d.loaded}
+                    onClick={() => void run("autonomy", () => d.setAutonomy(o.value))}
+                    className={cn(
+                      "flex cursor-pointer flex-col gap-1.5 rounded-lg border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      on ? "border-rc-accent bg-rc-accent-soft" : "border-rc-border hover:bg-rc-surface-hover",
+                    )}
+                  >
+                    <span className={cn("text-base font-semibold", on ? "text-rc-accent" : "text-rc-fg")}>{o.label}</span>
+                    <span className="text-sm text-rc-fg-muted">{o.detail}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
