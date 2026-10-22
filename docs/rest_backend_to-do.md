@@ -28,7 +28,7 @@ Dokumen ini mendaftar pekerjaan backend yang masih dibutuhkan agar UI dashboard 
 
 UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
-- [ ] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.**
+- [x] **1.1 (P0) Kirim otomatis tanpa langkah persetujuan.** Selesai 22 Okt sebagai **izin agen** (Selalu tanya (default), Hybrid, dan Percaya penuh) di `AppSettings.autonomy` dan `autonomy.py`, dipilih di halaman Pengaturan. Guard `warn`/`block`, pesan tinjauan manual, dan merge selalu menunggu manusia; jeda mengembalikan aksi ke pemilik; kanal mati, batas kirim, jendela kanal, dan dry run ditegakkan executor. Per kanal belum ada. Tes: `tests/test_autonomy.py`.
   - Sekarang: tidak ada auto-approve. Aksi hanya dieksekusi setelah `POST /actions/{id}/approve` (`approvals/queue.py`, `approvals/executor.py`). UI sudah menghapus tombol persetujuan, sehingga draf agen tertahan di status `pending` ("Disiapkan" di UI).
   - Perlu:
     - Langsung eksekusi setelah agen mengusulkan, bila semua guard lolos dan kanal terhubung.
@@ -51,7 +51,7 @@ UI terkait: Workspace (Hasil kerja agen), Pengaturan agen, Audit.
 
 UI terkait: Workspace (kategori, ringkasan AI, langkah agen), Lead, Konten.
 
-- [ ] **2.1 (P0) Agen gagal bila bisnis belum punya produk (perlu dicek).**
+- [~] **2.1 (P0) Agen gagal bila bisnis belum punya produk.** IndexError di `scoring.py` sudah diperbaiki 22 Okt (tes `test_order_with_quantity_on_empty_knowledge_base_still_drafts`). Sisa: nominal Rp di draf masih diblok bila produk kosong.
   - `scoring.py` `estimate_value` dan drafter cadangan memakai `catalog.packages[0]`. Bisnis baru tanpa produk akan memicu IndexError saat pesan menyebut jumlah, sehingga event menjadi `agent_error`.
   - Selain itu, semua nominal "Rp" di draf diblok bila produk kosong.
   - Perlu jalur aman saat katalog kosong.

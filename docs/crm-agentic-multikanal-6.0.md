@@ -8,7 +8,7 @@ tags: startup, crm, agentic, multichannel, sales, social-media, umkm,
   human-in-the-loop, mcp, google-cloud, adk, gemini
 title: OmniLead, CRM Agentic Multi-Kanal untuk UMKM Indonesia
 updated: 2026-10-21
-version: 5.1
+version: 6.0
 ---
 
 Label sumber data di dokumen ini:
@@ -17,6 +17,20 @@ Label sumber data di dokumen ini:
 - **[S]**: sumber sekunder atau survei vendor; sebutkan sumbernya jika dipakai di slide.
 - **[A]**: asumsi tim yang perlu divalidasi. TOR §7 melarang mengarang metrik.
 - **[U]**: diukur sendiri oleh tim di repo ini (lihat `TESTING.md`).
+
+**Versi 6.0 (22 Okt 2026).** Perubahan mayor pada prinsip kendali: **izin agen diatur pemilik**, seperti
+mode izin pada coding assistant. Tiga mode: **Selalu tanya** (default, setiap aksi menunggu persetujuan),
+**Hybrid** (aksi berisiko rendah yang lolos Guard dijalankan otomatis), dan **Percaya penuh** (semua usulan
+yang lolos Guard dijalankan otomatis). Pagar di semua mode: catatan Guard selain lolos, pesan yang ditandai
+tinjauan manual, dan usulan gabung profil selalu menunggu manusia; Jeda agen dan batas platform tetap
+berlaku. Alasan: menyetujui satu per satu menjadi hambatan saat volume chat besar. Lihat
+[Batas otonomi](#batas-otonomi) dan [Keamanan dan Kendali Manusia](#keamanan-dan-kendali-manusia).
+
+**Versi 5.2 (22 Okt 2026).** Persona utama kembali ke **Bu Rina, katering dan hampers rumahan**, sama
+dengan katalog, seed, dan pesan contoh di aplikasi; contoh trace dan skenario demo disesuaikan. Kalimat inti
+kini memuat masalah dan solusi. Struktur deck dan slide ada di
+[struktur-deck-pitch-dan-detail.md](struktur-deck-pitch-dan-detail.md) dan
+[slide-demo-arsitektur-report.md](slide-demo-arsitektur-report.md). Produk dan arsitektur tidak berubah.
 
 **Versi 5.1 (22 Okt 2026).** Disinkronkan dengan kode dan deploy sungguhan: OmniLead sudah berjalan di
 Cloud Run dengan engine Gemini (`adk`) sebagai default, akun demo berisi katalog dan usulan nyata dari agen,
@@ -62,15 +76,24 @@ Akibatnya:
 Agen menyatukan WhatsApp, Instagram, Facebook, dan email menjadi satu profil
 pelanggan, memprioritaskan aktivitas berdasarkan nilai bisnis, lalu
 menyiapkan balasan dan tindak lanjut lengkap dengan alasannya. Agen
-tidak pernah mengirim apa pun sendiri. Setiap aksi keluar masuk antrean
-persetujuan, dan pemilik cukup menekan **Setujui**, **Edit**, atau
-**Tolak**.
+tidak memegang tombol kirim: setiap aksi keluar masuk antrean, lalu
+dijalankan executor setelah disetujui. Pemilik memilih **izin agen**:
+menyetujui sendiri setiap aksi (**Setujui**, **Edit**, **Tolak**),
+membiarkan aksi berisiko rendah berjalan otomatis (**Hybrid**), atau
+mempercayakan semua usulan yang lolos Guard (**Percaya penuh**).
 
 > **"AI yang menyiapkan, pemilik yang memutuskan."**
 
+**Kalimat inti untuk pitch (masalah lalu solusi):** "Pesanan besar UMKM hilang di tumpukan chat dari empat
+aplikasi, karena pemiliknya sendirian dan baru sempat membalas berjam-jam kemudian. OmniLead menemukan pesanan
+itu lebih dulu, menyiapkan balasannya, dan pemilik tinggal menyetujui."
+
+Tiga masalah yang dijawab satu per satu: (1) chat tercecer dan telat dibalas, (2) order besar tenggelam di
+antara chat eceran, (3) pemilik tidak berani memakai bot karena takut salah harga atau salah janji.
+
 Batas demo hackathon:
 
-- Satu bisnis dengan persona utama penjual olahan buah (rujak dan es teler)
+- Satu bisnis dengan persona utama katering dan hampers rumahan (Bu Rina)
   dan 30–50 prospek dummy.
 - Gmail, WhatsApp Cloud API (nomor uji), dan Instagram (Standard Access
   untuk akun milik tim, tanpa App Review) adalah **target nyata**. Kodenya
@@ -207,26 +230,27 @@ dari asumsi; validasi lewat wawancara 3–5 pemilik UMKM.
 | Waktu sales | Rata-rata hanya 40% waktu sales dipakai untuk menjual (State of Sales 2026) | [V] [Salesforce](https://www.salesforce.com/news/stories/state-of-sales-report-announcement-2026/) |
 | Produk terlaris online | Makanan/minuman 28%, pakaian wanita 22%, aksesoris 14%, skincare 13% (Jakpat 2024; belum ada edisi publik yang lebih baru). Data BPS 2024: jasa akomodasi dan penyediaan makan-minum adalah jenis barang/jasa yang paling banyak dijual usaha e-commerce urutan kedua (24,84%) setelah perdagangan besar dan eceran (36,64%) | [S] [GoodStats](https://data.goodstats.id/statistic/produk-paling-banyak-dijual-online-makanan-minuman-pakaian-jadi-primadona-EpfBT); [V] [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html) |
 
-### P1 (persona utama demo): "Bu Rina", penjual rujak dan es teler rumahan
+### P1 (persona utama demo): "Bu Rina", katering dan hampers rumahan
 
-- **Profil:** Usaha mikro dengan 2–4 orang yang menjual olahan buah: rujak
-  buah, es teler, dan paket untuk acara (arisan, pengajian, acara kantor).
-  Rina merangkap pemilik, admin chat, dan pengelola Instagram.
+- **Profil:** Usaha mikro dengan 2–4 orang yang menjual nasi box (Paket A dan
+  Paket B) dan hampers untuk acara (arisan, pengajian, acara kantor). Rina
+  merangkap pemilik, juru masak, admin chat, dan pengelola Instagram.
 - **Kanal:** Komentar dan DM Instagram, Page Facebook dan Messenger, WhatsApp,
   dan email. Email
   biasanya dipakai pelanggan kantor yang meminta penawaran untuk acara [A].
 - **Masalah:**
   - Pertanyaan harga, porsi, dan area kirim tersebar di tiga kanal.
-  - Buah musiman membuat menu dan stok berubah; balasan lama bisa
-    menyebut menu yang sudah habis.
-  - Pesanan acara harus segar dan tepat waktu, jadi tenggatnya sempit.
+  - Harga per pax, minimum order 30 pax, DP, dan area kirim harus
+    disebut benar di setiap balasan; satu salah sebut harga merugikan.
+  - Pesanan acara harus siap tepat waktu (dipesan paling lambat H-3),
+    jadi tenggatnya sempit dan balasan yang telat berarti order hilang.
   - Pelanggan yang sama muncul di beberapa kanal tanpa konteks.
   - Pesanan acara bernilai besar terlewat tindak lanjut di antara pembeli
     eceran.
 - **Alasan dipilih:** makanan dan minuman adalah kategori yang paling banyak
-  dijual online (28%) [S]. Beda nilai pesanan eceran (satu cup) dan pesanan
-  acara (puluhan porsi) membuat lead scoring bermakna, dan menu yang
-  berubah-ubah menunjukkan pentingnya harga dari katalog.
+  dijual online (28%) [S]. Beda nilai pertanyaan eceran dan pesanan acara
+  (puluhan sampai ratusan pax) membuat lead scoring bermakna, dan harga per
+  pax yang dikali jumlah menunjukkan pentingnya harga dari katalog.
 - **Asumsi [A]:**
   - 50–100 chat atau komentar per hari saat akhir pekan dan musim acara.
   - 10–20% di antaranya pesanan acara bernilai besar.
@@ -596,6 +620,22 @@ platform.**
 
 ### Batas otonomi
 
+**Izin agen (diatur pemilik di halaman Pengaturan):**
+
+| Mode | Dijalankan otomatis | Tetap menunggu pemilik |
+|---|---|---|
+| **Selalu tanya** (default) | Tidak ada | Semua aksi keluar dan perubahan CRM |
+| **Hybrid** | Update CRM; balasan DM atau email tanpa angka harga atau persen, untuk pesan yang tidak mendesak dan bukan penawaran atau komplain | Penawaran dan harga, komplain, komentar publik, follow-up |
+| **Percaya penuh** | Semua usulan yang seluruh pemeriksaan Guard-nya lolos | Usulan dengan catatan Guard |
+
+Berlaku di semua mode: usulan dengan catatan Guard selain lolos, pesan yang ditandai tinjauan manual, dan
+usulan gabung profil selalu menunggu manusia. Persetujuan otomatis dicatat di audit sebagai "Disetujui
+otomatis oleh agen" beserta modenya. Bila eksekusi tertahan (Jeda agen, kanal dimatikan, batas kirim), aksi
+kembali menunggu pemilik. Batas platform (jendela 24 jam, private reply sekali per komentar) tetap ditegakkan
+executor. Implementasi: `omnilead-be/src/omnilead/autonomy.py`.
+
+Tabel berikut berlaku untuk mode **Selalu tanya**:
+
 | Agen boleh langsung (dicatat di audit log) | Perlu persetujuan manusia | Tidak boleh sama sekali |
 |---|---|---|
 | Membaca data, klasifikasi, scoring | Mengirim pesan, balasan komentar, private reply, email | Menghapus data pelanggan |
@@ -607,14 +647,14 @@ platform.**
 ### Contoh trace yang ditampilkan di panel agen
 
 ```
-Tujuan   : Tanggapi pesanan es teler 60 porsi dari Ani (PT Maju Jaya)
+Tujuan   : Tanggapi pesanan nasi box 60 pax dari Ani (PT Maju Jaya)
 Rencana  : 1) baca riwayat  2) cari paket  3) skor  4) siapkan balasan
-[1] get_timeline(lead=ani-majujaya)         → email 20 Okt: minta info es teler untuk acara kantor
-[2] search_catalog_faq("es teler 60 porsi") → Paket Es Teler Acara Rp18.000/porsi, min. 30 porsi
+[1] get_timeline(lead=ani-majujaya)         → email 20 Okt: minta info katering kantor
+[2] search_catalog_faq("katering 60 pax")   → Paket B nasi box komplit Rp35.000/pax, min. 30 pax
 [3] check_channel_window(ani, whatsapp)   → terbuka, sisa 23 j 41 m
 [4] score_lead(ani)                        → 86 Hot (kantor, 60 porsi, tenggat 9 hari)
 [5] propose_reply(instagram, publik)      → "Sudah kami DM ya kak 🙏"
-[6] propose_private_reply(comment_id)      → detail paket + total Rp1.080.000
+[6] propose_private_reply(comment_id)      → detail paket + total Rp2.100.000
 [7] propose_reply(email, penawaran)        → penawaran lengkap di badan email
 [8] propose_followup(H+2, whatsapp)        → draf follow-up
 Guard    : 4/4 lolos (harga sesuai katalog, jendela terbuka, tanpa data pihak lain)
@@ -701,7 +741,7 @@ Status   : Menunggu persetujuan (4 aksi)
 ### Skenario utama (±4 menit)
 
 Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
-"Ani – PT Maju Jaya" yang menanyakan es teler untuk acara kantor.
+"Ani – PT Maju Jaya" yang menanyakan katering untuk acara kantor.
 
 1. **Masuk.** Komentar IG dari `@ani.majujaya`: "Kak, bisa buat 60 orang
    tgl 30? harga?". Tak lama, chat WA masuk dari nomor yang tercantum di
@@ -720,7 +760,7 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
      lengkap via WA/email, (c) pengingat H+2.
 5. **Guard.** Harga sesuai katalog, jendela 24 jam WA masih terbuka,
    sehingga lolos.
-6. **Manusia.** Setujui (a), edit (b) dengan menambah bonus 5 cup rujak, dan
+6. **Manusia.** Setujui (a), edit (b) dengan menambah "bonus tester untuk 5 orang", dan
    tolak satu draf karena "terlalu formal". Agen menyusun ulang dengan
    gaya lebih santai.
 7. **Eksekusi.** Email penawaran benar-benar terkirim lewat Gmail API dan
@@ -731,11 +771,11 @@ Kondisi awal: CRM berisi 30–50 lead dummy, termasuk email kemarin dari
 
 ### Skenario tambahan: Facebook Page (±45 detik)
 
-1. Komentar di post Facebook Page Bu Rina: "kak rujaknya bisa kirim ke
+1. Komentar di post Facebook Page Bu Rina: "kak nasi boxnya bisa kirim ke
    Cimahi?".
 2. Agen mengenali pengirim (atau membuat profil baru), membaca area kirim
    di katalog, lalu mengusulkan balasan komentar singkat dan private reply
-   Messenger berisi ongkir dan harga.
+   Messenger berisi area kirim (Bandung dan Cimahi) dan harga dari katalog.
 3. Pemilik menyetujui; executor mengirim lewat Graph API dan Messenger
    Platform.
 4. Pesan ke juri: "Engine-nya sama untuk empat kanal. Menambah kanal berarti
@@ -770,7 +810,8 @@ Bila Page belum berhasil dihubungkan saat demo, skenario ini dijalankan lewat
 
 Lima lapis kendali (TOR §15: sediakan cara menghentikan agen):
 
-1. **Persetujuan per aksi (default).** Semua aksi eksternal masuk antrean.
+1. **Izin agen yang diatur pemilik.** Default: persetujuan per aksi. Mode Hybrid dan Percaya penuh
+   menjalankan otomatis hanya usulan yang lolos Guard; sisanya tetap masuk antrean.
 2. **Pause Agent global.** Ditegakkan di BE: selama flag `paused` aktif,
    event baru ditahan (diproses saat dilanjutkan) dan executor menolak
    semua pengiriman, termasuk aksi yang sudah disetujui.
@@ -899,7 +940,7 @@ jam gratis sampai 1.000 per nomor per bulan [V]
 | UMKM di ekosistem digital | ±25 juta dari 64,2 juta (±39%) | [S] [Metro TV 2025](https://www.metrotvnews.com/read/kWDCn0LV-perluas-akses-pasar-digital-25-juta-umkm-kini-sudah-masuk-e-commerce) |
 | Usaha e-commerce yang berjualan lewat pesan instan | 94,76%; media sosial 29,66%; marketplace 17,23%; website 1,36%; total 4,40 juta usaha e-commerce dengan nilai transaksi Rp1.288,93 triliun (2024) | [V] BPS *Statistik E-Commerce 2024* (rilis 28 Nov 2025, [BPS](https://www.bps.go.id/id/publication/2025/11/28/647323224ecc656c2933571b/statistik-e-commerce-2024.html)) |
 
-Pasar awal: UMKM makanan dan minuman (termasuk olahan buah) dan fashion
+Pasar awal: UMKM makanan dan minuman (katering, pesanan acara) dan fashion
 wanita yang aktif di Instagram dan WhatsApp.
 
 ### Dampak non-bisnis
@@ -932,7 +973,7 @@ hingga 2% pendapatan tahunan [S] ([hukumonline](https://www.hukumonline.com/beri
 Di OmniLead, agen tidak pernah memegang token platform, permintaan data
 pelanggan lain ditahan (kasus S2), dan demo hanya memakai data dummy.
 
-**5. AI yang bisa diawasi.** Setiap aksi keluar butuh persetujuan, bisa
+**5. AI yang bisa diawasi.** Setiap aksi keluar melewati izin yang dipilih pemilik, bisa
 dihentikan dengan Pause, dan tercatat di audit log, sesuai OWASP LLM06
 *Excessive Agency* dan NIST AI RMF. Ini penting karena agen terkuat pun
 belum andal: di τ-bench, pass^8 di bawah 25% untuk domain retail [V]
@@ -998,8 +1039,9 @@ terlewat.
 1. **Identitas lintas kanal dengan bukti.** IG, WA, dan email dari orang
    yang sama menjadi satu riwayat. Setiap usulan merge menyertakan
    alasannya.
-2. **Draft-then-approve untuk setiap aksi keluar, plus trace lengkap.**
-   Satu balasan salah di komentar publik bisa merusak reputasi UMKM.
+2. **Izin agen yang diatur pemilik, plus trace lengkap.** Mulai dari
+   menyetujui setiap aksi, lalu memberi kepercayaan bertahap (Hybrid, Percaya
+   penuh) tanpa melepas pagar Guard. Satu balasan salah di komentar publik bisa merusak reputasi UMKM.
    Pendekatan ini sejalan dengan OWASP LLM06 dan NIST. Bahkan model kuat
    pun di bawah 50% sukses di τ-bench, dan pass^8 di bawah 25% untuk
    domain retail ([τ-bench](https://arxiv.org/abs/2406.12045)).
@@ -1407,7 +1449,7 @@ keputusan untuk dihapus.
    persetujuan pemilik sebelum balasan terkirim.
 2. **Masuk** dengan akun demo → Beranda menampilkan jumlah usulan dan tombol **Tinjau usulan**; Workspace
    berisi pesan dari keempat kanal yang sudah dianalisis Gemini.
-3. **Tempel pesan** (misalnya komentar Facebook "rujaknya bisa kirim ke Cimahi?") → agen menyusun
+3. **Tempel pesan** (misalnya komentar Facebook "nasi boxnya bisa kirim ke Cimahi?") → agen menyusun
    usulan, trace, dan hasil Guard → **Setujui / Edit / Tolak**.
 4. **Jeda agen**, saklar per kanal, audit log, profil lead dan usulan merge.
 
@@ -1480,6 +1522,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Adapter Firestore | Must | Selesai (fake) | Belum diuji ke Firestore/emulator |
 | Deploy Cloud Run (agen, BE, FE) | Must | Selesai | Berjalan di `asia-southeast2` dengan engine `adk`; link juri dan akun demo diuji dari luar. Cloud Scheduler belum dibuat |
 | Akun demo berisi katalog dan usulan nyata | Must | Selesai | Knowledge base katalog di 4 kanal; 4 pesan contoh dianalisis agen saat akun dibuat |
+| Izin agen: Selalu tanya, Hybrid, Percaya penuh | Must | Selesai | `autonomy.py`; pagar Guard, Jeda, dan batas platform di semua mode; 5 tes BE; pilihan di halaman Pengaturan, tombol Setujui/Edit/Salin & buka/Coba ulang di hasil kerja agen |
 | Koneksi nomor uji WhatsApp | Should | Selesai (tiruan) | Phone Number ID, WABA ID, token; diverifikasi ke Meta sebelum disimpan; 3 tes BE |
 | Persona P2 sebagai konfigurasi | Could | Selesai | `OMNILEAD_AGENT_PERSONA=fashion`: katalog, stok per ukuran, reseller, ambang skor; evalset 6 kasus |
 | Ide konten dari pertanyaan yang sering muncul | Could | Selesai (aturan) | Draf saja; tanpa data cukup hasilnya kosong; belum memakai LLM |
@@ -1581,8 +1624,10 @@ adanya: dry-run atau kirim manual lewat Salin & buka.
 
 ### Bagaimana mencegah agen mengirim balasan yang salah atau melakukan aksi tanpa izin?
 
-- Agen tidak memegang tool kirim. Semua aksi masuk antrean persetujuan
-  dan dieksekusi oleh kode backend.
+- Agen tidak memegang tool kirim. Semua aksi masuk antrean dan dieksekusi
+  oleh kode backend, setelah disetujui pemilik atau oleh izin yang dipilih
+  pemilik (Hybrid atau Percaya penuh).
+- Usulan yang ditandai Guard selalu menunggu manusia, di mode apa pun.
 - Guard memeriksa harga, kebijakan, kebocoran data, dan prompt
   injection.
 - Ada tombol Pause global, saklar per kanal, batas laju, dan audit log.

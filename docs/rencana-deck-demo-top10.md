@@ -1,6 +1,6 @@
 ---
 title: Rencana Deck dan Demo Seleksi Top 10
-related: crm-agentic-multikanal-5.1.md
+related: crm-agentic-multikanal-6.0.md
 updated: 2026-10-21
 ---
 

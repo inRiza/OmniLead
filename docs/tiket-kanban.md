@@ -1,6 +1,6 @@
 ---
 title: Tiket Kanban (salinan board 2ndbrain)
-related: ../plan.md, crm-agentic-multikanal-5.1.md
+related: ../plan.md, crm-agentic-multikanal-6.0.md
 updated: 2026-10-21
 ---
 
@@ -96,9 +96,9 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
 | Server MCP baca-saja + gateway | `omnilead-agent/src/omnilead_agent/mcp_server.py`, `gateway.py` |
 | Ekstraksi screenshot (Gemini multimodal) | `omnilead-agent/src/omnilead_agent/extract.py` |
 | Persona fashion wanita (P2) sebagai konfigurasi katalog | `omnilead-agent/data/catalog-fashion.json` |
-| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-5.1.md](crm-agentic-multikanal-5.1.md) |
+| PRD 3.0: sinkron dengan kode, dampak bisnis dan non-bisnis bersumber, Lampiran A (YC, MCP) dan B (deploy) | [crm-agentic-multikanal-6.0.md](crm-agentic-multikanal-6.0.md) |
 | Evalset 18 kasus + pass^3, evaluasi identitas | `omnilead-agent/eval/`, `omnilead-be/eval/` |
-| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-5.1.md#lampiran-b-deploy-ke-google-cloud) |
+| Dockerfile tiga service, panduan deploy | `*/Dockerfile`, [Lampiran B PRD](crm-agentic-multikanal-6.0.md#lampiran-b-deploy-ke-google-cloud) |
 | Landing page dan logo | `omnilead-fe/src/app/page.tsx`, `src/components/brand/Logo.tsx` |
 
 ## Usulan perubahan board
@@ -116,7 +116,7 @@ yang sudah ditinggalkan (library tidak resmi, cookie sesi, CSV/RFM). Usulan peru
    | ~~Bangun connector Facebook Page: komentar, Messenger, private reply~~ | integration | **Selesai di kode** (branch `feat/facebook-connector`); tinggal uji akun nyata |
    | ~~Tampilkan Facebook di landing page dan halaman Integrasi~~ | frontend | **Selesai** |
    | Uji Facebook Page dengan akun nyata (Facebook Login, webhook Page, Messenger) | integration | Kode hanya diuji dengan HTTP tiruan |
-   | Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah (rujak, es teler) | data, frontend | PRD 4.0 P1 sudah olahan buah; demo masih katering |
+   | ~~Ganti katalog, seed, evalset, dan teks landing ke persona olahan buah~~ **Dibatalkan**: persona utama tetap katering (PRD 5.2) | data, frontend | PRD 4.0 P1 sudah olahan buah; demo masih katering |
    | ~~Jalur hybrid triage dan draf~~ | ai | **Tidak diperlukan**: `thinking_level=low` menurunkan Gemini ke 13,3 dtk (22 Okt) |
    | Evalset "pesan sulit" (10–15 kasus) untuk membandingkan aturan vs Gemini | ai | Bukti kenapa LLM dibutuhkan; evalset sekarang ditulis bersama aturan |
    | Perbarui SOURCES.md (model terverifikasi, bagian bantuan AI) | docs | Wajib TOR §6.2–6.3 |
@@ -153,3 +153,9 @@ Tetap roadmap: TSK-16–20, TSK-22, TSK-6/7/31, TSK-12/13.
 | Uji kanal nyata (Gmail, WA, IG, FB) | Belum; menunggu kredensial |
 
 Freeze kode **15.00**. Usulan MVP tambahan (TSK-24, TSK-3, TSK-23) masih menunggu keputusan tim.
+
+## Catatan 22 Okt 2026 (siang): izin agen
+
+Atas usulan tim (inRiza), persetujuan per aksi diganti **izin agen yang diatur pemilik** (Selalu tanya (default), Hybrid, dan Percaya penuh), seperti mode
+izin pada coding assistant. Usulan dengan catatan Guard selalu menunggu manusia. PRD naik ke **6.0** karena prinsip
+kendali berubah. Terkait TSK-21 (alur Setujui, Edit, Tolak) dan item 1.1 di `rest_backend_to-do.md`.

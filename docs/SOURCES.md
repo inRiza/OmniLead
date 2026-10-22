@@ -1,7 +1,7 @@
 ---
 title: Catatan sumber dan AI
 updated: 2026-10-21
-related: crm-agentic-multikanal-5.1.md
+related: crm-agentic-multikanal-6.0.md
 ---
 
 # Catatan sumber dan AI (TOR §6.2)
