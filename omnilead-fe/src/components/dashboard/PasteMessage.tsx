@@ -4,6 +4,8 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import type { Channel } from "@/lib/types";
 import { Button } from "@/components/action/button";
+import { ChannelIcon } from "@/components/primitives";
+import { Select } from "@/components/ui/select";
 import { useDashboard } from "./DashboardContext";
 
 // Tempel pesan dari kanal aktif untuk menyiapkan draf balasan.
@@ -68,7 +70,7 @@ export function PasteMessage({ onCreated }: { onCreated: (eventId: string) => vo
   }
 
   const field =
-    "w-full rounded-md border border-rc-border bg-rc-bg px-3 py-2 text-sm text-rc-fg outline-none focus:border-rc-fg";
+    "w-full rounded-md border border-rc-border bg-rc-bg px-3 py-2 text-sm text-rc-fg outline-none focus:border-rc-accent";
 
   return (
     <div className="rounded-lg border border-rc-border bg-rc-surface p-6">
@@ -79,20 +81,15 @@ export function PasteMessage({ onCreated }: { onCreated: (eventId: string) => vo
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-rc-fg-subtle">
+        <div className="flex flex-col gap-1 text-sm font-medium text-rc-fg-subtle">
           Kanal
-          <select
+          <Select
+            label="Kanal"
             value={channel}
-            onChange={(e) => setChannel(e.target.value as Channel)}
-            className={field}
-          >
-            {CHANNELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={setChannel}
+            options={CHANNELS.map((c) => ({ value: c.value, label: c.label, icon: <ChannelIcon channel={c.value} /> }))}
+          />
+        </div>
         <label className="flex flex-col gap-1 text-sm font-medium text-rc-fg-subtle">
           Handle / username
           <input

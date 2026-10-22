@@ -9,7 +9,7 @@ export const instant = false;
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AccountProvider><DashboardProvider>
-      <div className="flex h-dvh overflow-hidden bg-rc-bg text-rc-fg">
+      <div className="rc-brand rc-app flex h-dvh overflow-hidden bg-rc-bg text-rc-fg">
         <Suspense fallback={<aside className="hidden h-full w-60 shrink-0 md:block" />}>
           <Sidebar />
         </Suspense>

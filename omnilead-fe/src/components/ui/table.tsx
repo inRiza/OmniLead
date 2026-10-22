@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const cellBorder =
-  "border border-rc-border align-middle text-sm text-rc-fg";
+  "border-b border-rc-border align-middle text-sm text-rc-fg";
 
 function TableShell({
   className,
@@ -14,7 +14,7 @@ function TableShell({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-lg border border-rc-border bg-rc-surface",
+        "w-full overflow-hidden rounded-xl border border-rc-border bg-rc-surface",
         className,
       )}
     >
@@ -49,7 +49,7 @@ const TableBody = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tbody ref={ref} className={cn(className)} {...props} />
+  <tbody ref={ref} className={cn("[&>tr:last-child>td]:border-b-0", className)} {...props} />
 ));
 TableBody.displayName = "TableBody";
 
@@ -60,7 +60,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "transition-colors hover:bg-rc-surface-hover/50 data-[state=selected]:bg-rc-surface-hover",
+      "transition-colors hover:bg-rc-surface-hover/60 data-[state=selected]:bg-rc-accent-soft",
       className,
     )}
     {...props}
@@ -76,7 +76,7 @@ const TableHead = React.forwardRef<
     ref={ref}
     className={cn(
       cellBorder,
-      "h-11 bg-rc-surface-hover/50 px-4 text-left text-sm font-semibold text-rc-fg",
+      "h-10 bg-rc-bg px-4 text-left text-xs font-semibold tracking-wide text-rc-fg-muted uppercase",
       className,
     )}
     {...props}

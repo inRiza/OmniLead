@@ -313,7 +313,7 @@ function CommentRow({
 
       <div className="mt-2 flex items-center gap-2">
         {sent && <span className="text-xs text-emerald-600">Balasan terkirim</span>}
-        <Button purpose="action" style="ghost" className="ml-auto px-2 py-1 text-xs" onClick={() => setOpen((v) => !v)}>
+        <Button purpose="action" style="muted" className="ml-auto px-2 py-1 text-xs" onClick={() => setOpen((v) => !v)}>
           {open ? "Batal" : "Balas"}
         </Button>
       </div>

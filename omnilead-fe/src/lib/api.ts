@@ -84,6 +84,7 @@ export interface BeEvent {
     urgency?: "tinggi" | "sedang" | "rendah";
     urgency_reason?: string;
     intents?: string[];
+    sentiment?: "positif" | "netral" | "negatif";
   } | null;
   review_reason: string;
   trace: BeTrace | null;
@@ -364,7 +365,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ enabled }),
     }),
-  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour">>) =>
+  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences">>) =>
     request<BeSettings>("/settings", {
       method: "PATCH",
       body: JSON.stringify(patch),

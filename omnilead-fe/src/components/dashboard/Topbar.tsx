@@ -1,104 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { channelLabel } from "@/lib/ui";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/action/button";
-import { ChannelIcon, Dot } from "@/components/primitives";
+import Link from "next/link";
 import { useDashboard } from "./DashboardContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { useAccount } from "./AccountProvider";
 import { LogoutButton } from "./LogoutButton";
+import { MobileNav } from "./Sidebar";
 
 export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { paused, togglePause, channels, error, agent, loaded } = useDashboard();
-  const { session } = useAccount();
-  const [busy, setBusy] = useState(false);
-
-  async function onToggle() {
-    setBusy(true);
-    try {
-      await togglePause();
-    } catch {
-      /* error koneksi ditampilkan lewat banner */
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { paused, error, agent } = useDashboard();
 
   return (
     <header className="shrink-0 bg-rc-bg">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-3 pr-1 pl-1 md:pl-0">
-        <div className="min-w-0 space-y-0.5">
-          {session.user && <p className="mb-1 flex flex-wrap items-baseline gap-x-2 text-sm"><span className="text-rc-fg-muted">Bisnis aktif</span><strong className="min-w-0 max-w-full font-semibold text-rc-fg [overflow-wrap:anywhere]">{session.user.business}</strong></p>}
-          <h1 className="text-lg font-semibold tracking-tight text-rc-fg">
-            {title}
-          </h1>
-          {subtitle ? (
-            <p className="text-sm leading-snug text-rc-fg-muted">
-              {subtitle}
-            </p>
-          ) : null}
+      <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3 pr-1 pl-1 md:pl-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <MobileNav />
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold tracking-tight text-rc-fg">{title}</h1>
+            {subtitle ? <p className="text-sm leading-snug text-rc-fg-muted">{subtitle}</p> : null}
+          </div>
         </div>
 
-        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex max-w-full items-center gap-2">
           <WorkspaceSwitcher />
-          <div className="hidden items-center gap-0.5 rounded-md border border-rc-border bg-rc-surface p-1 lg:flex">
-            {channels.map((c) => (
-              <span
-                key={c.channel}
-                className="inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5"
-                title={`${channelLabel[c.channel]}: ${c.connected ? "terhubung" : "belum terhubung"}`}
-              >
-                <ChannelIcon channel={c.channel} />
-                <Dot ok={c.connected} />
-              </span>
-            ))}
-          </div>
-
-          <Button
-            purpose="action"
-            style={paused ? "primary" : "secondary"}
-            className="gap-2"
-            disabled={busy || (loaded && error !== null)}
-            onClick={onToggle}
-          >
-            <span
-              className={cn(
-                "inline-block h-2 w-2 rounded-full",
-                paused ? "bg-rc-primary-fg" : "bg-rc-fg",
-              )}
-            />
-            {paused ? "Lanjutkan agen" : "Jeda agen"}
-          </Button>
-          <LogoutButton className="md:hidden" />
+          <LogoutButton inline className="md:hidden" />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
         {error ? (
-          <p
-            role="alert"
-            className="rounded-lg border border-rc-danger bg-rc-surface px-3 py-2 text-sm text-rc-danger"
-          >
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             Backend tidak terhubung. {error}. Data di layar mungkin sudah usang.
           </p>
         ) : null}
         {!error && agent && !agent.reachable ? (
-          <p
-            role="alert"
-            className="rounded-lg border border-rc-border bg-rc-surface px-3 py-2 text-sm text-rc-fg-muted"
-          >
-            Service agen tidak terjangkau. Pesan baru akan ditandai dan bisa
-            dianalisis ulang setelah agen menyala.
+          <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Service agen tidak terjangkau. Pesan baru akan ditandai dan bisa dianalisis ulang setelah agen menyala.
           </p>
         ) : null}
         {paused ? (
-          <p
-            role="status"
-            className="rounded-lg bg-rc-danger px-3 py-2 text-center text-sm font-medium text-rc-danger-fg"
-          >
-            Agent dijeda. Semua aksi ditahan.
+          <p role="status" className="flex flex-wrap items-center justify-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+            Agen sedang dijeda. Semua aksi ditahan.
+            <Link href="/dashboard/pengaturan" className="underline">
+              Buka pengaturan
+            </Link>
           </p>
         ) : null}
       </div>

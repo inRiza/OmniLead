@@ -54,7 +54,7 @@ export function adaptEvent(
   const person = e.sender.name || e.sender.handle || e.sender.email || e.sender.phone;
   const authorName = [person || "Tidak dikenal", lead?.company]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 
   let status: Activity["status"] = "baru";
   if (e.status === "analyzed") status = pendingCount > 0 ? "menunggu" : "selesai";
@@ -82,6 +82,7 @@ export function adaptEvent(
     reason: reasons.join(" "),
     leadId: e.lead_id ?? "",
     eventStatus: e.status,
+    sentiment: e.triage?.sentiment,
   };
 }
 
@@ -120,7 +121,7 @@ function title(a: BeAction): string {
         ? "Private reply (DM) berisi detail"
         : `Pesan ${channelLabel[asChannel(a.channel)]}`;
     case "crm_update":
-      return `Ubah tahap penjualan → ${String(a.payload.stage ?? "?")}`;
+      return `Ubah tahap penjualan ke ${String(a.payload.stage ?? "?")}`;
     case "followup":
       return "Pengingat follow-up";
     case "merge":
@@ -235,6 +236,9 @@ export function adaptLead(l: BeLead): LeadProfile {
       : "baru") as LeadProfile["stage"],
     summary: l.summary,
     channels: [...channels],
+    scoreReason: l.score_reason ?? "",
+    createdAt: l.created_at,
+    updatedAt: l.updated_at,
   };
 }
 
@@ -289,11 +293,32 @@ const AUDIT_LABEL: Record<string, string> = {
   proposal_skipped: "Usulan dilewati",
 };
 
+const AUDIT_OUTCOME: Record<string, AuditEntry["outcome"]> = {
+  proposed: "pending",
+  handoff: "pending",
+  followup_due: "pending",
+  flag_for_review: "review",
+  event_held: "blocked",
+  rejected: "blocked",
+  blocked_paused: "blocked",
+  blocked_channel: "blocked",
+  blocked_rate_limit: "blocked",
+  dry_run: "blocked",
+  proposal_skipped: "blocked",
+  followup_skipped: "blocked",
+  execute_failed: "failed",
+  agent_error: "failed",
+};
+
 export function adaptAudit(a: BeAudit): AuditEntry {
   return {
     id: a.id,
     ts: a.ts,
+    kind: a.event,
     event: AUDIT_LABEL[a.event] ?? a.event,
+    outcome: AUDIT_OUTCOME[a.event] ?? "success",
+    leadId: a.lead_id,
+    actionId: a.action_id,
     detail: a.detail,
     actor: a.actor,
     channel: a.channel,

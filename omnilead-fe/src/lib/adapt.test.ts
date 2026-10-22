@@ -97,7 +97,7 @@ describe("adaptEvent", () => {
 
   it("menggabungkan nama dan perusahaan, skor dari lead", () => {
     const a = adaptEvent(event(), lead, 0);
-    expect(a.authorName).toBe("Ani · PT Maju Jaya");
+    expect(a.authorName).toBe("Ani, PT Maju Jaya");
     expect(a).toMatchObject({ score: "hot", scoreValue: 86, urgency: "tinggi", kind: "komentar" });
   });
 

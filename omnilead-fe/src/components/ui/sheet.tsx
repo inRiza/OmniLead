@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, insidePopover } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
@@ -40,6 +40,14 @@ const SheetContent = React.forwardRef<
         className,
       )}
       {...props}
+      onPointerDownOutside={(e) => {
+        if (insidePopover(e.target)) e.preventDefault();
+        props.onPointerDownOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        if (insidePopover(e.target)) e.preventDefault();
+        props.onInteractOutside?.(e);
+      }}
     >
       {children}
       {showClose ? (

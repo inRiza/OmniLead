@@ -2,259 +2,331 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { channelLabel } from "@/lib/ui";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ArrowRight } from "lucide-react";
+import type { Channel } from "@/lib/types";
+import { activityStatus, actorKind, outcomeMeta } from "@/lib/ui";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, SectionTitle } from "@/components/dashboard/Card";
-import { BarChart, type Bar } from "@/components/dashboard/BarChart";
-import { ChannelIcon, Dot, ScoreBadge } from "@/components/primitives";
-import { ArrowIcon } from "@/components/dashboard/icons";
+import { Badge, ChannelIcon, ScoreBadge } from "@/components/primitives";
+import { Select } from "@/components/ui/select";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { TimeAgo } from "@/components/TimeAgo";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
 import { useAccount } from "@/components/dashboard/AccountProvider";
 
-const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+type Period = "today" | "7d" | "30d";
 
-/** Jumlah pesan masuk per hari untuk 7 hari terakhir (hari ini paling kanan). */
-function weeklyVolume(receivedAt: string[], now: number): Bar[] {
+const PERIODS: { value: Period; label: string }[] = [
+  { value: "today", label: "Hari ini" },
+  { value: "7d", label: "7 hari terakhir" },
+  { value: "30d", label: "30 hari terakhir" },
+];
+
+const CHANNELS: Channel[] = ["whatsapp", "instagram", "facebook", "email"];
+
+const volumeConfig: ChartConfig = {
+  whatsapp: { label: "WhatsApp", color: "#0144f5", icon: <ChannelIcon channel="whatsapp" /> },
+  instagram: { label: "Instagram", color: "#3d6dff", icon: <ChannelIcon channel="instagram" /> },
+  facebook: { label: "Facebook", color: "#7d9dff", icon: <ChannelIcon channel="facebook" /> },
+  email: { label: "Email", color: "#bccdff", icon: <ChannelIcon channel="email" /> },
+};
+
+const trendConfig: ChartConfig = {
+  leads: { label: "Lead baru", color: "#7d9dff" },
+  closing: { label: "Closing", color: "#0144f5" },
+};
+
+const DAY = 86_400_000;
+
+type Bucket = { key: string; label: string; title: string; start: number; end: number };
+
+function buckets(period: Period, now: number): Bucket[] {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  const bars: Bar[] = [];
-  for (let back = 6; back >= 0; back--) {
-    const day = new Date(today);
-    day.setDate(today.getDate() - back);
-    const next = new Date(day);
-    next.setDate(day.getDate() + 1);
-    const value = receivedAt.filter((iso) => {
-      const t = new Date(iso).getTime();
-      return t >= day.getTime() && t < next.getTime();
-    }).length;
-    bars.push({ label: DAYS[day.getDay()], value });
+  if (period === "today") {
+    return Array.from({ length: 12 }, (_, i) => {
+      const start = today.getTime() + i * 2 * 3_600_000;
+      const h = String(i * 2).padStart(2, "0");
+      return { key: h, label: `${h}.00`, title: `${h}.00–${String(i * 2 + 2).padStart(2, "0")}.00`, start, end: start + 2 * 3_600_000 };
+    });
   }
-  return bars;
+  const n = period === "7d" ? 7 : 30;
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(today.getTime() - (n - 1 - i) * DAY);
+    const label =
+      period === "7d"
+        ? d.toLocaleDateString("id-ID", { weekday: "short" })
+        : d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+    const title = d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+    return { key: d.toISOString(), label, title, start: d.getTime(), end: d.getTime() + DAY };
+  });
+}
+
+function within(iso: string | undefined, b: { start: number; end: number }) {
+  if (!iso) return false;
+  const t = new Date(iso).getTime();
+  return t >= b.start && t < b.end;
 }
 
 export default function HomePage() {
   const { session } = useAccount();
-  const {
-    activities,
-    channels: channelStatuses,
-    audit,
-    summary,
-    pendingCount: pending,
-    error,
-  } = useDashboard();
-  const needReply = activities.filter((a) => a.status !== "selesai").length;
-  const hot = activities.filter((a) => a.score === "hot").length;
-  // Waktu dibaca setelah mount (bukan saat prerender) agar hasilnya tidak beku.
+  const { activities, leads, audit, loaded, error, refresh } = useDashboard();
+  const [period, setPeriod] = useState<Period>("7d");
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const t = setTimeout(() => setNow(Date.now()), 0);
     return () => clearTimeout(t);
   }, []);
-  const weekly = useMemo<Bar[]>(
+
+  const range = useMemo(() => {
+    if (now === null) return null;
+    const b = buckets(period, now);
+    return { list: b, start: b[0].start, end: b[b.length - 1].end };
+  }, [period, now]);
+
+  const volume = useMemo(
     () =>
-      now === null
-        ? DAYS.map((label) => ({ label, value: 0 }))
-        : weeklyVolume(activities.map((a) => a.receivedAt), now),
-    [activities, now],
+      (range?.list ?? []).map((b) => {
+        const row: Record<string, string | number> = { label: b.label, title: b.title };
+        for (const c of CHANNELS) row[c] = activities.filter((a) => a.channel === c && within(a.receivedAt, b)).length;
+        return row;
+      }),
+    [range, activities],
   );
 
-  const top = [...activities]
-    .filter((a) => a.score !== "cold" && a.status !== "selesai")
-    .sort((a, b) => b.scoreValue - a.scoreValue)
-    .slice(0, 3);
+  const trend = useMemo(
+    () =>
+      (range?.list ?? []).map((b) => ({
+        label: b.label,
+        title: b.title,
+        leads: leads.filter((l) => within(l.createdAt, b)).length,
+        closing: leads.filter((l) => l.stage === "deal" && within(l.updatedAt, b)).length,
+      })),
+    [range, leads],
+  );
+
+  const inRange = (iso?: string) => (range ? within(iso, range) : false);
+  const messages = activities.filter((a) => inRange(a.receivedAt)).length;
+  const needReply = activities.filter((a) => activityStatus(a).label === "Perlu dibalas").length;
+  const hot = leads.filter((l) => l.score === "hot" && l.stage !== "deal" && l.stage !== "batal").length;
+  const newLeads = trend.reduce((s, t) => s + t.leads, 0);
+  const closings = trend.reduce((s, t) => s + t.closing, 0);
+  const rate = newLeads ? Math.round((closings / newLeads) * 100) : 0;
+  const pipeline = leads.filter((l) => l.stage === "tertarik" || l.stage === "penawaran").length;
 
   const stats = [
-    { label: "Pesan masuk", value: activities.length, hint: "tercatat" },
-    { label: "Perlu balasan", value: needReply, hint: "aktif" },
-    { label: "Menunggu Anda", value: pending, hint: "di workspace" },
-    { label: "Lead panas", value: hot, hint: "prioritas" },
+    { label: "Pesan masuk", value: messages, href: "/dashboard/inbox" },
+    { label: "Perlu dibalas", value: needReply, href: "/dashboard/inbox?status=Perlu%20dibalas" },
+    { label: "Lead prioritas tinggi", value: hot, href: "/dashboard/leads?score=hot" },
+    { label: "Closing", value: closings, href: "/dashboard/leads?stage=deal" },
   ];
+
+  const toReply = [...activities]
+    .filter((a) => activityStatus(a).label === "Perlu dibalas" || a.urgency === "tinggi")
+    .sort((a, b) => b.scoreValue - a.scoreValue)
+    .slice(0, 5);
+
+  const agentLog = audit.filter((e) => actorKind(e.actor) !== "Pengguna").slice(0, 6);
+  const periodLabel = PERIODS.find((p) => p.value === period)?.label.toLowerCase();
 
   return (
     <>
-      <Topbar
-        title="Beranda"
-        subtitle="Ringkas, fokus ke pesanan dan follow-up"
-      />
+      <Topbar title="Beranda" />
 
       <ContentInset className="rc-scrollbar overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-5 pb-10 md:p-7 md:pb-12">
-          <div>
-            <h2 className="text-xl font-medium text-rc-fg-muted">
-              Halo{session.user?.name ? <>, <span className="font-semibold text-rc-fg [overflow-wrap:anywhere]">{session.user.name}</span></> : "!"}
-            </h2>
-            <p className="mt-1 text-sm text-rc-fg-muted">
-              {error
-                ? "Data belum bisa dimuat dari backend."
-                : `Ada ${pending} aksi yang sudah disiapkan agen, tinggal Anda putuskan.`}
-            </p>
+        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-5 pb-10 md:p-7 md:pb-12">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-rc-fg">
+                Halo{session.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
+              </h2>
+              <p className="mt-1 text-sm text-rc-fg-muted">
+                {error ? "Data belum bisa dimuat dari backend." : `Ringkasan ${periodLabel} dari semua kanal.`}
+              </p>
+            </div>
+            <Select label="Periode" className="w-48" align="right" value={period} onChange={setPeriod} options={PERIODS} />
           </div>
 
-          <Card>
-            <SectionTitle>Perlu ditangani hari ini</SectionTitle>
-            {summary.length === 0 ? (
-              <p className="text-sm text-rc-fg-muted">
-                Tidak ada yang mendesak. Semua aman.
-              </p>
-            ) : (
-              <ol className="divide-y divide-rc-border">
-                {summary.map((s, i) => (
-                  <li key={i} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <span className="mt-0.5 w-5 shrink-0 text-sm font-semibold tabular-nums text-rc-fg-subtle">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {s.leadId ? (
-                        <Link
-                          href={`/dashboard/leads/${s.leadId}`}
-                          className="text-sm font-semibold text-rc-fg hover:underline"
-                        >
-                          {s.title}
-                        </Link>
-                      ) : (
-                        <span className="text-sm font-semibold text-rc-fg">{s.title}</span>
-                      )}
-                      <p className="line-clamp-2 text-sm text-rc-fg-muted">{s.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </Card>
+          {error && (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              Data belum bisa dimuat. {error}
+              <button type="button" onClick={() => void refresh()} className="cursor-pointer font-medium underline">
+                Coba lagi
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {stats.map((s) => (
-              <Card key={s.label}>
-                <div className="text-sm font-medium text-rc-fg-muted">
+              <Link
+                key={s.label}
+                href={s.href}
+                className="group rounded-xl border border-rc-border bg-rc-surface p-5 transition-colors hover:border-rc-accent/40"
+              >
+                <span className="flex items-center justify-between text-sm font-medium text-rc-fg-muted">
                   {s.label}
-                </div>
-                <div className="mt-2 flex items-end justify-between">
-                  <span className="text-2xl font-semibold tabular-nums leading-none tracking-tight text-rc-fg">
-                    {s.value}
-                  </span>
-                  <span className="rounded-md bg-rc-surface-hover/70 px-2 py-0.5 text-sm font-medium text-rc-fg-muted">
-                    {s.hint}
-                  </span>
-                </div>
-              </Card>
+                  <ArrowRight aria-hidden className="h-4 w-4 -translate-x-1 text-rc-accent opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+                </span>
+                <span className="mt-3 block text-3xl font-semibold tracking-tight text-rc-fg tabular-nums">
+                  {loaded ? s.value : "–"}
+                </span>
+              </Link>
             ))}
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-5">
-            <Card className="lg:col-span-3">
-              <SectionTitle
-                action={
-                  <span className="text-sm text-rc-fg-muted">7 hari</span>
-                }
-              >
-                Volume pesan
-              </SectionTitle>
-              <BarChart data={weekly} unit=" pesan" />
-            </Card>
+          <Card>
+            <SectionTitle action={<span className="text-sm text-rc-fg-muted">{messages} pesan</span>}>Volume pesan per kanal</SectionTitle>
+            <ChartContainer config={volumeConfig} className="aspect-auto h-72 w-full">
+              <BarChart data={volume} margin={{ left: -16, right: 4, top: 8 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={16} />
+                <YAxis tickLine={false} axisLine={false} allowDecimals={false} width={40} />
+                <ChartTooltip cursor content={<ChartTooltipContent labelKey="title" />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                {CHANNELS.map((c, i) => (
+                  <Bar
+                    key={c}
+                    dataKey={c}
+                    stackId="v"
+                    fill={`var(--color-${c})`}
+                    radius={i === CHANNELS.length - 1 ? [4, 4, 0, 0] : 0}
+                    maxBarSize={44}
+                  />
+                ))}
+              </BarChart>
+            </ChartContainer>
+          </Card>
 
-            <Card className="lg:col-span-2">
-              <SectionTitle>Kanal</SectionTitle>
-              <div className="divide-y divide-rc-border">
-                {channelStatuses.map((c) => (
-                  <div
-                    key={c.channel}
-                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-                  >
-                    <ChannelIcon channel={c.channel} size="md" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-rc-fg">
-                        {channelLabel[c.channel]}
-                      </div>
-                      <div className="truncate text-sm text-rc-fg-muted">
-                        {c.detail}
-                      </div>
-                    </div>
-                    <Dot ok={c.connected} />
+          <Card>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-semibold text-rc-fg">Potensi closing</h3>
+                <p className="text-sm text-rc-fg-muted">Lead baru dibanding lead yang berhasil closing.</p>
+              </div>
+              <dl className="flex gap-6 text-right">
+                {[
+                  ["Lead baru", newLeads],
+                  ["Closing", closings],
+                  ["Konversi", `${rate}%`],
+                  ["Dalam proses", pipeline],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="text-xs text-rc-fg-muted">{k}</dt>
+                    <dd className="text-lg font-semibold text-rc-fg tabular-nums">{v}</dd>
                   </div>
                 ))}
-              </div>
-            </Card>
-          </div>
+              </dl>
+            </div>
+            <ChartContainer config={trendConfig} className="aspect-auto h-64 w-full">
+              <AreaChart data={trend} margin={{ left: -16, right: 4, top: 8 }}>
+                <defs>
+                  <linearGradient id="fill-leads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-leads)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="var(--color-leads)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="fill-closing" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-closing)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="var(--color-closing)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={16} />
+                <YAxis tickLine={false} axisLine={false} allowDecimals={false} width={40} />
+                <ChartTooltip content={<ChartTooltipContent labelKey="title" hideTotal />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area type="monotone" dataKey="leads" stroke="var(--color-leads)" strokeWidth={2} fill="url(#fill-leads)" dot={false} />
+                <Area type="monotone" dataKey="closing" stroke="var(--color-closing)" strokeWidth={2.5} fill="url(#fill-closing)" dot={false} />
+              </AreaChart>
+            </ChartContainer>
+          </Card>
 
-          <div className="grid gap-3 lg:grid-cols-5">
-            <Card className="lg:col-span-3" pad={false}>
-              <div className="px-4 pt-4">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card pad={false}>
+              <div className="px-5 pt-5">
                 <SectionTitle
                   action={
-                    <Link
-                      href="/dashboard/inbox"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-rc-fg-muted transition-colors hover:text-rc-fg"
-                    >
-                      Buka workspace
-                      <ArrowIcon className="h-3.5 w-3.5" width={14} height={14} />
+                    <Link href="/dashboard/inbox" className="inline-flex items-center gap-1 text-sm font-medium text-rc-accent hover:underline">
+                      Buka workspace <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                     </Link>
                   }
                 >
-                  Yang perlu dibalas
+                  Perlu dibalas
                 </SectionTitle>
               </div>
-              <div className="divide-y divide-rc-border px-2 pb-2">
-                {top.length === 0 ? (
-                  <p className="px-2 py-3 text-sm text-rc-fg-muted">
-                    Belum ada aktivitas. Hubungkan kanal komunikasi atau media
-                    sosial untuk mulai.
-                  </p>
-                ) : null}
-                {top.map((a) => (
-                  <Link
-                    key={a.id}
-                    href="/dashboard/inbox"
-                    className="flex items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-rc-surface-hover/50"
-                  >
-                    <ChannelIcon channel={a.channel} size="md" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-rc-fg">
-                          {a.authorName}
-                        </span>
-                        <ScoreBadge score={a.score} />
-                        <span className="ml-auto shrink-0 text-sm text-rc-fg-subtle">
-                          <TimeAgo iso={a.receivedAt} />
-                        </span>
+              <div className="px-2 pb-2">
+                {toReply.length === 0 ? (
+                  <p className="px-3 pb-4 text-sm text-rc-fg-muted">Belum ada percakapan yang membutuhkan tindak lanjut.</p>
+                ) : (
+                  toReply.map((a) => (
+                    <Link
+                      key={a.id}
+                      href={`/dashboard/inbox?id=${a.id}`}
+                      className="flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-rc-surface-hover"
+                    >
+                      <ChannelIcon channel={a.channel} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-rc-fg">{a.authorName}</span>
+                          <ScoreBadge score={a.score} />
+                          <span className="ml-auto shrink-0 text-xs text-rc-fg-subtle">
+                            <TimeAgo iso={a.receivedAt} />
+                          </span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-1 text-sm text-rc-fg-muted">{a.text}</p>
                       </div>
-                      <p className="mt-1 line-clamp-1 text-sm text-rc-fg-muted">
-                        {a.text}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))
+                )}
               </div>
             </Card>
 
-            <Card className="lg:col-span-2" pad={false}>
-              <div className="px-4 pt-4">
+            <Card pad={false}>
+              <div className="px-5 pt-5">
                 <SectionTitle
                   action={
-                    <Link
-                      href="/dashboard/audit"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-rc-fg-muted transition-colors hover:text-rc-fg"
-                    >
-                      Semua log
-                      <ArrowIcon className="h-3.5 w-3.5" width={14} height={14} />
+                    <Link href="/dashboard/audit" className="inline-flex items-center gap-1 text-sm font-medium text-rc-accent hover:underline">
+                      Semua log <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                     </Link>
                   }
                 >
-                  Agen tadi
+                  Hasil kerja agen
                 </SectionTitle>
               </div>
-              <div className="divide-y divide-rc-border px-3 pb-3">
-                {audit.slice(0, 5).map((e) => (
-                  <div key={e.id} className="px-1 py-2.5">
-                    <span className="text-sm font-medium text-rc-fg">
-                      {e.event}
-                    </span>
-                    <p className="line-clamp-2 text-sm text-rc-fg-muted">
-                      {e.detail}
-                    </p>
-                  </div>
-                ))}
+              <div className="px-2 pb-2">
+                {agentLog.length === 0 ? (
+                  <p className="px-3 pb-4 text-sm text-rc-fg-muted">Belum ada aktivitas agen.</p>
+                ) : (
+                  agentLog.map((e) => {
+                    const o = outcomeMeta[e.outcome];
+                    return (
+                      <Link
+                        key={e.id}
+                        href={e.leadId ? `/dashboard/leads/${e.leadId}` : "/dashboard/audit"}
+                        className="flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-rc-surface-hover"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-rc-fg">{e.event}</span>
+                            <Badge tone={o.tone}>{o.label}</Badge>
+                          </div>
+                          <p className="mt-0.5 line-clamp-1 text-sm text-rc-fg-muted">{e.detail}</p>
+                        </div>
+                        <span className="shrink-0 text-xs text-rc-fg-subtle">
+                          <TimeAgo iso={e.ts} />
+                        </span>
+                      </Link>
+                    );
+                  })
+                )}
               </div>
             </Card>
           </div>

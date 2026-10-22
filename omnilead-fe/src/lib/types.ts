@@ -46,7 +46,10 @@ export interface Activity {
   leadId: string;
   /** Status event di BE: new | analyzed | review | held | agent_error */
   eventStatus: string;
+  sentiment?: Sentiment;
 }
+
+export type Sentiment = "positif" | "netral" | "negatif";
 
 export interface TraceStep {
   tool: string;
@@ -96,7 +99,11 @@ export interface GuardNote {
 export interface AuditEntry {
   id: number;
   ts: string;
+  kind: string;
   event: string;
+  outcome: "success" | "pending" | "review" | "blocked" | "failed";
+  leadId: string | null;
+  actionId: string | null;
   detail: string;
   actor: string;
   channel: string | null;
@@ -156,4 +163,7 @@ export interface LeadProfile {
   summary: string;
   channels: Channel[];
   mergedEvidence?: string;
+  scoreReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

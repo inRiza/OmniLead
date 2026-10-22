@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, insidePopover } from "@/lib/utils";
 
 export function SettingsDialog({ open, onOpenChange, title, description, children, wide = false, busy = false }: {
   open: boolean;
@@ -19,6 +19,8 @@ export function SettingsDialog({ open, onOpenChange, title, description, childre
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35" />
       <Dialog.Content
+        onPointerDownOutside={(event) => { if (insidePopover(event.target)) event.preventDefault(); }}
+        onInteractOutside={(event) => { if (insidePopover(event.target)) event.preventDefault(); }}
         onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
         onCloseAutoFocus={(event) => { if (returnFocus.current?.isConnected) { event.preventDefault(); returnFocus.current.focus(); } }}
         className={cn("fixed top-1/2 left-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-rc-border bg-rc-surface text-rc-fg shadow-xl", wide ? "max-w-2xl" : "max-w-lg")}

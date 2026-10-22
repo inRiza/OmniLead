@@ -73,6 +73,7 @@ interface DashboardState {
   paused: boolean;
   dryRun: boolean;
   disabledChannels: string[];
+  settings: BeSettings | null;
   agent: BeAgentHealth | null;
   activities: Activity[];
   actions: ProposedAction[];
@@ -82,16 +83,11 @@ interface DashboardState {
   channels: ChannelStatus[];
   audit: AuditEntry[];
   summary: SummaryItem[];
-  /** aksi yang menunggu keputusan atau tindakan manual pengguna */
-  pendingCount: number;
   refresh: () => Promise<void>;
   togglePause: () => Promise<void>;
   setChannelEnabled: (channel: string, enabled: boolean) => Promise<void>;
   setDryRun: (value: boolean) => Promise<void>;
-  approve: (id: string, editedText?: string) => Promise<void>;
   reject: (id: string, reason: string) => Promise<void>;
-  retry: (id: string) => Promise<void>;
-  markSent: (id: string) => Promise<void>;
 }
 
 const Ctx = createContext<DashboardState | null>(null);
@@ -179,7 +175,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       channels: raw.channels.map(adaptChannel),
       audit: raw.audit.map(adaptAudit),
       summary: raw.summary.map(adaptSummary),
-      pendingCount: raw.actions.filter((a) => ACTIONABLE.has(a.status)).length,
     };
   }, [raw]);
 
@@ -201,6 +196,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     paused: raw.settings?.paused ?? false,
     dryRun: raw.settings?.dry_run ?? false,
     disabledChannels: raw.settings?.disabled_channels ?? [],
+    settings: raw.settings,
     agent: raw.agent,
     ...derived,
     refresh,
@@ -208,10 +204,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setChannelEnabled: (channel, enabled) =>
       mutate(() => api.setChannelEnabled(channel, enabled)),
     setDryRun: (v) => mutate(() => api.patchSettings({ dry_run: v })),
-    approve: (id, text) => mutate(() => api.approve(id, text)),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),
-    retry: (id) => mutate(() => api.retry(id)),
-    markSent: (id) => mutate(() => api.markSent(id)),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

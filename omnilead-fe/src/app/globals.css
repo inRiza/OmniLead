@@ -42,6 +42,16 @@
   --rc-highlight-soft: #fff8ea;
 }
 
+.rc-app {
+  --rc-primary: #0144f5;
+  --rc-primary-fg: #ffffff;
+  --rc-accent: #0144f5;
+  --rc-accent-hover: #0036c9;
+  --rc-accent-fg: #ffffff;
+  --rc-accent-soft: #eef3ff;
+  --rc-card-border: #e2e7f2;
+}
+
 .dark {
   --rc-bg: #09090b;
   --rc-surface: #0c0c0e;
