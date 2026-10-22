@@ -9,13 +9,13 @@ type Style = "primary" | "secondary" | "ghost" | "muted";
 
 const styleClass: Record<Style, string> = {
   primary:
-    "rounded-xl border-rc-fg bg-rc-fg text-rc-primary-fg hover:bg-rc-fg/90",
+    "rounded-md border-rc-accent bg-rc-accent text-rc-accent-fg hover:border-rc-accent-hover hover:bg-rc-accent-hover",
   muted:
     "rounded-md border-rc-border bg-rc-surface-hover text-rc-fg hover:bg-rc-border/40",
   secondary:
     "rounded-md border-rc-border bg-rc-surface text-rc-fg hover:bg-rc-surface-hover",
   ghost:
-    "rounded-md border-transparent text-rc-fg-muted hover:bg-rc-surface-hover hover:text-rc-fg",
+    "rounded-md border border-rc-border bg-rc-surface text-rc-fg hover:bg-rc-surface-hover",
 };
 
 type NavProps = {
