@@ -213,7 +213,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setChannelEnabled: (channel, enabled) =>
       mutate(() => api.setChannelEnabled(channel, enabled)),
     setDryRun: (v) => mutate(() => api.patchSettings({ dry_run: v })),
-    autonomy: raw.settings?.autonomy ?? "manual",
+    autonomy: raw.settings?.autonomy ?? "auto",
     setAutonomy: (v) => mutate(() => api.patchSettings({ autonomy: v })),
     approve: (id, text) => mutate(() => api.approve(id, text)),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),

@@ -32,5 +32,6 @@ def env_statuses(settings: Settings) -> list[dict]:
             for a in env_accounts(settings).values()]
 
 
-def test_mode_active(settings: Settings, store) -> bool:
-    return bool(settings.test_mode_enabled and store.get_settings().test_mode)
+def test_mode_active(settings: Settings, store=None) -> bool:
+    # Server flag only: no per-workspace toggle in the UI.
+    return bool(settings.test_mode_enabled)

@@ -413,11 +413,10 @@ def _in_test_mode(workspace: str) -> bool:
 
 def _no_test_mode(workspace: str) -> None:
     if _in_test_mode(workspace):
-        raise HTTPException(status_code=409, detail="Mode pengujian aktif. Matikan mode pengujian untuk menghubungkan akun asli.")
-
-
-class TestModeRequest(BaseModel):
-    enabled: bool
+        raise HTTPException(
+            status_code=409,
+            detail="Mode pengujian aktif (OMNILEAD_TEST_MODE_ENABLED). Matikan flag itu di server untuk menghubungkan akun asli.",
+        )
 
 
 def _test_mode_payload(workspace: str) -> dict:
@@ -429,21 +428,6 @@ def _test_mode_payload(workspace: str) -> dict:
 
 @router.get("/test-mode")
 def get_test_mode(user=Depends(current_user)) -> dict:
-    return _test_mode_payload(user["workspace_id"])
-
-
-@router.put("/test-mode")
-def set_test_mode(body: TestModeRequest, user=Depends(current_user)) -> dict:
-    _role(user, user["workspace_id"], MANAGERS)
-    if body.enabled and not get_settings().test_mode_enabled:
-        raise HTTPException(status_code=403, detail="Mode pengujian belum diizinkan di server ini (OMNILEAD_TEST_MODE_ENABLED).")
-    store = store_for_workspace(user["workspace_id"])
-    settings = store.get_settings()
-    settings.test_mode = body.enabled
-    store.save_settings(settings)
-    store.audit("test_mode_on" if body.enabled else "test_mode_off",
-                "Mode pengujian memakai akun dari .env" if body.enabled else "Kembali memakai akun yang dihubungkan",
-                actor=user["email"])
     return _test_mode_payload(user["workspace_id"])
 
 

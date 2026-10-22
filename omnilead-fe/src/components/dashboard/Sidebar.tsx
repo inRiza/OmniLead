@@ -9,8 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAccount } from "./AccountProvider";
 import { useDashboard } from "./DashboardContext";
 import { LogoutButton } from "./LogoutButton";
-import { TestModeToggle } from "./TestMode";
-import { HomeIcon, InboxIcon, ListIcon, PlugIcon, SparkIcon, UsersIcon } from "./icons";
+import { HomeIcon, InboxIcon, ListIcon, PlugIcon, UsersIcon } from "./icons";
 
 type NavItem = {
   href: string;
@@ -24,7 +23,6 @@ const main: NavItem[] = [
   { href: "/dashboard/inbox", label: "Workspace", icon: InboxIcon },
   { href: "/dashboard/agen", label: "Agen", icon: Bot },
   { href: "/dashboard/leads", label: "Lead", icon: UsersIcon },
-  { href: "/dashboard/konten", label: "Konten", icon: SparkIcon },
   { href: "/dashboard/integrasi", label: "Integrasi", icon: PlugIcon },
   { href: "/dashboard/audit", label: "Audit", icon: ListIcon },
 ];
@@ -116,7 +114,6 @@ export function Sidebar() {
       </nav>
 
       <div className="p-3 pt-0">
-        <TestModeToggle collapsed={collapsed} />
         <div className={cn("flex items-center gap-2.5 rounded-md py-1.5", collapsed ? "justify-center px-0" : "px-2")}>
           <div
             title={user?.name}

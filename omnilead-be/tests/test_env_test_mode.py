@@ -44,12 +44,13 @@ def test_env_accounts_and_statuses():
     assert tm.env_bindings(s)["instagram"] == "1"
 
 
-def test_test_mode_requires_server_permission(app, monkeypatch):
+def test_test_mode_off_when_server_flag_false(app, monkeypatch):
     allow(monkeypatch, False)
     client = TestClient(app)
     signup(client, "owner@example.com")
-    assert client.get("/test-mode").json() == {"available": False, "enabled": False, "accounts": client.get("/test-mode").json()["accounts"]}
-    assert client.put("/test-mode", json={"enabled": True}, headers=ORIGIN).status_code == 403
+    body = client.get("/test-mode").json()
+    assert body["available"] is False and body["enabled"] is False
+    assert client.put("/test-mode", json={"enabled": True}, headers=ORIGIN).status_code == 405
 
 
 def test_test_mode_uses_env_account_without_oauth(app, monkeypatch):
@@ -57,11 +58,10 @@ def test_test_mode_uses_env_account_without_oauth(app, monkeypatch):
     client = TestClient(app)
     user = signup(client, "owner@example.com")
     ws = user["workspace_id"]
-    assert deps.registry_for_workspace(ws).get(Channel.INSTAGRAM).inner._token == ""
 
-    r = client.put("/test-mode", json={"enabled": True}, headers=ORIGIN)
-    assert r.status_code == 200 and r.json()["enabled"] is True
-    assert next(a for a in r.json()["accounts"] if a["provider"] == "instagram")["configured"] is True
+    body = client.get("/test-mode").json()
+    assert body["enabled"] is True and body["available"] is True
+    assert next(a for a in body["accounts"] if a["provider"] == "instagram")["configured"] is True
 
     connections = {c["provider"]: c for c in client.get("/connections").json()}
     assert connections["instagram"]["status"] == "connected" and connections["instagram"]["test_mode"]
@@ -73,29 +73,13 @@ def test_test_mode_uses_env_account_without_oauth(app, monkeypatch):
     assert ig._token == "env-token" and ig._user_id == "17841"
     assert registry.account_ids["instagram"] == "17841"
     assert deps.account_bindings(ws)["instagram"] == "17841"
-    events = [e.event for e in deps.store_for_workspace(ws).list_audit(limit=10)]
-    assert "test_mode_on" in events
-
-    assert client.put("/test-mode", json={"enabled": False}, headers=ORIGIN).json()["enabled"] is False
-    assert deps.registry_for_workspace(ws).get(Channel.INSTAGRAM).inner._token == ""
 
 
 def test_test_mode_is_off_when_server_permission_removed(app, monkeypatch):
     allow(monkeypatch, True)
     client = TestClient(app)
     ws = signup(client, "owner@example.com")["workspace_id"]
-    client.put("/test-mode", json={"enabled": True}, headers=ORIGIN)
+    assert client.get("/test-mode").json()["enabled"] is True
     allow(monkeypatch, False)
     assert client.get("/test-mode").json()["enabled"] is False
     assert deps.registry_for_workspace(ws).get(Channel.INSTAGRAM).inner._token == ""
-
-
-def test_staff_cannot_toggle_test_mode(app, monkeypatch):
-    allow(monkeypatch, True)
-    owner = TestClient(app)
-    ws = signup(owner, "owner@example.com")["workspace_id"]
-    owner.post(f"/workspaces/{ws}/members", json={"email": "staff@example.com", "role": "staff"}, headers=ORIGIN)
-    staff = TestClient(app)
-    signup(staff, "staff@example.com", business="Lain")
-    staff.post("/workspaces/select", json={"workspace_id": ws}, headers=ORIGIN)
-    assert staff.put("/test-mode", json={"enabled": True}, headers=ORIGIN).status_code == 403

@@ -16,9 +16,9 @@ import { useDashboard } from "@/components/dashboard/DashboardContext";
 const CHANNELS: Channel[] = ["whatsapp", "instagram", "facebook", "email"];
 
 const AUTONOMY_OPTIONS: { value: "manual" | "hybrid" | "auto"; label: string; detail: string }[] = [
-  { value: "manual", label: "Selalu tanya", detail: "Setiap balasan dan perubahan menunggu persetujuan Anda." },
+  { value: "auto", label: "Percaya penuh", detail: "Semua usulan yang lolos Guard dijalankan otomatis. Anda tetap bisa memberi masukan. (default)" },
   { value: "hybrid", label: "Hybrid", detail: "Jawaban umum tanpa harga dan update CRM dijalankan otomatis. Penawaran, komplain, dan komentar publik tetap Anda periksa." },
-  { value: "auto", label: "Percaya penuh", detail: "Semua usulan yang lolos Guard dijalankan otomatis. Anda tetap bisa memberi masukan." },
+  { value: "manual", label: "Selalu tanya", detail: "Setiap balasan dan perubahan menunggu persetujuan Anda." },
 ];
 
 function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: () => void; label: string; disabled?: boolean }) {
