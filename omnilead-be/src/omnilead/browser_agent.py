@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from omnilead.agent_client import AgentUnavailable
 from omnilead.openclaw_browser import OpenClawBrowser, OpenClawUnavailable
+from omnilead.browser_login import SECRET_WORDS, auth_status, submit_login
 
 CHANNELS = {
     "instagram": ("https://www.instagram.com/direct/inbox/", {"www.instagram.com", "instagram.com"}),
@@ -21,7 +22,7 @@ CHANNELS = {
     "whatsapp": ("https://web.whatsapp.com/", {"web.whatsapp.com"}),
     "email": ("https://mail.google.com/mail/", {"mail.google.com", "accounts.google.com"}),
 }
-ACTIVE = {"opening", "running", "thinking", "extracting", "executing", "manual", "closing"}
+ACTIVE = {"opening", "running", "thinking", "extracting", "executing", "manual", "authenticating", "closing"}
 _model_workers = ThreadPoolExecutor(max_workers=4, thread_name_prefix="omnilead-visual-model")
 _model_slots = threading.BoundedSemaphore(4)
 
@@ -90,14 +91,19 @@ class BrowserActor:
         self.state = {"status": "opening", "engine": "openclaw", "headless": settings.browser_headless, "channel": channel, "task": "",
             "account_label": "", "image_base64": "", "image_revision": 0, "page_url": "",
             "pending": None, "observation": "", "result": "", "error": "", "steps": 0,
-            "history": [], "extracted": None}
+            "history": [], "chat": [], "queued_task": "", "auth": {"stage": "none", "message": ""}, "extracted": None}
         self.thread = threading.Thread(target=self._worker, daemon=True, name="omnilead-openclaw-task")
         self.thread.start()
         self.commands.put(self._open)
 
     def snapshot(self):
         with self.lock:
-            return {**self.state, "history": list(self.state["history"])}
+            return {**self.state, "history": list(self.state["history"]), "chat": list(self.state["chat"])}
+
+    def say(self, role, text):
+        with self.lock:
+            self.state["chat"].append({"id": uuid.uuid4().hex, "role": role, "text": text[:6000], "at": time.time()})
+            del self.state["chat"][:-60]
 
     def update(self, **changes):
         with self.lock:
@@ -108,6 +114,8 @@ class BrowserActor:
             history = self.state["history"]
             history.append({"id": uuid.uuid4().hex, "at": time.time(), "operation": operation, "label": label[:800]})
             del history[:-60]
+            if operation in {"error", "proposal", "finish", "need_user", "stop"}:
+                self.say("assistant", label)
 
     def _worker(self):
         while True:
@@ -148,6 +156,7 @@ class BrowserActor:
         self._capture()
         self.update(status="ready")
         self.record("openclaw", "Profil browser resmi OpenClaw dibuka. Pemilik dapat login melalui kontrol manual atau jendela browser lokal.")
+        self.say("assistant", self.state["auth"]["message"] or "Browser siap. Beri tahu saya tugas yang ingin dikerjakan.")
 
     def reopen(self):
         with self.lock:
@@ -176,7 +185,7 @@ class BrowserActor:
         if not allowed_navigation(self.browser.url, self.channel):
             raise BrowserConflict("Halaman berubah ke luar kanal. Kembali ke halaman kanal dahulu.")
         self.update(image_base64=base64.b64encode(image).decode(), page_url=public_url(self.browser.url),
-                    image_revision=self.state["image_revision"] + 1)
+                    image_revision=self.state["image_revision"] + 1, auth=auth_status(self.browser, self.channel))
         return image
 
     def _guard(self):
@@ -197,12 +206,18 @@ class BrowserActor:
     def run(self, task, account_label, context):
         with self.lock:
             self._idle()
+            if SECRET_WORDS.search(task):
+                raise BrowserConflict("Gunakan kartu login aman untuk password atau kode, bukan teks tugas.")
             if self.state["status"] == "awaiting_approval":
                 raise BrowserConflict("Setujui atau hentikan usulan yang sedang ditampilkan dahulu.")
             self.cancel.clear()
-            self.deadline, self.business_context = time.monotonic() + 300, context
+            self.deadline = time.monotonic() + 300
+            self.business_context = {**context, "conversation": [
+                {"role": entry["role"], "text": entry["text"][:1500]} for entry in self.state["chat"][-8:]]}
             self.update(status="running", task=task, account_label=account_label, pending=None,
-                        error="", result="", observation="", steps=0, extracted=None)
+                        error="", result="", observation="", steps=0, extracted=None, queued_task="")
+            self.say("user", task)
+            self.say("assistant", "Saya mulai membaca layar dan menyiapkan langkah berikutnya.")
             self.commands.put_nowait(self._advance)
 
     def capture(self):
@@ -216,6 +231,79 @@ class BrowserActor:
     def _refresh(self):
         self._capture()
         self.update(status="ready")
+        self.say("assistant", self.state["auth"]["message"] or "Layar diperbarui. Beri tugas, atau tulis lanjutkan untuk tugas yang tertunda.")
+
+    def request_login(self):
+        with self.lock:
+            self._idle()
+            if self.state["pending"]:
+                raise BrowserConflict("Hentikan usulan yang masih menunggu dahulu.")
+            self.cancel.clear()
+            self.update(status="running", error="", task="Masuk ke akun kanal", result="")
+            self.say("user", "Bantu saya masuk ke akun kanal.")
+            self.commands.put_nowait(self._login_prompt)
+
+    def _login_prompt(self):
+        self._capture()
+        message = self.state["auth"]["message"] or "Akun sudah terbuka di browser. Sekarang Anda dapat memberi tugas."
+        self.update(status="needs_user" if self.state["auth"]["stage"] != "none" else "ready", result=message)
+        self.say("assistant", message)
+
+    def login(self, command):
+        with self.lock:
+            self._idle()
+            if self.state["pending"]:
+                raise BrowserConflict("Hentikan usulan agen sebelum login.")
+            if command.image_revision != self.state["image_revision"]:
+                raise BrowserConflict("Layar login sudah berubah. Perbarui dan coba kembali.")
+            self.cancel.clear()
+            self.update(status="authenticating", error="", task="Masuk ke akun kanal", result="", extracted=None)
+            expected_url = self.browser.url
+            self.say("assistant", "Saya sedang mengisi formulir dan mengirim login. Kredensial tidak masuk percakapan atau model.")
+            self.commands.put_nowait(lambda: self._login(command, expected_url))
+
+    def _login(self, command, expected_url):
+        from pydantic import SecretStr
+        try:
+            self.browser.inspect()
+            stage = auth_status(self.browser, self.channel)["stage"]
+            if not allowed_navigation(self.browser.url, self.channel) or self.browser.url != expected_url:
+                raise BrowserConflict("Halaman login berubah. Perbarui layar dan coba lagi.")
+            required = command.code.get_secret_value() if stage == "verification" else command.password.get_secret_value()
+            if stage in {"credentials", "password", "verification"} and not required:
+                raise BrowserConflict("Isi password atau kode pada kartu aman sebelum melanjutkan.")
+            if stage in {"credentials", "username"} and not command.username.strip():
+                raise BrowserConflict("Isi username atau alamat email pada kartu aman.")
+            if stage not in {"credentials", "username", "password", "verification"}:
+                raise BrowserConflict("Halaman ini memerlukan kontrol manual atau sudah masuk. Perbarui layar.")
+            try:
+                submit_login(self.browser, self.channel, stage, command.username.strip(),
+                    command.password.get_secret_value(), command.code.get_secret_value(), self.cancel.is_set)
+            except (ValueError, RuntimeError):
+                raise BrowserConflict("Kolom atau tombol login belum dapat dipastikan. Periksa layar atau gunakan kontrol manual.") from None
+            if command.username.strip():
+                self.update(account_label=command.username.strip()[:100])
+            self.store.audit("browser_manual", "OpenClaw: formulir login dikirim atas permintaan pemilik", actor="owner", channel=self.channel)
+            # No model calls while authentication is pending; wait for the real page outcome.
+            for _ in range(10):
+                if self.cancel.wait(1):
+                    return
+                self._capture()
+                if self.state["auth"]["stage"] != stage:
+                    break
+            auth = self.state["auth"]
+            if auth["stage"] == "none":
+                self.browser.navigate(CHANNELS[self.channel][0])
+                self._capture()
+                auth = self.state["auth"]
+            message = auth["message"] or "Halaman kanal sudah terbuka. Beri saya tugas lewat chat; pastikan akun yang terlihat sesuai."
+            if auth["stage"] == stage:
+                message = "Formulir sudah dikirim, tetapi halaman masih meminta login. Periksa pesan pada layar atau coba kredensial kembali."
+            self.update(status="needs_user" if auth["stage"] != "none" else "ready", result=message)
+            self.say("assistant", message)
+        finally:
+            command.password = SecretStr("")
+            command.code = SecretStr("")
 
     def manual(self, command):
         """Explicit owner input, kept out of model context, task history and audit text."""
@@ -299,7 +387,9 @@ class BrowserActor:
             image = self._capture()
             observed = self.browser.url
             if self.browser.login_required():
-                self.update(status="needs_user", pending=None, result="Selesaikan login langsung pada browser, lalu jalankan tugas kembali.")
+                message = self.state["auth"]["message"] or "Akun belum masuk. Gunakan kartu login aman di chat sebelum memulai tugas."
+                self.update(status="needs_user", pending=None, result=message, queued_task=self.state["task"])
+                self.record("need_user", message)
                 return
             self.update(status="thinking")
             self.record("observe", "Screenshot dan snapshot OpenClaw dikirim ke planner untuk menentukan satu langkah berikutnya.")
@@ -318,7 +408,7 @@ class BrowserActor:
                     self.update(extracted={"id": uuid.uuid4().hex, "handle": step.incoming_handle,
                         "name": step.incoming_name, "text": step.incoming_text, "page_url": public_url(observed)})
                 self.update(status="done" if step.operation == "finish" else "needs_user", result=step.result or step.reason, pending=None)
-                self.record(step.operation, step.reason)
+                self.record(step.operation, step.result or step.reason)
                 return
             if step.operation == "scroll":
                 self.browser.act("press", key="PageDown" if step.direction == "down" else "PageUp")
@@ -417,7 +507,7 @@ class BrowserActor:
         finally:
             self.browser, self.business_context, self.pending_guard = None, {}, None
             self.update(status="closed", pending=None, image_base64="", history=[], result="", task="", observation="",
-                        extracted=None, page_url="", account_label="", error="", steps=0)
+                        chat=[], queued_task="", auth={"stage": "none", "message": ""}, extracted=None, page_url="", account_label="", error="", steps=0)
 
 
 class BrowserManager:

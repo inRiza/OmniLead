@@ -7,13 +7,14 @@ import { Button } from "@/components/action/button";
 import { ContentInset } from "@/components/dashboard/ContentInset";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { useAccount } from "@/components/dashboard/AccountProvider";
+import { BrowserChatPanel } from "@/components/dashboard/BrowserChatPanel";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
 import { browserApi, type BrowserChannel, type BrowserSession, type BrowserState, type ManualControl } from "@/lib/browser-api";
 
 const CHANNELS: [BrowserChannel, string][] = [["instagram", "Instagram"], ["facebook", "Facebook"], ["whatsapp", "WhatsApp Web"], ["email", "Gmail"]];
-const STATUS: Record<string, string> = { opening: "Membuka browser", ready: "Browser siap", running: "Membaca layar", thinking: "Menyiapkan langkah", extracting: "Membaca pesan dari layar", manual: "Menjalankan input Anda", awaiting_approval: "Menunggu persetujuan langkah", executing: "Menjalankan langkah", needs_user: "Perlu bantuan Anda", done: "Tugas selesai", stopped: "Tugas dihentikan", closing: "Menutup browser", closed: "Browser ditutup", error: "Perlu diperiksa" };
+const STATUS: Record<string, string> = { opening: "Membuka browser", ready: "Browser siap", running: "Membaca layar", thinking: "Menyiapkan langkah", extracting: "Membaca pesan dari layar", manual: "Menjalankan input Anda", authenticating: "Memproses login", awaiting_approval: "Menunggu persetujuan langkah", executing: "Menjalankan langkah", needs_user: "Perlu bantuan Anda", done: "Tugas selesai", stopped: "Tugas dihentikan", closing: "Menutup browser", closed: "Browser ditutup", error: "Perlu diperiksa" };
 const OPERATIONS: Record<string, string> = { click: "Klik", type: "Ketik", press: "Tekan tombol", navigate: "Buka halaman" };
-const BUSY = new Set(["opening", "running", "thinking", "extracting", "executing", "manual", "closing"]);
+const BUSY = new Set(["opening", "running", "thinking", "extracting", "executing", "manual", "authenticating", "closing"]);
 const inputClass = "mt-2 w-full rounded-lg border border-rc-border bg-rc-surface px-3 py-2 text-sm text-rc-fg";
 const cardClass = "rounded-xl border border-rc-border bg-rc-surface p-5";
 
@@ -28,7 +29,6 @@ function BrowserWorkspace() {
   const [state, setState] = useState<BrowserState | null>(null);
   const [channel, setChannel] = useState<BrowserChannel>("instagram");
   const [accountLabel, setAccountLabel] = useState("");
-  const [task, setTask] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const [pollError, setPollError] = useState("");
@@ -82,7 +82,7 @@ function BrowserWorkspace() {
         <section className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
           <div className="max-w-2xl">
             <p className="flex items-center gap-2 text-sm font-semibold"><Monitor className="h-4 w-4" />OpenClaw · browser terbimbing</p>
-            <p className="mt-2 text-sm leading-relaxed text-rc-fg-muted">Login langsung di browser, lalu beri tugas. Agen membaca layar, menggulir, dan membuka tautan inbox yang dikenali. Klik lain, ketikan, dan pengiriman pesan menunggu persetujuan Anda.</p>
+            <p className="mt-2 text-sm leading-relaxed text-rc-fg-muted">Ceritakan tugas lewat chat. Agen membantu login melalui kartu aman, membaca layar, dan menyiapkan langkah berikutnya. Pengiriman pesan menunggu persetujuan Anda.</p>
           </div>
           {opened && <div className="flex gap-2">
             <Button purpose="action" disabled={busy || session.status === "closing"} onClick={() => void act(browserApi.stop)}><CircleStop className="mr-2 h-4 w-4" />Berhenti</Button>
@@ -94,42 +94,22 @@ function BrowserWorkspace() {
         {state && !state.enabled ? <section className={cardClass}>
           <h2 className="font-semibold">Agen browser belum diaktifkan</h2>
           <p className="mt-2 text-sm text-rc-fg-muted">Pengelola perlu mengaktifkan runtime browser pada server OmniLead. Setelah aktif, Anda bisa login dan mengendalikan layarnya dari halaman ini.</p>
-        </section> : <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(250px,330px)_minmax(0,1fr)]">
+        </section> : <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
           <div className="space-y-5">
-            <section className={cardClass}>
-              <h2 className="text-base font-semibold">1. Buka kanal</h2>
+            <BrowserChatPanel state={state} channel={activeChannel} accountLabel={accountLabel} consent={consent} onState={setState} onAccountLabel={setAccountLabel} onConsent={setConsent} />
+            <details className={cardClass}>
+              <summary className="cursor-pointer text-sm font-semibold">Kanal &amp; pengaturan akun</summary>
               <label className="mt-4 block text-sm">Kanal
                 <select className={inputClass} value={activeChannel} disabled={Boolean(opened) || busy || !state} onChange={(e) => { setChannel(e.target.value as BrowserChannel); setAccountLabel(""); setConsent(false); }}>
                   {CHANNELS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
-              <p className="mt-3 text-sm text-rc-fg-muted">Profil browser dipisahkan untuk setiap bisnis dan kanal. Login browser berbeda dari koneksi API.</p>
-              {!opened && <Button purpose="action" style="primary" className="mt-4 w-full" disabled={busy || !state} onClick={() => void act(() => browserApi.open(channel))}>Buka browser</Button>}
-            </section>
-
-            <section className={cardClass}>
-              <h2 className="text-base font-semibold">2. Login langsung</h2>
-              <p className="mt-2 text-sm text-rc-fg-muted">Aktifkan kontrol manual, klik kolom di screenshot, lalu masukkan teks dengan formulir di bawah layar. Anda menangani login, OTP, atau CAPTCHA sendiri. {session?.headless ? "Browser berjalan di server." : "Jendela browser lokal juga dapat digunakan."}</p>
-              <Button purpose="action" className="mt-4 w-full" disabled={!opened || Boolean(working) || busy} onClick={() => void act(browserApi.capture)}><RefreshCw className="mr-2 h-4 w-4" />Perbarui layar setelah login</Button>
-            </section>
-
-            <form className={cardClass} onSubmit={(event) => { event.preventDefault(); void act(() => browserApi.run(task, accountLabel, consent)); }}>
-              <h2 className="text-base font-semibold">3. Beri tugas</h2>
-              <label className="mt-4 block text-sm">Akun yang Anda buka
-                <input className={inputClass} required maxLength={100} placeholder="Contoh: @its.holaderry" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} />
-              </label>
-              <p className="mt-1 text-xs text-rc-fg-subtle">Konfirmasi nama akun di browser sebelum memulai.</p>
-              <label className="mt-4 block text-sm">Tugas untuk agen
-                <textarea className={`${inputClass} min-h-32 resize-y`} required minLength={3} maxLength={2000} placeholder="Baca pesan pelanggan terbaru dan siapkan draf sesuai pengetahuan bisnis. Berhenti sebelum mengirim." value={task} onChange={(e) => setTask(e.target.value)} />
-              </label>
-              <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-rc-fg-muted">
-                <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                Izinkan screenshot halaman ini dikirim ke model untuk tugas ini. Screenshot dapat memuat percakapan pribadi.
-              </label>
-              <p className="mt-3 text-xs text-rc-fg-subtle">Pengetahuan dan tone memakai pengaturan kanal bisnis ini. Maksimal 12 langkah per tugas.</p>
-              <Button purpose="action" type="submit" style="primary" className="mt-4 w-full" disabled={!opened || Boolean(working) || Boolean(pending) || busy || held || !consent || manual}>Mulai tugas</Button>
-              {held && <p className="mt-2 text-xs text-rc-fg-muted">Agent atau kanal sedang dijeda.</p>}
-            </form>
+              <label className="mt-4 block text-sm">Akun pada browser<input className={inputClass} maxLength={100} placeholder="Username atau alamat email" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} /></label>
+              <p className="mt-3 text-xs text-rc-fg-muted">Profil terpisah untuk setiap bisnis dan kanal. Login browser berbeda dari koneksi API. Pengetahuan dan tone mengikuti bisnis ini.</p>
+              {!opened && <Button purpose="action" className="mt-4" disabled={busy || !state} onClick={() => void act(() => browserApi.open(channel))}>Buka browser</Button>}
+              {opened && <Button purpose="action" className="mt-4" disabled={Boolean(working) || busy} onClick={() => void act(browserApi.capture)}><RefreshCw className="mr-2 h-4 w-4" />Perbarui layar</Button>}
+              {held && <p className="mt-3 text-xs text-rc-fg-muted">Agen/kanal sedang dijeda. Login pemilik tetap tersedia; aktifkan kanal untuk menjalankan tugas agen.</p>}
+            </details>
           </div>
 
           <div className="min-w-0 space-y-5">
@@ -156,7 +136,8 @@ function BrowserWorkspace() {
                 <p className="text-sm text-rc-danger">{session.error}</p>
                 <Button purpose="action" style="primary" disabled={busy || Boolean(working)} onClick={() => void act(browserApi.reopen)}>Buka ulang browser</Button>
               </div>}
-              {opened && <div className="mt-4 border-t border-rc-border pt-4">
+              {opened && <details className="mt-4 border-t border-rc-border pt-4">
+                <summary className="mb-3 cursor-pointer text-sm font-medium">Kontrol manual jika diperlukan</summary>
                 <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={manual} disabled={Boolean(working) || Boolean(pending) || busy} onChange={(event) => { setManual(event.target.checked); setManualText(""); setConsent(false); }} />Kontrol manual untuk login / mengambil alih</label>
                 {manual && <form className="mt-3 space-y-3" onSubmit={(event) => { event.preventDefault(); void control({ operation: "type", text: manualText }); }}>
                   <p className="text-xs leading-relaxed text-rc-fg-muted">Klik kolom pada screenshot dahulu. Teks langsung masuk ke browser tanpa dikirim ke model. Tombol Enter atau klik dapat mengirim formulir/pesan; periksa layar sebelum menekannya. Matikan kontrol manual setelah login dan buka inbox.</p>
@@ -166,10 +147,10 @@ function BrowserWorkspace() {
                     <Button purpose="action" disabled={busy || Boolean(working)} onClick={() => void control({ operation: "inbox" })}>Buka inbox kanal</Button>
                   </div>
                 </form>}
-              </div>}
+              </details>}
               {opened && <div className="mt-4 border-t border-rc-border pt-4">
                 <Button purpose="action" disabled={busy || Boolean(working) || Boolean(pending) || held || !consent || manual} onClick={() => void act(() => browserApi.extract(consent))}>Baca pesan layar untuk Workspace</Button>
-                <p className="mt-2 text-xs text-rc-fg-muted">Buka satu percakapan, lalu baca pesan pelanggan dari screenshot. Aktifkan izin screenshot pada formulir tugas. Anda meninjau isi dan pengirim sebelum pesan dianalisis di Workspace.</p>
+                <p className="mt-2 text-xs text-rc-fg-muted">Buka satu percakapan, lalu baca pesan pelanggan dari screenshot. Aktifkan izin screenshot di chat. Anda meninjau isi dan pengirim sebelum pesan dianalisis di Workspace.</p>
               </div>}
             </section>
 
@@ -190,7 +171,7 @@ function BrowserWorkspace() {
               {dryRun && <p className="mt-3 text-xs text-rc-fg-muted">Mode simulasi aktif. Ubah di <Link href="/dashboard/pengaturan" className="underline">Pengaturan Agen</Link> sebelum menjalankan input browser.</p>}
             </section>}
 
-            {session?.result && <section className={cardClass}>
+            {session?.result && session.auth?.stage === "none" && <section className={cardClass}>
               <h2 className="font-semibold">Hasil / draf</h2>
               <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">{session.result}</p>
               <p className="mt-3 text-xs text-rc-fg-muted">Draf visual belum melewati pemeriksaan Guard CRM. Periksa fakta dan penerima sebelum mengirim.</p>

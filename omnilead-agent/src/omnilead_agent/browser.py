@@ -88,7 +88,7 @@ def propose_browser_action(req: BrowserPlanRequest) -> BrowserAction:
         response = client.models.generate_content(
             model=model,
             contents=[types.Part.from_bytes(data=image, mime_type="image/jpeg"),
-                      json.dumps(content, ensure_ascii=False)[:40_000]],
+                      json.dumps(content, ensure_ascii=False)],
             config=types.GenerateContentConfig(system_instruction=INSTRUCTION,
                 response_mime_type="application/json", response_schema=BrowserAction,
                 temperature=0, max_output_tokens=3000,

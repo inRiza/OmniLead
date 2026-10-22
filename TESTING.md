@@ -5,6 +5,14 @@ kasus yang gagal tetap dicantumkan.
 
 ## Agen browser OpenClaw (22 Okt 2026)
 
+- Pembaruan chat/login: TypeScript, lint tiga file frontend terkait, dan parsing
+  empat file Python lulus. Backend, agen, frontend browser, dan kontrol OpenClaw
+  merespons HTTP 200 sesudah layanan dimuat ulang. Chat, login aman, OTP,
+  respons saat `needs_user`, dan routing request tugas lama ditambahkan.
+  Belum dilakukan login menggunakan password akun nyata, pengiriman OTP/login,
+  panggilan model visual, atau pengiriman pesan melalui alur chat baru.
+  Tidak menambah/menjalankan suite tes untuk pembaruan ini.
+
 - Implementasi baru: planner visual Gemini, runtime resmi OpenClaw dengan profil per
   bisnis/kanal, dashboard browser, persetujuan input, batas tugas, stop/close,
   serta pembacaan pesan layar dan impor ke pipeline CRM/Guard setelah konfirmasi.

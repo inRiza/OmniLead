@@ -3,12 +3,14 @@
 from typing import Literal
 
 import hashlib
+import re
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from omnilead.api.deps import current_user, get_agent_client, ingest_for_workspace, store_for_workspace
 from omnilead.browser_agent import BrowserConflict, manager
+from omnilead.browser_login import AUTH_WORDS, SECRET_WORDS
 from omnilead.config import get_settings
 from omnilead.knowledge import build_context
 from omnilead.models import Channel, EventIn, Sender
@@ -21,9 +23,24 @@ class OpenBrowser(BaseModel):
 
 
 class BrowserTask(BaseModel):
-    task: str = Field(min_length=3, max_length=2000)
+    task: str = Field(min_length=3, max_length=2000, repr=False)
     account_label: str = Field(min_length=1, max_length=100)
     allow_screenshot_to_model: bool = False
+
+
+class BrowserChat(BaseModel):
+    message: str = Field(min_length=1, max_length=2000, repr=False)
+    channel: Literal["instagram", "facebook", "whatsapp", "email"] = "instagram"
+    account_label: str = Field(default="", max_length=100)
+    allow_screenshot_to_model: bool = False
+
+
+class BrowserLogin(BaseModel):
+    username: str = Field(default="", max_length=200)
+    password: SecretStr = Field(default=SecretStr(""), repr=False)
+    code: SecretStr = Field(default=SecretStr(""), repr=False)
+    image_revision: int = Field(ge=1)
+    confirmed: bool = False
 
 
 class Approval(BaseModel):
@@ -95,6 +112,12 @@ def open_browser(body: OpenBrowser, workspace=Depends(scope)):
 @router.post("/run")
 def run_browser(body: BrowserTask, workspace=Depends(scope)):
     actor = available(workspace)
+    if AUTH_WORDS.search(body.task):
+        try:
+            actor.request_login()
+        except BrowserConflict as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from None
+        return state(workspace)
     if not body.allow_screenshot_to_model:
         raise HTTPException(status_code=422, detail="Izinkan screenshot dikirim ke model untuk menjalankan tugas visual.")
     if not body.task.strip() or not body.account_label.strip():
@@ -102,6 +125,89 @@ def run_browser(body: BrowserTask, workspace=Depends(scope)):
     try:
         context = build_context(store_for_workspace(workspace), actor.channel, body.task)
         actor.run(body.task.strip(), body.account_label.strip(), context)
+    except BrowserConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    return state(workspace)
+
+
+@router.post("/login")
+def login_browser(body: BrowserLogin, workspace=Depends(scope)):
+    if not body.confirmed:
+        raise HTTPException(status_code=422, detail="Konfirmasikan pengisian dan pengiriman formulir login.")
+    if any(len(value) > 1000 or any(c in value for c in "\r\n\x00")
+           for value in (body.username, body.password.get_secret_value(), body.code.get_secret_value())):
+        raise HTTPException(status_code=422, detail="Input login tidak valid.")
+    try:
+        available(workspace).login(body)
+    except BrowserConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    return state(workspace)
+
+
+@router.post("/chat")
+def chat_browser(body: BrowserChat, workspace=Depends(scope)):
+    settings = get_settings()
+    if not settings.browser_enabled:
+        raise HTTPException(status_code=409, detail="Agen browser belum diaktifkan pada server OmniLead.")
+    message = body.message.strip()
+    if not message:
+        raise HTTPException(status_code=422, detail="Tuliskan pesan dahulu.")
+    # Never retain text that might contain a password/OTP or send it to the planner.
+    auth_request = bool(AUTH_WORDS.search(message))
+    named_channel = re.search(r"\b(instagram|facebook|whatsapp|gmail|email)\b", message, re.I) if auth_request else None
+    channel = ("email" if named_channel.group().lower() == "gmail" else named_channel.group().lower()) if named_channel else body.channel
+    if SECRET_WORDS.search(message):
+        message = "Bantu saya masuk ke akun kanal."
+    actor = manager.get(workspace)
+    try:
+        if not actor or actor.snapshot()["status"] == "closed":
+            actor = manager.open(workspace, channel, settings, get_agent_client(), store_for_workspace(workspace))
+            actor.say("user", message)
+            if not auth_request:
+                actor.update(queued_task=message)
+            return state(workspace)
+        command = message.lower().strip(" .!")
+        if command in {"stop", "berhenti", "hentikan", "batal"}:
+            actor.stop()
+        elif command in {"tutup", "tutup browser"}:
+            actor.close()
+        elif command in {"setuju", "setujui", "setujui langkah"}:
+            pending = actor.snapshot()["pending"]
+            if not pending:
+                raise BrowserConflict("Belum ada langkah yang menunggu persetujuan.")
+            actor.say("user", "Setujui langkah yang ditampilkan.")
+            actor.approve(pending["id"])
+        elif command in {"tolak", "jangan lanjut"}:
+            actor.stop()
+        elif command in {"perbarui layar", "cek layar", "cek login", "sudah login"}:
+            actor.capture()
+        elif auth_request:
+            if actor.channel != channel:
+                raise BrowserConflict("Tutup browser kanal saat ini dahulu, lalu minta login ke kanal yang baru.")
+            if actor.snapshot()["status"] in {"error", "stopped"}:
+                actor.reopen()
+            else:
+                actor.request_login()
+        else:
+            snapshot = actor.snapshot()
+            if snapshot["status"] == "opening":
+                raise BrowserConflict("Browser masih dibuka. Tunggu pesan kesiapan agen.")
+            if snapshot["auth"]["stage"] != "none":
+                if command in {"lanjut", "lanjutkan"}:
+                    actor.capture()
+                else:
+                    actor.say("assistant", snapshot["auth"]["message"])
+                return state(workspace)
+            if not body.allow_screenshot_to_model:
+                raise HTTPException(status_code=422, detail="Izinkan screenshot dikirim ke model untuk menjalankan tugas lewat chat.")
+            task = snapshot.get("queued_task") if command in {"lanjut", "lanjutkan"} else message
+            if not task:
+                raise BrowserConflict("Tuliskan tugas yang ingin Anda kerjakan.")
+            account_label = body.account_label.strip() or snapshot["account_label"]
+            if not account_label:
+                raise BrowserConflict("Isi nama akun yang terlihat pada browser sebelum memberi tugas.")
+            context = build_context(store_for_workspace(workspace), actor.channel, task)
+            actor.run(task, account_label, context)
     except BrowserConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
     return state(workspace)

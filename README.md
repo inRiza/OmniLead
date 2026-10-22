@@ -17,7 +17,7 @@ Dokumen: [PRD](docs/crm-agentic-multikanal-5.1.md) · [plan.md](plan.md) (yang s
 
 **Agen browser OpenClaw:** `/dashboard/browser` memakai dependency resmi
 `openclaw@2026.10.5` untuk profil, screenshot, dan input browser tanpa token API
-kanal. Dashboard menyediakan kontrol login manual, planner visual, persetujuan,
+kanal. Dashboard menyediakan chat tugas, kartu login aman, planner visual, persetujuan,
 serta impor pesan ke CRM. Paket container dan volume persisten tersedia melalui
 `compose.browser.yaml`; template Cloud Run juga tersedia, dengan state sementara.
 Setup dan batasnya: [docs/browser-agent.md](docs/browser-agent.md).

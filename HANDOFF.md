@@ -2,30 +2,33 @@
 
 Ditulis 21 Okt 2026. Baca ini dulu sebelum menyentuh kode. Bahasa kerja dengan pengguna: **Indonesia**.
 
-## Kelanjutan untuk rekan pengembang (22 Okt 2026)
+## Chat dan perbaikan Mulai tugas (22 Okt 2026)
 
-- Pengguna meminta commit/push branch `feat/browser-agent` agar rekan dapat
-  melanjutkan. Bagian ini menggantikan catatan branch lama di bawah.
-- Permintaan berikutnya **belum diimplementasikan**: interaksi agen melalui chat,
-  misalnya "login Instagram" lalu agen mengisi formulir dan menekan login tanpa
-  pengguna mengklik setiap kolom screenshot. UI sekarang masih kontrol manual
-  dan formulir tugas, bukan percakapan.
-- Agen terlihat diam pada screenshot terakhir karena `_advance` di
-  `omnilead-be/src/omnilead/browser_agent.py` mendeteksi halaman login lalu
-  mengembalikan `needs_user` sebelum memanggil model. Ini batas implementasi,
-  bukan bukti kredensial salah atau service agen mati.
-- Rencana lanjut: composer chat dan riwayat per bisnis; input kredensial/OTP
-  khusus di dalam chat, diteruskan langsung ke operasi browser terbatas.
-  Password/OTP tidak masuk prompt, task, riwayat, atau audit. Tambahkan penyaringan
-  kredensial pada endpoint tugas lama juga: saat ini task adalah teks bebas dan
-  dapat tampil di state/UI. Jangan meminta pengguna memasukkan password di task.
-  CAPTCHA tetap ditangani manusia. Pengiriman pesan tetap perlu persetujuan.
-- Adapter OpenClaw ada di `omnilead-be/src/omnilead/openclaw_browser.py`, router
-  di `api/browser_routes.py`, UI di `omnilead-fe/src/app/dashboard/browser/page.tsx`,
-  planner di `omnilead-agent/src/omnilead_agent/browser.py`. Setup/runtime/cloud
-  dan batas verifikasi dijelaskan pada `docs/browser-agent.md` dan `TESTING.md`.
-- `.env`, perubahan pengguna pada BE `.env.example`, profil/cookie, token runtime,
-  log/screenshot, dan ekspor percakapan root tidak termasuk commit/push ini.
+- Branch `feat/browser-agent`; versi browser awal sudah di-push pada `fe88a36`.
+  Pengguna kemudian meminta perbaikan alur tugas/login dan langsung commit/push.
+- Dashboard sekarang memakai chat sebagai pintu masuk tugas. Pesan login membuka
+  kartu akun aman; agen mengisi formulir dan menekan tombol login melalui native
+  OpenClaw. Password/OTP hanya masuk endpoint `/browser-agent/login`, tidak ke
+  model, task, chat, atau audit. Request `/run` lama yang menyebut kredensial
+  diarahkan ke alur login, tanpa menyimpan teks aslinya.
+- Helper login ada di `omnilead-be/src/omnilead/browser_login.py`: referensi field
+  berdasarkan label saat tersedia, fallback selector provider tetap, dan tombol
+  login/next/verify yang harus tunggal. Tidak menerima selector/JS dari pengguna.
+  Tahap username/password/kode didukung; QR/CAPTCHA tetap ditangani pemilik.
+- Chat/API mengenali login, tugas umum, setujui, tolak, berhenti, tutup browser,
+  cek layar/login, dan lanjutkan tugas tertunda. Konteks beberapa pesan terakhir
+  diteruskan untuk tindak lanjut tugas. Input/aksi sensitif tetap perlu persetujuan.
+- Penyebab diam sebelumnya: `_advance` mendeteksi login lalu mengembalikan
+  `needs_user`, tetapi tidak ada percakapan atau alur kredensial. Sekarang status,
+  permintaan input, usulan, error, dan hasil muncul di chat.
+- Modul UI chat: `omnilead-fe/src/components/dashboard/BrowserChatPanel.tsx`.
+  Pengaturan kanal dan kontrol manual sekarang dapat dibuka bila dibutuhkan.
+- Batas verifikasi: pemeriksaan statis dan startup, bukan bukti login akun nyata,
+  OTP, model visual, atau kirim pesan sudah berhasil. Lihat `TESTING.md`.
+- Lanjutan: uji pemilik pada akun kanal, penyesuaian variasi UI provider,
+  pemantauan inbox, dedup pesan, dan executor browser terikat draf Guard final.
+- `.env`, BE `.env.example` milik pengguna, profil/cookie, token runtime,
+  log/screenshot, dan ekspor percakapan root tidak dikirim ke remote.
 
 ## Pengembangan agen browser OpenClaw (22 Okt 2026)
 

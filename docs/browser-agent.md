@@ -52,21 +52,39 @@ Jalankan agen, backend, frontend seperti biasa. Buka `/dashboard/browser` setela
 login dengan akun pribadi. Akun demo publik tidak diberi akses browser. Port
 18889 (gateway) dan 18891 (browser control) tetap loopback dan berautentikasi.
 
-## Login dan penggunaan
+## Login dan penggunaan lewat chat
 
-1. Pilih kanal lalu **Buka browser**.
-2. Gunakan jendela lokal atau aktifkan **Kontrol manual** pada dashboard. Klik kolom
-   pada screenshot, masukkan teks lewat formulir, kemudian tekan tombol yang sesuai.
-   Input manual langsung ke browser, tidak ke model atau riwayat. Audit hanya
-   mencatat nama operasi. Formulir mengosongkan teks setelah dikirim.
-   Enter/klik dapat mengirim pesan atau formulir; periksa layar dahulu.
-3. Selesaikan OTP/CAPTCHA sendiri. Tidak ada bypass. CAPTCHA kompleks, popup login,
-   atau login dengan perangkat tambahan mungkin tetap memerlukan browser lokal.
-4. Buka inbox, matikan kontrol manual, isi nama akun dan tugas, izinkan screenshot
-   dikirim ke model, lalu mulai. Nama akun merupakan konfirmasi pemilik, belum
-   verifikasi otomatis.
-5. Dashboard menampilkan pengamatan, alasan singkat, usulan, aksi, dan hasil/draf.
-   Ini aktivitas yang dapat diamati, bukan rekaman pikiran internal model.
+1. Buka `/dashboard/browser` dan tulis **login Instagram** pada chat. Browser
+   dibuka otomatis. Nama kanal lain yang lengkap juga dikenali.
+2. Isi kartu **Login akun** yang muncul dalam chat. Klik **Isi akun & lanjutkan
+   login** mengizinkan agen mengisi field dan menekan tombol login. Tidak perlu
+   mengklik satu per satu kolom pada screenshot. Password langsung ke browser,
+   bukan ke model, task, riwayat chat, atau audit.
+3. Jika platform meminta kode, kartu kode verifikasi muncul. QR dan CAPTCHA tetap
+   ditangani pemilik melalui layar browser atau kontrol manual.
+4. Sesudah masuk, izinkan screenshot untuk tugas model, lalu beri tugas lewat chat.
+   Contoh: **Baca pesan pelanggan terbaru dan siapkan draf**. Knowledge base dan tone
+   memakai kanal bisnis aktif. Nama akun adalah konfirmasi pemilik, bukan bukti
+   identitas yang diverifikasi otomatis.
+5. Pengamatan, usulan langkah, kendala, dan hasil ditampilkan. Tulis **setujui** untuk
+   langkah yang sedang ditampilkan, **tolak**, atau **berhenti**. Perintah **cek layar**,
+   **sudah login**, **lanjutkan**, dan **tutup browser** juga tersedia.
+
+Teks chat/tugas yang menyebut password, OTP, atau kredensial diarahkan ke kartu
+login; teks aslinya tidak disimpan/dikirim ke model. Jangan menaruh password pada
+teks tugas umum. Secret khusus input login dikosongkan setelah operasi. Chat dan
+screenshot sementara di memori, hilang ketika sesi ditutup/backend direstart.
+Login melalui kartu tidak memerlukan persetujuan pengiriman screenshot ke model.
+
+Helper login memakai label/ref OpenClaw saat tersedia, fallback selector field
+provider tetap, serta tombol login/next/verify yang harus tunggal. Tahap login yang
+belum dikenali berhenti dengan pesan dan menawarkan kontrol manual. Hasil login
+nyata tetap ditentukan platform. Formulir terkirim tidak dianggap bukti akun masuk.
+
+Pengaturan kanal dan kontrol manual dapat dibuka bila diperlukan. Jendela lokal
+juga bisa digunakan. Saat login manual selesai, **sudah login** memperbarui layar;
+beri tugas atau tulis **lanjutkan** untuk permintaan tertunda. Riwayat menampilkan
+aktivitas yang dapat diamati, bukan pikiran internal model.
 
 Planner memakai screenshot, snapshot OpenClaw, knowledge base dan tone kanal,
 serta riwayat tugas. Screenshot/scroll dan URL inbox dengan pola yang dikenali
@@ -142,8 +160,8 @@ Build image dan pengujian cloud fitur browser ini belum dilakukan.
 ## Batas keamanan dan verifikasi
 
 - Opt-in, login dan scope bisnis wajib, demo publik ditolak.
-- Konten layar tidak dipercaya. Login menghentikan planner; input rahasia hanya
-  oleh pemilik. Screenshot tetap dapat memuat percakapan pribadi.
+- Konten layar tidak dipercaya. Login menghentikan planner visual; input rahasia melewati kartu login
+  langsung ke browser. Screenshot tetap dapat memuat percakapan pribadi.
 - OpenClaw evaluate dimatikan dan navigasi private network diblokir kebijakan SSRF.
   Backend meneruskan operasi terbatas, bukan proxy browser umum.
 - Screenshot JPEG hanya dibaca dari direktori media runtime, lalu dihapus dari disk

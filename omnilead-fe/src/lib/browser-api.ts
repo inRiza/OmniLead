@@ -17,6 +17,9 @@ export interface BrowserStep {
 export interface BrowserSession {
   status: string;
   engine: "openclaw";
+  auth: { stage: "none" | "credentials" | "username" | "password" | "verification" | "manual"; message: string };
+  chat: { id: string; role: "user" | "assistant"; text: string; at: number }[];
+  queued_task: string;
   headless: boolean;
   channel: BrowserChannel;
   task: string;
@@ -49,6 +52,9 @@ export const browserApi = {
     post("run", { task, account_label, allow_screenshot_to_model }),
   capture: () => post("capture"),
   reopen: () => post("reopen"),
+  chat: (message: string, channel: BrowserChannel, account_label: string, allow_screenshot_to_model: boolean) =>
+    post("chat", { message, channel, account_label, allow_screenshot_to_model }),
+  login: (body: { username: string; password: string; code: string; image_revision: number; confirmed: boolean }) => post("login", body),
   manual: (command: ManualControl) => post("manual", command),
   approve: (proposal_id: string) => post("approve", { proposal_id }),
   stop: () => post("stop"),
