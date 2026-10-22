@@ -809,7 +809,7 @@ Bila Page belum berhasil dihubungkan saat demo, skenario ini dijalankan lewat
 | LinkedIn, TikTok, dan kanal lain | **Pengembangan lanjutan** | Kode dihapus 21 Okt 2026; lihat bagian Kanal |
 | CRM | **Nyata** | SQLite di instance Cloud Run `omnilead-api` (satu instance), cadangan SQLite di laptop. Adapter Firestore siap (diuji dengan fake), belum diuji ke Firestore sungguhan |
 | Data pelanggan | **Data contoh** | Dummy dan anonim (TOR §15) |
-| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 17/18 pass^3, 13,3 detik per kasus (22 Okt); engine aturan 18/18, ±0,4 detik |
+| Agen dan Gemini | **Nyata** [U] | ADK + Vertex AI, location `global`. Evalset 18 kasus × 3: engine Gemini 17/18 percobaan pertama, 15/18 sampai 17/18 pass^3 di dua run 22 Okt, 13–17 detik per kasus; engine aturan 18/18, ±0,4 detik |
 
 ## Keamanan dan Kendali Manusia
 
@@ -1504,7 +1504,7 @@ Snapshot repo per 22 Okt 2026. Rincian tugas ada di [../plan.md](../plan.md), bu
 **Selesai** = ada di kode dan lulus tes otomatis. Connector WhatsApp, Gmail, dan Instagram diuji dengan transport
 HTTP tiruan; **belum pernah dipanggil ke platform sungguhan**. Gemini sudah dipanggil sungguhan (22 Okt 2026), termasuk dari
 Cloud Run: evalset
-engine `adk` 17/18 pass^3, 13,3 detik per kasus (kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
+engine `adk` 17/18 percobaan pertama dan 15/18 sampai 17/18 pass^3 (dua run 22 Okt; kegagalan dicatat di `omnilead-agent/eval/results-adk.md`), serta smoke
 check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 
 | Komponen | Prioritas | Status | Catatan |
@@ -1515,7 +1515,7 @@ check dan satu pesan dengan knowledge base (lihat `TESTING.md`).
 | Ingest + dedup + webhook WA/IG (signature) + push Gmail | Must | Selesai (tiruan) | Belum diuji ke Meta/Google sungguhan |
 | Executor WhatsApp, Gmail (thread), Instagram (DM, private reply) | Must/Should | Selesai (tiruan) | Jendela 24 jam, 7 hari, sekali per komentar dicek sebelum kirim |
 | Identitas: merge pasti otomatis, merge ambigu = usulan + bukti | Must | Selesai | Berbasis aturan (nama, perusahaan, handle), bukan LLM |
-| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 17/18, gagal di S3, 13,3 detik per kasus. Guard: "DP 50%" bukan diskon; nama pelanggan lain dicocokkan sebagai kata utuh |
+| Triage, orchestrator, Guard | Must | Selesai | Engine `rule` 18/18; engine `adk` (Gemini) 17/18 percobaan pertama, pass^3 15/18 sampai 17/18, 7/7 kasus berbahaya pada run terbaru. Guard: "DP 50%" bukan diskon; nama pelanggan lain dicocokkan sebagai kata utuh |
 | MCP server baca-saja + gateway (allowlist, tidak tepercaya, audit) | Must | Selesai (opsional) | Diaktifkan lewat `OMNILEAD_AGENT_USE_MCP=1`; belum dijalankan dengan LLM |
 | Lead scoring + alasan, belajar dari penolakan | Should | Selesai | |
 | Follow-up jatuh tempo + ringkasan harian | Should/Could | Selesai | Scheduler memanggil endpoint; job belum dibuat di GCP |

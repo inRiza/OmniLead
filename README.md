@@ -22,8 +22,8 @@ Status per 22 Okt 2026:
 - **Demo publik (Cloud Run):** https://omnilead-fgbrqs2gfq-et.a.run.app. Akun juri `juri@omnilead.id`; kata sandi ada di form
   submission (Secret Manager `demo-password`), tidak di repo. Akun demo sudah berisi katalog dan usulan nyata dari
   agen untuk WhatsApp, Instagram, Facebook, dan email.
-- Engine agen di Cloud Run: `adk` (Gemini, Vertex AI location `global`), lulus 17/18 kasus evalset secara konsisten,
-  sekitar 13 detik per kasus; engine aturan 18/18 sebagai cadangan. Rincian di `omnilead-agent/eval/results-adk.md`.
+- Engine agen di Cloud Run: `adk` (Gemini, Vertex AI location `global`), evalset 18 kasus: 17/18 lulus percobaan pertama,
+  15/18 sampai 17/18 konsisten di tiga percobaan (dua run 22 Okt), 13–17 detik per kasus; engine aturan 18/18 sebagai cadangan. Rincian di `omnilead-agent/eval/results-adk.md`.
 - Connector WhatsApp, Gmail, Instagram, dan Facebook Page sudah ada di kode, tetapi baru diuji dengan HTTP tiruan;
   belum diuji ke akun asli. WhatsApp bisa dihubungkan dengan nomor uji Meta lewat **Hubungkan nomor uji**. Selama
   kanal belum terhubung, pesan masuk lewat **Tempel pesan** dan dibalas lewat **Salin & buka**.

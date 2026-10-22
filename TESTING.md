@@ -24,7 +24,7 @@ pengiriman ke WhatsApp, Instagram, Facebook, atau Gmail sungguhan.
 | Tolak dengan alasan | Alasan "terlalu kaku" | Status ditolak; alasan menjadi preferensi bisnis | Pengaruh preferensi pada draf berikutnya diuji di tes agen, bukan E2E | Pemilik menulis alasan |
 | Ubah lead manual | Tahap Batal, alasan, catatan, nilai Rp1.750.000; lalu tahap "menang" | Tersimpan dengan `closed_at`; tahap tak dikenal ditolak (HTTP 422) | | Kartu Kelola lead |
 | Akun demo dan isolasi | Login juri; akun lain mendaftar | 4 pesan contoh dianalisis, 12 usulan dari 4 kanal; akun lain melihat 0 lead dan HTTP 404 untuk lead demo | | |
-| Evalset agen, 18 kasus x 3 | Happy path, komplain, keamanan, batas platform, spam, informal | Engine aturan 18/18 dan 7/7 kasus berbahaya; Gemini 17/18 (pagi), sedang dijalankan ulang setelah prompt triage berubah | Evalset ditulis bersama kode (dev-set) | Semua usulan melewati Guard dan izin agen |
+| Evalset agen, 18 kasus x 3 | Happy path, komplain, keamanan, batas platform, spam, informal | Engine aturan 18/18 dan 7/7 kasus berbahaya; Gemini (run siang): 17/18 percobaan pertama, 15/18 konsisten (pass^3), 7/7 kasus berbahaya | Evalset ditulis bersama kode (dev-set) | Semua usulan melewati Guard dan izin agen |
 | Link publik Cloud Run (pagi) | Tempel pesan WA di https://omnilead-fgbrqs2gfq-et.a.run.app | Dianalisis Gemini dalam 11,7 detik, harga dari katalog | Versi live belum memuat izin agen dan tahap Deal/Batal | |
 
 **Bug yang ditemukan dan diperbaiki pada putaran ini:**
@@ -52,6 +52,23 @@ Temuan saat pengujian: pesan konfirmasi bayar yang memuat kata "pesanan" ikut te
 agen mengirim ulang penawaran dan follow-up. Diperbaiki: konfirmasi bayar dan pembatalan menutup jalur penawaran.
 
 Tes otomatis: BE **171**, agen **59**, FE **23** lulus; evalset aturan tetap 18/18, persona fashion 6/6 (sebelum perbaikan diskon; kini agen 60).
+
+### Evalset Gemini setelah perubahan prompt triage (22 Okt 2026, siang)
+
+Prompt triage Gemini ditambah intent `konfirmasi_bayar` dan `batal_pesan`, jadi evalset dijalankan ulang
+(`omnilead-agent/eval/results-adk.md`; run pagi disimpan di `results-adk-22okt-pagi.md`).
+
+| Metrik | Pagi | Siang |
+|---|---|---|
+| Lulus percobaan pertama | 17/18 | 17/18 |
+| Konsisten di 3 percobaan (pass^3) | 17/18 | 15/18 |
+| Kasus berbahaya tertangani | 6/7 | 7/7 |
+| Latensi rata-rata | 13,3 detik | 17,1 detik* |
+
+Gagal di run siang: H1 (total Rp2.100.000 tidak ditulis di salah satu percobaan), H3 dan H6 (lulus di percobaan
+pertama, gagal di salah satu percobaan ulangan). Ketiganya bukan kasus Deal/Batal; kami menilainya sebagai variasi
+jawaban Gemini antar percobaan, tetapi belum dibuktikan dengan run tambahan. S3 (diskon 70%) kini lulus.
+\* Run siang berjalan bersamaan dengan tes lain di laptop yang sama, jadi latensinya tidak sebanding dengan run pagi.
 
 ## Izin agen dan perbaikan build develop (22 Okt 2026, siang)
 
@@ -113,7 +130,8 @@ giliran ringkasan penutup dilewati setelah balasan dan update CRM diusulkan.
 |---|---|---|---|---|
 | 21 Okt (`results-adk-21okt.md`) | 14/18 | 6/7 | 40,9 detik | H1, H3, H6, S3 |
 | 22 Okt, hanya percepatan | 14/18 | 6/7 | 13,1 detik | H1, H3, H6, S3 |
-| 22 Okt, setelah perbaikan | **17/18** | 6/7 | 13,3 detik | S3 |
+| 22 Okt pagi, setelah perbaikan (`results-adk-22okt-pagi.md`) | **17/18** | 6/7 | 13,3 detik | S3 |
+| 22 Okt siang, setelah intent Deal/Batal dan perbaikan diskon (`results-adk.md`) | **15/18** (percobaan pertama 17/18) | **7/7** | 17,1 detik* | H1, H3, H6 |
 
 Perbaikan di antara dua baris terakhir, dicatat terbuka karena sebagian menyangkut cara menilai:
 - Kode: Guard tidak lagi menganggap "DP 50%" sebagai diskon 50% (draf aman sebelumnya ditahan). Gabungan triage
@@ -337,7 +355,7 @@ Bagian di bawah mencatat pengujian fitur sebelum penambahan login bisnis.
 | Backend `omnilead-be` | `uv run pytest` | 171 lulus (22 Okt) |
 | Agen `omnilead-agent` | `uv run pytest` | 60 lulus (22 Okt) |
 | Evalset agen (18 kasus x 3), engine `rule` | `uv run python -m omnilead_agent.eval` | 18/18 pass^3 (awal: 15/18) |
-| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 17/18 pass^3, 13,3 detik per kasus (21 Okt: 14/18, 40,9 detik) |
+| Evalset agen (18 kasus x 3), engine `adk` (Gemini sungguhan) | `OMNILEAD_AGENT_ENGINE=adk … -m omnilead_agent.eval` | 15/18 pass^3, 17/18 percobaan pertama, 7/7 berbahaya (22 Okt siang); pagi 17/18; 21 Okt 14/18 |
 | Identity resolution (50 lead dummy) | `uv run python eval/identity_eval.py` | presisi 1,00, recall 1,00 (set mudah) |
 | Frontend `omnilead-fe` | `vitest run` (adapter, klien API), `tsc --noEmit`, `eslint`, uji manual di browser (Playwright) | 23 tes lulus (22 Okt); tsc dan eslint bersih |
 | Evalset persona P2 (fashion, 6 kasus x 3) | `python -m omnilead_agent.eval --set eval/omnilead-fashion.evalset.json` | 6/6 pass^3 (dev-set yang ditulis bersama kode; bukan ukuran independen) |

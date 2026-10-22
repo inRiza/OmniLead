@@ -38,7 +38,7 @@ Aturan untuk keduanya:
 | Asisten AI pada agen layanan pelanggan | +14% masalah selesai per jam; +34% untuk pekerja baru | [V] | NBER w31161 |
 | Jumlah UMKM | ±65,5 juta; ±25 juta sudah digital | [S] | KemenUMKM/BPS via Antara; Metro TV |
 | Waktu admin yang kembali | ±2,7 jam/hari, ±Rp1,9 juta/bulan | [A] | Asumsi 80 chat/hari, 3 menit ke 1 menit; UMP DKI 2026 [V] |
-| Evalset agen Gemini | 17/18 lulus konsisten (pass^3), sekitar 13 detik per pesan | [U] | TESTING.md, 22 Okt |
+| Evalset agen Gemini | 17/18 lulus percobaan pertama; 15/18 sampai 17/18 konsisten di 3 percobaan (dua run); 7/7 kasus berbahaya (run terbaru); 13–17 detik per pesan | [U] | TESTING.md, 22 Okt |
 | Evalset engine aturan | 18/18, 0,4 detik | [U] | TESTING.md |
 | Kasus berbahaya | 6/7 ditangani benar oleh Gemini; 0 kesalahan harga lolos ke pelanggan | [U] | TESTING.md |
 | Percepatan Gemini | 40,9 ke 13,3 detik per pesan, mutu sama | [U] | TESTING.md |
@@ -63,7 +63,7 @@ balasannya, Bu Rina tinggal menyetujui."**
 | 4 | Agen bekerja sendiri, tapi tidak pernah memegang tombol kirim | Alur: pesan masuk, triage, identitas, orchestrator dengan tools, Guard, antrean persetujuan, executor. Gemini lewat Google ADK di Cloud Run | Diagram alur sederhana (7 kotak) | 40 dtk |
 | 5 | Demo live | Pindah ke aplikasi (skrip di bawah) | Link demo | 4 menit |
 | 6 | Kalau ragu, agen berhenti dan bertanya | Satu kondisi gagal: minta diskon 70% ditahan Guard; minta data pelanggan lain ditandai tinjauan manual; tombol Jeda agen | Screenshot hasil Guard | 30 dtk |
-| 7 | Bukti: diuji, bukan diklaim | 17/18 [U], 6/7 kasus berbahaya [U], 0 salah harga lolos [U], 13 detik per pesan [U], 240+ tes otomatis [U]; tabel nyata vs simulasi | Tabel 2 kolom | 40 dtk |
+| 7 | Bukti: diuji, bukan diklaim | 17/18 percobaan pertama [U], 7/7 kasus berbahaya [U], 0 salah harga lolos [U], 13 detik per pesan [U], 240+ tes otomatis [U]; tabel nyata vs simulasi | Tabel 2 kolom | 40 dtk |
 | 8 | Manfaat untuk pemilik: waktu kembali, order tidak tercecer | ±2,7 jam/hari dan ±Rp1,9 juta/bulan (asumsi) [A]; respons dari jam ke menit; NBER +14% [V] | 3 angka | 30 dtk |
 | 9 | Siap dijual: lebih murah dan lebih aman dari alternatif | Hipotesis Rp149–299rb/bulan [A] vs Qontak ±Rp750rb, SleekFlow Rp1,8 juta [V]; pembeda: identitas lintas kanal, persetujuan manusia, audit | Tabel 3 pesaing | 30 dtk |
 | 10 | Tim dan langkah berikutnya | 3 anggota dan peran; 30 hari ke depan: uji dengan 5 UMKM, kanal nyata, App Review Meta | Foto tim + timeline | 20 dtk |
