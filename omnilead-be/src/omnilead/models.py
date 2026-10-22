@@ -206,6 +206,8 @@ class AppSettings(BaseModel):
     rate_limit_per_hour: int = 30
     business_name: str = "Bisnis Anda"
     agent_channels: dict[str, ChannelAgentConfig] = Field(default_factory=dict)
+    # Izin agen: manual (selalu tanya), hybrid (risiko rendah otomatis), auto (percaya penuh).
+    autonomy: Literal["manual", "hybrid", "auto"] = "manual"
 
 
 class AuditEntry(BaseModel):

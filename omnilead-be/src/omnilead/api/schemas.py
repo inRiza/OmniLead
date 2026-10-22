@@ -1,5 +1,7 @@
 """Skema request/response khusus HTTP (yang tidak ada di models domain)."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from omnilead.models import Channel
@@ -32,6 +34,7 @@ class AppSettingsPatch(BaseModel):
     dry_run: bool | None = None
     rate_limit_per_hour: int | None = Field(default=None, ge=1, le=10_000)
     preferences: list[str] | None = None
+    autonomy: Literal["manual", "hybrid", "auto"] | None = None
 
 
 class PasteEventRequest(BaseModel):
