@@ -137,3 +137,21 @@ def test_user_message_carries_recent_conversation(ani_lead):
                                      tools=Tools(req, tri, catalog, Trace(goal="", plan=[]))))
     assert "Kita (instagram): Halo kak, ada yang bisa dibantu?" in msg
     assert msg.index("Pelanggan (instagram): mau tanya paket B") < msg.index("jadi gimana kak?")
+
+
+def test_comment_prompt_carries_post_caption(ani_lead):
+    from omnilead_agent.adk_orchestrator import _user_message
+    from omnilead_agent.adk_triage import triage_message
+    from omnilead_agent.catalog import default_catalog
+    from omnilead_agent.orchestrator import DraftContext, Tools
+    from omnilead_agent.schemas import Trace
+    from omnilead_agent.triage import triage
+
+    req = make_req("Kak msh ada kahh", lead=ani_lead)
+    req.event.post_caption = "PIN BUTTON 4,4 cm glitter"
+    tri = triage(req)
+    catalog = default_catalog()
+    msg = _user_message(DraftContext(req=req, tri=tri, catalog=catalog,
+                                     tools=Tools(req, tri, catalog, Trace(goal="", plan=[]))))
+    assert msg.index("PIN BUTTON 4,4 cm glitter") < msg.index("Kak msh ada kahh")
+    assert "PIN BUTTON" in triage_message(req)

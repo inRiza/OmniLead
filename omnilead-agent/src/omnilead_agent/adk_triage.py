@@ -131,12 +131,14 @@ def merge(rule: TriageResult, llm: TriageOut) -> TriageResult:
 
 def triage_message(req: AnalyzeRequest) -> str:
     items = req.lead.timeline[-CONTEXT_ITEMS:] if req.lead else []
+    caption = req.event.post_caption
+    prefix = f"Caption postingan:\n<<<\n{' '.join(caption.split())[:500]}\n>>>\n" if caption else ""
     if not items:
-        return req.event.text
+        return prefix + (f"Pesan terbaru:\n<<<\n{req.event.text}\n>>>" if prefix else req.event.text)
     history = "\n".join(
         f"{'Kita' if i.direction == 'out' else 'Pelanggan'}: {' '.join(i.text.split())[:300]}" for i in items
     )
-    return f"Riwayat percakapan:\n<<<\n{history}\n>>>\nPesan terbaru:\n<<<\n{req.event.text}\n>>>"
+    return prefix + f"Riwayat percakapan:\n<<<\n{history}\n>>>\nPesan terbaru:\n<<<\n{req.event.text}\n>>>"
 
 
 class AdkTriager:
