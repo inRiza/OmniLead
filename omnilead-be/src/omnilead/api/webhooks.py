@@ -13,17 +13,17 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 
-from omnilead.api.deps import get_ingest, get_registry, get_accounts, ingest_for_workspace, registry_for_workspace, store_for_workspace
+from omnilead.api.deps import get_ingest, get_registry, get_store, get_accounts, ingest_for_workspace, registry_for_workspace, store_for_workspace
 from omnilead.config import Settings, get_settings
 from omnilead.connectors.base import ConnectorError
 from omnilead.connectors.registry import Registry
 from omnilead.ingest import IngestService
-from omnilead.models import Channel, EventIn, Sender
+from omnilead.models import ActionStatus, Channel, EventIn, Sender
 
 log = logging.getLogger("uvicorn.error.omnilead.webhooks")
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -80,6 +80,49 @@ def parse_whatsapp(payload: dict) -> list[EventIn]:
                     ts=_ts(msg.get("timestamp")),
                 ))
     return [e for e in events if e.text.strip()]
+
+
+DELIVERY_RANK = {"sent": 1, "delivered": 2, "read": 3}
+
+
+def parse_whatsapp_statuses(payload: dict) -> list[dict]:
+    out: list[dict] = []
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            for st in change.get("value", {}).get("statuses", []) or []:
+                if st.get("id") and st.get("status") in ("sent", "delivered", "read", "failed"):
+                    errors = st.get("errors") or []
+                    out.append({
+                        "ref": st["id"],
+                        "status": st["status"],
+                        "ts": _ts(st.get("timestamp")),
+                        "error": (errors[0].get("title") or errors[0].get("message")) if errors else "",
+                    })
+    return out
+
+
+def apply_delivery_statuses(store, statuses: list[dict]) -> int:
+    if not statuses:
+        return 0
+    by_ref = {s["ref"]: s for s in statuses}
+    updated = 0
+    for action in store.list_actions(ActionStatus.EXECUTED):
+        st = by_ref.get(action.result_ref or "")
+        if st is None or action.channel != Channel.WHATSAPP:
+            continue
+        if st["status"] == "failed":
+            action.delivery_status = "failed"
+            action.error = st["error"] or "WhatsApp gagal mengantarkan pesan"
+        elif DELIVERY_RANK[st["status"]] > DELIVERY_RANK.get(action.delivery_status or "", 0):
+            action.delivery_status = st["status"]
+        else:
+            continue
+        action.delivery_at = st["ts"]
+        store.save_action(action)
+        store.audit("delivery_" + st["status"], action.error if st["status"] == "failed" else st["status"],
+                    action.id, actor="system", channel=action.channel.value, lead_id=action.lead_id)
+        updated += 1
+    return updated
 
 
 def _ig_records(value) -> list[dict]:
@@ -199,12 +242,59 @@ def parse_facebook(payload: dict) -> list[EventIn]:
     return events
 
 
-def _ingest_all(ingest: IngestService, events: list[EventIn]) -> None:
-    for ev in events:
+def enrich_sender(registry: Registry | None, ev: EventIn) -> EventIn:
+    if (registry is None or ev.kind != "dm" or ev.channel not in (Channel.INSTAGRAM, Channel.FACEBOOK)
+            or ev.sender.name or not ev.sender.handle.isdigit()):
+        return ev
+    try:
+        profile = registry.get(ev.channel).user_profile(ev.sender.handle) or {}
+    except Exception:
+        log.warning("Profil pengirim %s tidak bisa diambil", ev.channel.value)
+        return ev
+    meta = {**ev.meta, "platform_user_id": ev.sender.handle}
+    if profile.get("username"):
+        meta["username"] = profile["username"]
+    sender = ev.sender.model_copy(update={"name": profile.get("name") or ev.sender.name})
+    return ev.model_copy(update={"sender": sender, "meta": meta})
+
+
+def _job_id(ev: EventIn) -> str:
+    return f"{ev.channel.value}:{ev.external_id}"
+
+
+def _process_jobs(ingest: IngestService, job_ids: list[str], registry: Registry | None = None) -> None:
+    store = ingest.store
+    for job_id in job_ids:
+        job = store.get_job(job_id)
+        if job is None or job["status"] == "done":
+            continue
+        store.update_job(job_id, "processing", attempt=True)
         try:
+            ev = enrich_sender(registry, EventIn.model_validate(job["payload"]["event"]))
             ingest.ingest(ev)
-        except Exception:  # satu event gagal tidak boleh menghentikan sisanya
-            log.exception("Gagal memproses event %s/%s", ev.channel, ev.external_id)
+            store.update_job(job_id, "done")
+        except Exception as exc:
+            log.exception("Gagal memproses event %s", job_id)
+            store.update_job(job_id, "failed", str(exc))
+
+
+def _ingest_all(ingest: IngestService, events: list[EventIn], registry: Registry | None = None) -> None:
+    _process_jobs(ingest, _enqueue(ingest, events), registry)
+
+
+def _enqueue(ingest: IngestService, events: list[EventIn]) -> list[str]:
+    for ev in events:
+        ingest.store.enqueue_job(_job_id(ev), {"event": ev.model_dump(mode="json")})
+    return [_job_id(ev) for ev in events]
+
+
+def drain_inbox(ingest: IngestService, registry: Registry | None = None, max_attempts: int = 5) -> int:
+    store = ingest.store
+    jobs = store.list_jobs(("pending",), older_than=timedelta(minutes=2))
+    jobs += store.list_jobs(("processing", "failed"), older_than=timedelta(minutes=5))
+    ids = [j["id"] for j in jobs if j["attempts"] < max_attempts]
+    _process_jobs(ingest, ids, registry)
+    return len(ids)
 
 
 async def _signed_json(request: Request, settings: Settings) -> dict:
@@ -240,6 +330,7 @@ async def whatsapp_receive(
     background: BackgroundTasks,
     settings: Settings = Depends(get_settings),
     ingest: IngestService = Depends(get_ingest),
+    store=Depends(get_store),
 ) -> dict:
     payload = await _signed_json(request, settings)
     if settings.auth_enabled:
@@ -249,14 +340,18 @@ async def whatsapp_receive(
                 phone = str(change.get("value", {}).get("metadata", {}).get("phone_number_id", ""))
                 workspace = get_accounts().asset_workspace("whatsapp", phone)
                 if workspace:
+                    apply_delivery_statuses(store_for_workspace(workspace),
+                                            parse_whatsapp_statuses({"entry": [{"changes": [change]}]}))
                     events = parse_whatsapp({"entry": [{"changes": [change]}]})
                     for event in events:
                         event.meta["business_account_id"] = phone
-                    background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                    target = ingest_for_workspace(workspace)
+                    background.add_task(_process_jobs, target, _enqueue(target, events))
                     accepted += len(events)
         return {"status": "ok", "accepted": accepted}
+    apply_delivery_statuses(store, parse_whatsapp_statuses(payload))
     events = parse_whatsapp(payload)
-    background.add_task(_ingest_all, ingest, events)
+    background.add_task(_process_jobs, ingest, _enqueue(ingest, events))
     return {"status": "ok", "accepted": len(events)}
 
 
@@ -279,6 +374,7 @@ async def instagram_receive(
     background: BackgroundTasks,
     settings: Settings = Depends(get_settings),
     ingest: IngestService = Depends(get_ingest),
+    registry: Registry = Depends(get_registry),
 ) -> dict:
     payload = await _signed_json(request, settings)
     if payload.get("object", "instagram") != "instagram":
@@ -297,7 +393,9 @@ async def instagram_receive(
                 for event in events:
                     event.meta["business_account_id"] = str(entry["id"])
                 if events:
-                    background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                    target = ingest_for_workspace(workspace)
+                    background.add_task(_process_jobs, target, _enqueue(target, events),
+                                        registry_for_workspace(workspace))
                 else:
                     without_messages += 1
                     background.add_task(_audit_instagram_notification, workspace, entry_fields)
@@ -309,7 +407,7 @@ async def instagram_receive(
         return {"status": "ok", "accepted": accepted, "unmapped_entries": unmapped,
                 "entries_without_new_text": without_messages, "fields": sorted(fields)}
     events = parse_instagram(payload)
-    background.add_task(_ingest_all, ingest, events)
+    background.add_task(_process_jobs, ingest, _enqueue(ingest, events), registry)
     return {"status": "ok", "accepted": len(events)}
 
 
@@ -332,6 +430,7 @@ async def facebook_receive(
     background: BackgroundTasks,
     settings: Settings = Depends(get_settings),
     ingest: IngestService = Depends(get_ingest),
+    registry: Registry = Depends(get_registry),
 ) -> dict:
     payload = await _signed_json(request, settings)
     if settings.auth_enabled:
@@ -342,11 +441,13 @@ async def facebook_receive(
                 events = parse_facebook({"entry": [entry]})
                 for event in events:
                     event.meta["business_account_id"] = str(entry["id"])
-                background.add_task(_ingest_all, ingest_for_workspace(workspace), events)
+                target = ingest_for_workspace(workspace)
+                background.add_task(_process_jobs, target, _enqueue(target, events),
+                                    registry_for_workspace(workspace))
                 accepted += len(events)
         return {"status": "ok", "accepted": accepted}
     events = parse_facebook(payload)
-    background.add_task(_ingest_all, ingest, events)
+    background.add_task(_process_jobs, ingest, _enqueue(ingest, events), registry)
     return {"status": "ok", "accepted": len(events)}
 
 
