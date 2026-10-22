@@ -1,4 +1,4 @@
-# OmniLead — Spesifikasi Fitur per Halaman
+# OmniLead: Spesifikasi Fitur per Halaman
 
 > Dokumen spesifikasi produk untuk menyelaraskan desain UI, alur pengguna, data, dan perilaku AI OmniLead.  
 > Status: **draft spesifikasi MVP**. Integrasi dan data yang belum benar-benar aktif harus diberi label simulasi/demo.
@@ -20,12 +20,12 @@
 
 Halaman utama:
 
-1. **Beranda** — ringkasan operasional dan daftar hal yang perlu ditindaklanjuti.
-2. **Workspace** — Unified Inbox untuk menangani percakapan dan balasan.
-3. **Lead** — profil pelanggan, prioritas, dan pipeline peluang penjualan.
-4. **Konten** — ide konten yang diturunkan dari pertanyaan pelanggan yang berulang.
-5. **Integrasi** — status kanal, kemampuan koneksi, dan masalah sinkronisasi.
-6. **Audit** — riwayat tindakan AI, pengguna, dan sistem.
+1. **Beranda**: ringkasan operasional dan daftar hal yang perlu ditindaklanjuti.
+2. **Workspace**: Unified Inbox untuk menangani percakapan dan balasan.
+3. **Lead**: profil pelanggan, prioritas, dan pipeline peluang penjualan.
+4. **Konten**: ide konten yang diturunkan dari pertanyaan pelanggan yang berulang.
+5. **Integrasi**: status kanal, kemampuan koneksi, dan masalah sinkronisasi.
+6. **Audit**: riwayat tindakan AI, pengguna, dan sistem.
 
 ### Batas tanggung jawab halaman
 
@@ -152,7 +152,8 @@ Setiap item menampilkan:
 - Kanal sumber (misalnya WhatsApp, Instagram, Email).
 - Cuplikan pesan terakhir.
 - Waktu pesan terakhir.
-- Status percakapan: Perlu dibalas, Menunggu pelanggan, Menunggu persetujuan, Selesai, atau Perlu tinjauan.
+- Status percakapan: Perlu dibalas, Ditangani agen, Perlu tinjauan, atau Selesai.
+- Badge abu-abu berformat "Label: Nilai" untuk asal pesan, yaitu **Kanal** (WhatsApp, Instagram, Facebook, Email) dan **Asal** (Komentar, Pesan langsung, Email).
 - Penanda pesan belum dibaca.
 - Priority Score/label lead, jika pelanggan terhubung ke lead.
 - Penanda error/sinkronisasi bila relevan.
@@ -169,39 +170,51 @@ Setiap item menampilkan:
 - Riwayat pesan berurutan dengan waktu dan kanal yang jelas.
 - Identitas pelanggan yang terhubung, termasuk indikator jika pencocokan identitas belum pasti.
 - Ringkasan AI singkat tentang kebutuhan, konteks, pertanyaan terbuka, dan komitmen seller.
-- Intent/kebutuhan yang terdeteksi, hanya jika didukung pesan.
+- Kategori pesan sesuai Bagian 5.1 (Urgensi dan Sentimen). Intent mentah dari agen tidak ditampilkan sebagai badge karena penamaannya belum terstandar.
 - Informasi penting yang diekstrak (contoh: produk, kuantitas, tenggat) beserta sumber pesannya.
 - Status percakapan dan waktu respons terakhir.
 
-### D. Draf balasan AI
-- Draf balasan berdasarkan konteks percakapan dan informasi bisnis yang tersedia.
-- Pengguna dapat mengedit, menyetujui, menolak, atau meminta draf ulang.
-- Perubahan dari pengguna tidak boleh tertimpa diam-diam saat AI menghasilkan draf baru.
-- Draf yang belum disetujui tidak boleh dikirim.
-- Jika integrasi kanal tidak mendukung pengiriman langsung, tampilkan instruksi salin/kirim manual dan statusnya; jangan memberi kesan pesan sudah terkirim.
+### D. Hasil kerja agen
+- Agen membalas dan bertindak sendiri. Tidak ada langkah verifikasi atau persetujuan sebelum pengiriman.
+- Setiap tindakan agen tampil sebagai log berurutan: judul tindakan, kanal dan tujuan, isi balasan, serta status pengiriman yang sebenarnya.
+- Di bawah setiap tindakan ada bagian **Ringkasan AI**: alasan agen mengambil tindakan itu dan hasil setiap pengecekan keamanan (lolos, peringatan, atau ditahan) beserta catatannya.
+- Pengguna dapat memberi masukan **Hasil kurang tepat** disertai alasan. Masukan ini dipakai agen untuk balasan berikutnya.
+- Jika integrasi kanal tidak mendukung pengiriman langsung, tampilkan status Perlu kirim manual; jangan memberi kesan pesan sudah terkirim.
 
-### E. Usulan tindakan berikutnya
-Contoh:
-- Menjawab pertanyaan yang belum terjawab.
-- Menyiapkan penawaran.
-- Menghubungi kembali pada waktu tertentu.
-- Meminta detail yang belum tersedia.
-- Menandai percakapan untuk tinjauan manusia.
-
-Setiap usulan memuat alasan singkat, tindakan yang disarankan, dan status persetujuan jika tindakan membutuhkan persetujuan.
+### E. Langkah agen
+Log reasoning agen ditampilkan terstruktur: Tujuan, Rencana (bernomor), Log eksekusi (nama alat dalam bahasa awam, masukan, dan hasil), lalu Pengecekan keamanan dengan ikon lolos atau ditahan.
 
 ### Status utama
-- **Perlu dibalas:** pelanggan mengirim pesan dan belum ada respons seller yang relevan.
-- **Menunggu persetujuan:** draf/usulan AI belum diputuskan pengguna.
-- **Menunggu pelanggan:** seller telah merespons dan giliran berikutnya berada pada pelanggan.
-- **Selesai:** tidak ada tindak lanjut aktif berdasarkan status saat ini.
-- **Perlu tinjauan:** identitas, isi pesan, atau rekomendasi membutuhkan pemeriksaan manusia.
+- **Perlu dibalas:** pesan baru yang belum diproses agen.
+- **Ditangani agen:** agen sudah menyiapkan atau mengirim tindakan untuk pesan ini.
+- **Perlu tinjauan:** pesan mencurigakan, agen dijeda, atau service agen gagal sehingga butuh pemeriksaan manusia.
+- **Selesai:** tidak ada tindak lanjut aktif.
+
+### 5.1 Kategorisasi pesan
+Setiap pesan dikategorikan dengan dua dimensi yang terstandar. Nilai ditulis dengan huruf kapital di awal (sentence case).
+
+| Dimensi | Nilai | Kriteria |
+|---|---|---|
+| Urgensi | Tinggi | Ada tenggat dekat (hari ini atau besok), komplain, konfirmasi pembayaran, atau pelanggan sudah menunggu lama |
+| Urgensi | Sedang | Ada niat membeli atau pertanyaan detail tanpa tenggat dekat |
+| Urgensi | Rendah | Sapaan, pujian, atau pertanyaan umum tanpa niat membeli yang jelas |
+| Sentimen | Positif | Pelanggan puas, berterima kasih, atau antusias memesan |
+| Sentimen | Netral | Pertanyaan atau informasi tanpa emosi yang jelas |
+| Sentimen | Negatif | Komplain, kecewa, membatalkan, atau keberatan harga |
+
+Sentimen hanya ditampilkan bila agen mengirimkan nilainya (`triage.sentiment` bernilai `positif`, `netral`, atau `negatif`). Warna badge: Tinggi dan Negatif merah, Sedang kuning, Positif hijau, Rendah dan Netral abu-abu.
+
+### 5.2 Konvensi label dan ikon
+- Semua label, badge, dan status memakai sentence case: huruf kapital hanya di awal (contoh: "Perlu dibalas", "Pesan langsung").
+- Badge informasi memakai format "Label: Nilai" berwarna abu-abu (contoh: "Kanal: Instagram", "Asal: Komentar"). Badge berwarna hanya untuk status dan kategori.
+- Ikon hanya dari lucide. Tidak memakai emoji keyboard atau simbol dekoratif, termasuk di data contoh.
+- Tidak memakai tanda pisah panjang (em dash) di teks antarmuka maupun dokumentasi.
 
 ### Aturan penting
 - Satu pelanggan dapat memiliki beberapa percakapan atau kanal.
 - Percakapan lintas kanal hanya digabung ke profil yang sama bila identitas cukup kuat. Jika tidak, tampilkan sebagai profil terpisah atau minta pengguna mengonfirmasi.
 - Pesan yang sama tidak boleh terduplikasi saat sinkronisasi ulang.
-- Simpan status pengiriman yang sebenarnya: Draf, Menunggu persetujuan, Siap dikirim, Terkirim, Gagal, atau Dikirim manual (dikonfirmasi pengguna).
+- Simpan status pengiriman yang sebenarnya: Disiapkan agen, Mengirim, Terkirim, Gagal, Perlu kirim manual, Dikirim manual, atau Ditandai kurang tepat.
 
 ---
 
@@ -238,12 +251,12 @@ Kolom/atribut yang disarankan:
 
 ### C. Pipeline penjualan
 Tahap awal yang disarankan:
-1. **New** — lead baru teridentifikasi.
-2. **Interested** — kebutuhan/minat telah teridentifikasi.
-3. **Proposal** — penawaran sedang disiapkan atau sudah diajukan.
-4. **Negotiation** — detail, harga, atau ketentuan sedang dibahas.
-5. **Won** — transaksi berhasil.
-6. **Lost** — peluang tidak berlanjut.
+1. **New**: lead baru teridentifikasi.
+2. **Interested**: kebutuhan/minat telah teridentifikasi.
+3. **Proposal**: penawaran sedang disiapkan atau sudah diajukan.
+4. **Negotiation**: detail, harga, atau ketentuan sedang dibahas.
+5. **Won**: transaksi berhasil.
+6. **Lost**: peluang tidak berlanjut.
 
 Pengguna dapat mengubah tahap secara manual. Perubahan tahap harus tercatat di Audit. Untuk Lost, sediakan alasan opsional/terstruktur seperti harga, tidak ada respons, kebutuhan tidak cocok, atau alasan lain.
 
@@ -269,27 +282,24 @@ Pengguna dapat mengubah tahap secara manual. Perubahan tahap harus tercatat di A
 ## 7. Spesifikasi Halaman: Konten
 
 ### Tujuan
-Membantu seller menemukan ide konten yang relevan berdasarkan pertanyaan pelanggan yang sering muncul. Halaman ini merupakan fitur pendukung, bukan inti CRM MVP.
+Menunjukkan peta pengetahuan bisnis yang dipakai agen, dan memberi ringkasan serta rekomendasi dari agen berdasarkan pertanyaan pelanggan.
 
 ### Komponen
-- Daftar ide konten.
-- Judul/tema.
-- Format yang disarankan (misalnya FAQ, carousel, video pendek).
-- Pertanyaan pelanggan yang mendasari ide.
-- Alasan rekomendasi.
-- Kanal target, bila diketahui.
-- Draf konten yang dapat diedit.
-- Status: Ide, Draf, Siap ditinjau, Disetujui, Diabaikan, atau Dipublikasikan (hanya jika status publikasi benar-benar dapat diverifikasi).
+- **Statistik singkat:** jumlah dokumen, produk, topik pertanyaan, dan pesan yang dianalisis.
+- **Peta pengetahuan (graph):** simpul bisnis di tengah, dokumen basis pengetahuan, produk dari katalog, dan topik pertanyaan pelanggan. Garis putus-putus menghubungkan topik ke produk atau dokumen yang relevan. Ukuran simpul topik mengikuti jumlah pertanyaan. Klik simpul untuk melihat detail dan simpul yang terhubung.
+- **Ringkasan agen:** kalimat ringkas tentang jumlah pesan, topik paling sering, dan produk yang paling banyak dibahas.
+- **Celah pengetahuan:** topik yang belum terhubung ke dokumen atau produk mana pun, dengan tautan untuk melengkapi pengetahuan.
+- **Peluang promosi:** produk yang jarang ditanyakan.
+- **Rekomendasi konten dari agen:** format, judul, alasan, jumlah pertanyaan pendukung, dan draf caption yang dapat disalin.
 
 ### Logika rekomendasi
-- Ide dapat dibuat dari pertanyaan yang berulang pada data percakapan yang tersedia.
-- Tampilkan rentang waktu dan jumlah contoh yang menjadi dasar, bila tersedia.
-- Jangan mengklaim “tren minggu ini” jika sistem tidak menghitung tren dari data yang memadai.
+- Topik diambil dari pertanyaan yang berulang dalam 14 hari terakhir.
+- Topik dihubungkan ke produk bila nama produk (atau dua kata awal/akhirnya) muncul di judul atau alasan topik.
 - Jangan memublikasikan konten otomatis pada MVP.
-- Konten yang dihasilkan AI harus dapat diperiksa dan diedit sebelum digunakan.
 
 ### Empty state
-“Belum cukup banyak pertanyaan berulang untuk menyarankan ide konten. Ide akan muncul setelah data percakapan terkumpul.”
+- Tanpa basis pengetahuan: "Belum ada basis pengetahuan. Tambahkan katalog atau FAQ agar agen punya bahan untuk menjawab."
+- Tanpa rekomendasi: "Belum cukup banyak pertanyaan berulang untuk dijadikan rekomendasi konten."
 
 ---
 
@@ -327,7 +337,7 @@ Menjelaskan kanal apa saja yang terhubung, data/aksi apa yang didukung, dan apak
 - Belum ada integrasi: tampilkan kanal yang bisa dikonfigurasi dan prasyaratnya.
 - Token kedaluwarsa: minta autentikasi ulang.
 - Sinkronisasi gagal: tampilkan waktu, ringkasan error yang aman, dan aksi coba lagi.
-- Mode demo: tampilkan label “Simulasi—tidak terhubung ke akun asli”.
+- Mode demo: tampilkan label “Simulasi, tidak terhubung ke akun asli”.
 
 ---
 
@@ -407,7 +417,7 @@ Struktur berikut merupakan model konseptual; nama koleksi/tabel dapat menyesuaik
 
 ## 11. Prioritas Pengembangan MVP
 
-### P0 — inti demo
+### P0: inti demo
 - Unified Inbox dan riwayat percakapan.
 - Profil pelanggan/timeline lintas kanal dengan pencocokan identitas yang aman.
 - Ringkasan konteks oleh AI.
@@ -416,7 +426,7 @@ Struktur berikut merupakan model konseptual; nama koleksi/tabel dapat menyesuaik
 - Status koneksi yang jujur (live/mock/manual).
 - Audit untuk usulan, persetujuan, dan hasil tindakan.
 
-### P1 — memperkuat workflow
+### P1: memperkuat workflow
 - Pipeline lead.
 - Follow-up dan pengingat.
 - Penyaringan/pencarian lanjutan.
@@ -424,7 +434,7 @@ Struktur berikut merupakan model konseptual; nama koleksi/tabel dapat menyesuaik
 - Metrik dashboard yang terdefinisi.
 - Catatan seller dan riwayat perubahan tahap.
 
-### P2 — setelah alur inti stabil
+### P2: setelah alur inti stabil
 - Ide konten dari pertanyaan berulang.
 - Analitik yang lebih lengkap.
 - Otomasi pengiriman lanjutan dengan kontrol dan izin yang sesuai.
