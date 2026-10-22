@@ -90,8 +90,8 @@ class Executor:
         connector = self._registry.get(action.channel)
         write_action = WRITE_ACTION[action.kind]
 
-        # Kanal tanpa API untuk aksi ini -> handoff, bukan kirim paksa.
-        if not connector.supports(write_action):
+        source = self._store.get_event(action.event_id) if action.event_id else None
+        if (source and source.meta.get("handoff_only")) or not connector.supports(write_action):
             action.status = ActionStatus.AWAITING_MANUAL_SEND
             action.result_ref = None
             self._store.save_action(action)

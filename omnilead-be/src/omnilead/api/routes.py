@@ -18,9 +18,10 @@ Kendali
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from omnilead.api.deps import (
+    workspace_for_request,
     get_agent_client,
     get_auto_sender,
     get_executor,
@@ -46,6 +47,8 @@ from omnilead.api.schemas import (
 from omnilead.approvals.auto import AutoSender
 from omnilead.approvals.executor import ChannelDisabled, Executor, Paused, RateLimited
 from omnilead.dedup import scan_duplicates
+from omnilead.config import get_settings as app_config
+from omnilead.instagram_sync import sync_instagram, sync_status
 from omnilead.approvals.merge import can_undo, undo_merge
 from omnilead.approvals.queue import ApprovalQueue, InvalidTransition
 from omnilead.connectors import handoff
@@ -237,6 +240,14 @@ def list_events(
     store: Store = Depends(get_store),
 ) -> list[Event]:
     return [visible_analysis_state(event) for event in store.list_events(lead_id=lead_id, limit=limit)]
+
+
+@router.get("/events/{event_id}", response_model=Event)
+def get_event(event_id: str, store: Store = Depends(get_store)) -> Event:
+    event = store.get_event(event_id)
+    if event is None:
+        raise NOT_FOUND
+    return visible_analysis_state(event)
 
 
 @router.post("/events/{event_id}/analyze", response_model=Event)
@@ -550,3 +561,18 @@ def audit(
     store: Store = Depends(get_store),
 ) -> list[AuditEntry]:
     return store.list_audit(limit, channel=channel)
+
+
+@router.get("/instagram/sync")
+def instagram_sync_status(store: Store = Depends(get_store)) -> dict:
+    return sync_status(store)
+
+
+@router.post("/instagram/sync")
+def instagram_sync_now(
+    request: Request,
+    store: Store = Depends(get_store),
+    registry: Registry = Depends(get_registry),
+    ingest: IngestService = Depends(get_ingest),
+) -> dict:
+    return sync_instagram(store, registry, ingest, app_config(), workspace_for_request(request))

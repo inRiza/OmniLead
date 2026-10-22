@@ -124,6 +124,16 @@ class AuthAwareConnector(ChannelConnector):
     def watch(self):
         return self._call("watch")
 
+    def recent_messages(self, *args, **kwargs):
+        if not hasattr(self.inner, "recent_messages"):
+            return []
+        return self._call("recent_messages", *args, **kwargs)
+
+    def recent_comments(self, *args, **kwargs):
+        if not hasattr(self.inner, "recent_comments"):
+            return []
+        return self._call("recent_comments", *args, **kwargs)
+
     def user_profile(self, user_id):
         if not hasattr(self.inner, "user_profile"):
             return {}

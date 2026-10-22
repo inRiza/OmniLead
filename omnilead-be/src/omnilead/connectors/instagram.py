@@ -120,6 +120,54 @@ class InstagramConnector(ChannelConnector):
         body = self._get(user_id, {"fields": "name,username"})
         return {"name": body.get("name"), "username": body.get("username")}
 
+    def recent_messages(self, conversations: int = 20, per_conversation: int = 20) -> list[dict]:
+        data = self._get(
+            f"{self._user_id}/conversations",
+            {
+                "platform": "instagram",
+                "limit": conversations,
+                "fields": f"id,updated_time,messages.limit({per_conversation}){{id,from,to,message,created_time}}",
+            },
+        )
+        out: list[dict] = []
+        for thread in data.get("data", []):
+            for msg in (thread.get("messages") or {}).get("data", []):
+                sender = msg.get("from") or {}
+                text = msg.get("message")
+                if not msg.get("id") or not isinstance(text, str) or not text.strip():
+                    continue
+                if str(sender.get("id", "")) == str(self._user_id):
+                    continue
+                out.append({
+                    "mid": str(msg["id"]),
+                    "thread_id": str(thread.get("id", "")),
+                    "sender_id": str(sender.get("id", "")),
+                    "username": sender.get("username"),
+                    "text": text,
+                    "ts": _parse_ts(msg.get("created_time")),
+                })
+        return out
+
+    def recent_comments(self, posts: int = 10, per_post: int = 25) -> list[Comment]:
+        data = self._get(
+            f"{self._user_id}/media",
+            {"limit": posts, "fields": f"id,comments.limit({per_post}){{id,text,username,timestamp,from}}"},
+        )
+        out: list[Comment] = []
+        for media in data.get("data", []):
+            for item in (media.get("comments") or {}).get("data", []):
+                text = item.get("text")
+                if not item.get("id") or not isinstance(text, str) or not text.strip():
+                    continue
+                if str((item.get("from") or {}).get("id", "")) == str(self._user_id):
+                    continue
+                out.append(Comment(
+                    id=str(item["id"]), channel=self.channel, post_ref=str(media["id"]),
+                    author_handle=item.get("username") or (item.get("from") or {}).get("username", ""),
+                    text=text, created_at=_parse_ts(item.get("timestamp")),
+                ))
+        return out
+
     def list_posts(self, limit: int = 10) -> list[Post]:
         data = self._get(
             f"{self._user_id}/media",

@@ -23,6 +23,7 @@ from omnilead.config import Settings, get_settings
 from omnilead.connectors.base import ConnectorError
 from omnilead.connectors.registry import Registry
 from omnilead.ingest import IngestService
+from omnilead.instagram_sync import record_webhook
 from omnilead.models import ActionStatus, Channel, EventIn, Sender
 
 log = logging.getLogger("uvicorn.error.omnilead.webhooks")
@@ -196,6 +197,13 @@ def instagram_notification_fields(entry: dict) -> list[str]:
     if entry.get("standby"):
         fields.add("standby")
     return sorted(fields)
+
+
+def _mark_instagram_webhook(store, events: int) -> None:
+    try:
+        record_webhook(store, events)
+    except Exception:
+        log.warning("Waktu webhook Instagram tidak dapat dicatat")
 
 
 def _audit_instagram_notification(workspace: str, fields: list[str]) -> None:
@@ -392,6 +400,7 @@ async def instagram_receive(
                 events = parse_instagram({"entry": [entry]})
                 for event in events:
                     event.meta["business_account_id"] = str(entry["id"])
+                _mark_instagram_webhook(store_for_workspace(workspace), len(events))
                 if events:
                     target = ingest_for_workspace(workspace)
                     background.add_task(_process_jobs, target, _enqueue(target, events),
@@ -407,6 +416,7 @@ async def instagram_receive(
         return {"status": "ok", "accepted": accepted, "unmapped_entries": unmapped,
                 "entries_without_new_text": without_messages, "fields": sorted(fields)}
     events = parse_instagram(payload)
+    _mark_instagram_webhook(ingest.store, len(events))
     background.add_task(_process_jobs, ingest, _enqueue(ingest, events), registry)
     return {"status": "ok", "accepted": len(events)}
 
