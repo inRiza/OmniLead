@@ -177,6 +177,8 @@ export function adaptAction(a: BeAction, channels: BeChannel[]): ProposedAction 
     internal,
     isPublic: a.public,
     error: a.error ?? undefined,
+    deliveryStatus: a.delivery_status ?? null,
+    feedback: a.feedback ?? [],
     payload: a.payload,
   };
 }

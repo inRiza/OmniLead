@@ -121,6 +121,8 @@ export interface BeAction {
   error: string | null;
   reject_reason: string | null;
   result_ref: string | null;
+  delivery_status?: "sent" | "delivered" | "read" | "failed" | null;
+  feedback?: { rating: "good" | "bad"; reason: string; at: string }[];
 }
 
 export interface BeLead {
@@ -199,6 +201,8 @@ export interface BeSettings {
   dry_run: boolean;
   preferences: string[];
   rate_limit_per_hour: number;
+  auto_send?: boolean;
+  auto_merge_threshold?: number;
 }
 
 export interface BeAgentHealth {
@@ -357,6 +361,11 @@ export const api = {
   reject: (id: string, reason: string) =>
     post<BeAction>(`/actions/${id}/reject`, { reason }),
   retry: (id: string) => post<BeAction>(`/actions/${id}/retry`),
+  feedback: (id: string, rating: "good" | "bad", reason = "") =>
+    post<BeAction>(`/actions/${id}/feedback`, { rating, reason }),
+  mergeLeads: (targetId: string, sourceId: string) =>
+    post<BeAction>(`/leads/${targetId}/merge`, { source_lead_id: sourceId }),
+  findDuplicates: () => post<{ proposed: number; merged: number }>("/leads/find-duplicates"),
   undoMerge: (id: string) => post<BeAction>(`/actions/${id}/undo-merge`),
   markSent: (id: string) => post<BeAction>(`/actions/${id}/sent`),
   handoff: (id: string) => request<HandoffPackage>(`/actions/${id}/handoff`),
@@ -371,7 +380,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ enabled }),
     }),
-  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences">>) =>
+  patchSettings: (patch: Partial<Pick<BeSettings, "dry_run" | "rate_limit_per_hour" | "preferences" | "auto_send" | "auto_merge_threshold">>) =>
     request<BeSettings>("/settings", {
       method: "PATCH",
       body: JSON.stringify(patch),

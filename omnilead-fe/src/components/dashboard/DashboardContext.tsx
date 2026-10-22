@@ -88,6 +88,7 @@ interface DashboardState {
   setChannelEnabled: (channel: string, enabled: boolean) => Promise<void>;
   setDryRun: (value: boolean) => Promise<void>;
   reject: (id: string, reason: string) => Promise<void>;
+  feedback: (id: string, rating: "good" | "bad", reason?: string) => Promise<void>;
 }
 
 const Ctx = createContext<DashboardState | null>(null);
@@ -205,6 +206,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       mutate(() => api.setChannelEnabled(channel, enabled)),
     setDryRun: (v) => mutate(() => api.patchSettings({ dry_run: v })),
     reject: (id, reason) => mutate(() => api.reject(id, reason)),
+    feedback: (id, rating, reason) => mutate(() => api.feedback(id, rating, reason)),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

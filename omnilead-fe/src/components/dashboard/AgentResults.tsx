@@ -8,6 +8,13 @@ import { cap, channelLabel, type Tone } from "@/lib/ui";
 import { Button } from "@/components/action/button";
 import { Badge } from "@/components/primitives";
 
+const DELIVERY: Record<string, { label: string; tone: Tone }> = {
+  sent: { label: "Terkirim ke platform", tone: "gray" },
+  delivered: { label: "Diterima pelanggan", tone: "green" },
+  read: { label: "Dibaca pelanggan", tone: "green" },
+  failed: { label: "Gagal diantar", tone: "red" },
+};
+
 const STATUS: Record<ActionStatus, { label: string; tone: Tone }> = {
   pending: { label: "Disiapkan agen", tone: "blue" },
   approved: { label: "Diproses", tone: "blue" },
@@ -49,7 +56,8 @@ function ResultItem({ action, onFeedback }: { action: ProposedAction; onFeedback
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const status = STATUS[action.status] ?? { label: action.status, tone: "gray" as Tone };
-  const reviewable = action.status === "pending" || action.status === "awaiting_manual_send";
+  const reviewable = !(action.feedback ?? []).some((f) => f.rating === "bad") && action.status !== "rejected";
+  const delivery = action.deliveryStatus ? DELIVERY[action.deliveryStatus] : null;
 
   async function send() {
     if (!reason.trim()) return;
@@ -79,9 +87,12 @@ function ResultItem({ action, onFeedback }: { action: ProposedAction; onFeedback
             {action.target ? `, ${action.target}` : ""}
           </p>
         </div>
-        <Badge tone={status.tone} dot>
-          {status.label}
-        </Badge>
+        <span className="flex items-center gap-1.5">
+          {delivery && action.status === "executed" ? <Badge tone={delivery.tone}>{delivery.label}</Badge> : null}
+          <Badge tone={status.tone} dot>
+            {status.label}
+          </Badge>
+        </span>
       </div>
       {action.text ? <p className="mt-3 rounded-lg bg-rc-bg px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-rc-fg">{action.text}</p> : null}
       {(action.reason || action.guard.length > 0) && (

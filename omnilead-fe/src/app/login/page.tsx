@@ -142,7 +142,7 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                Daftarkan bisnis Anda bersama
+                Bergabung sekarang dengan
                 <span className="inline-flex items-center gap-2 whitespace-nowrap">
                   <LogoMark size={36} className="rounded-lg shadow-sm" />
                   <span>OmniLead</span>

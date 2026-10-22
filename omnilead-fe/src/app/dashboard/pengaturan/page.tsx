@@ -85,6 +85,31 @@ export default function SettingsPage() {
               <Row title="Mode latihan" body="Agen tetap bekerja, tetapi tidak ada pesan yang benar-benar terkirim ke pelanggan.">
                 <Toggle on={d.dryRun} label="Mode latihan" disabled={busy !== null || !d.loaded} onChange={() => void run("dry", () => d.setDryRun(!d.dryRun))} />
               </Row>
+              <Row
+                title="Kirim otomatis"
+                body="Balasan dikirim langsung bila semua pengecekan keamanan lolos. Balasan dengan peringatan tetap ditahan untuk tinjauan."
+              >
+                <Toggle
+                  on={Boolean(d.settings?.auto_send)}
+                  label="Kirim otomatis"
+                  disabled={busy !== null || !d.loaded}
+                  onChange={() => void run("auto", async () => { await api.patchSettings({ auto_send: !d.settings?.auto_send }); await d.refresh(); })}
+                />
+              </Row>
+              <Row
+                title="Gabung profil otomatis"
+                body="Saat kirim otomatis aktif, profil pelanggan yang sangat mirip digabung langsung dan tetap bisa dipisah lagi."
+              >
+                <Select
+                  label="Ambang keyakinan"
+                  className="w-44"
+                  align="right"
+                  value={String(d.settings?.auto_merge_threshold ?? 0.9)}
+                  disabled={busy !== null || !d.loaded}
+                  onChange={(v) => void run("merge", async () => { await api.patchSettings({ auto_merge_threshold: Number(v) }); await d.refresh(); })}
+                  options={["0.8", "0.9", "0.95", "1"].map((v) => ({ value: v, label: v === "1" ? "Tidak pernah" : `Keyakinan ${Math.round(Number(v) * 100)}%` }))}
+                />
+              </Row>
             </div>
           </section>
 
