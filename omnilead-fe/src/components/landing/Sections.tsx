@@ -334,7 +334,7 @@ function SkillVisual({ k }: { k: string }) {
           </p>
         </Later>
         <Later ms={2350} className="flex items-center gap-2 text-sm font-medium text-amber-700">
-          <Check className="h-4 w-4" aria-hidden /> Lolos semua pengecekan, siap Anda setujui
+          <Check className="h-4 w-4" aria-hidden /> Lolos semua pengecekan, dikirim otomatis
         </Later>
       </div>
     );

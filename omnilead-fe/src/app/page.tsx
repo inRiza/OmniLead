@@ -22,7 +22,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Apakah AI mengirim pesan sendiri?",
-    a: "Tidak. AI hanya menyiapkan balasan. Pesan baru terkirim setelah Anda setujui, dan semua pengiriman bisa dihentikan dengan tombol jeda.",
+    a: "Ya, dalam mode percaya penuh agen membalas otomatis dari katalog. Guard tetap menahan harga di luar katalog atau diskon berlebihan, dan semua pengiriman bisa dihentikan dengan tombol jeda.",
   },
   {
     q: "Dari mana AI tahu harga dan stok?",
@@ -30,7 +30,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Kanal apa saja yang bisa dipakai?",
-    a: "WhatsApp, Instagram (komentar dan DM), Facebook (komentar Page dan Messenger), dan Gmail. Hubungkan akun bisnis lewat halaman Integrasi. Selama kanal belum terhubung, tempel pesannya untuk menyiapkan draf balasan.",
+    a: "WhatsApp, Instagram (komentar dan DM), Facebook (komentar Page dan Messenger), dan Gmail. Hubungkan akun bisnis lewat halaman Integrasi.",
   },
   {
     q: "Apakah AI paham bahasa chat sehari-hari?",
@@ -38,13 +38,51 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Bagaimana kalau balasan dari AI kurang tepat?",
-    a: "Ubah dulu sebelum dikirim, atau tolak dan tulis alasannya. Alasan itu dipakai supaya balasan berikutnya lebih sesuai.",
+    a: "Perbaiki di Workspace atau Audit, lalu beri masukan. Agen memakai umpan balik itu untuk balasan berikutnya. Mode izin juga bisa diperketat di Pengaturan.",
   },
 ];
 
-function Bar({ className }: { className?: string }) {
-  return <span className={cn("block h-2.5 rounded-sm bg-rc-border", className)} />;
-}
+const HERO_MAIN = [
+  { label: "Beranda", active: true },
+  { label: "Workspace" },
+  { label: "Agen" },
+  { label: "Lead" },
+  { label: "Integrasi" },
+  { label: "Audit" },
+] as const;
+
+const HERO_SECONDARY = ["Pengetahuan & Tone", "Pengaturan Agen"] as const;
+
+const HERO_STATS = [
+  { label: "Pesan masuk", value: "128" },
+  { label: "Perlu dibalas", value: "12" },
+  { label: "Lead prioritas tinggi", value: "7" },
+  { label: "Closing", value: "9" },
+] as const;
+
+const HERO_VOLUME = [
+  [18, 12, 8, 6],
+  [22, 10, 9, 5],
+  [14, 16, 7, 4],
+  [28, 14, 11, 8],
+  [20, 11, 9, 6],
+  [25, 13, 10, 7],
+  [30, 15, 12, 9],
+] as const;
+
+const HERO_REPLIES = [
+  { name: "Ani Rahma", score: "Hot", text: "Kak, harga nasi box 50 pax buat Sabtu berapa?", ago: "12 mnt" },
+  { name: "Dinda", score: "Warm", text: "Reseller, mau ambil hijab 20 pcs brp?", ago: "34 mnt" },
+  { name: "Sari Wulandari", score: "Warm", text: "Hampers premium 10 box brp kak?", ago: "1 jam" },
+] as const;
+
+const HERO_LOGS = [
+  { event: "Balasan terkirim", detail: "WhatsApp · Ani Rahma", tone: "green" as const, ago: "8 mnt" },
+  { event: "Lead dinilai Hot", detail: "Skor 86 · acara 5 hari lagi", tone: "blue" as const, ago: "15 mnt" },
+  { event: "Usulan disiapkan", detail: "Instagram · komentar harga", tone: "blue" as const, ago: "28 mnt" },
+] as const;
+
+const STACK = ["#0144f5", "#3d6dff", "#7d9dff", "#bccdff"] as const;
 
 function HeroDashboard() {
   return (
@@ -52,50 +90,176 @@ function HeroDashboard() {
       aria-hidden
       className="flex h-[22rem] overflow-hidden rounded-t-lg border border-b-0 border-rc-border bg-rc-bg sm:h-[30rem] lg:h-[36rem]"
     >
-      <aside className="hidden w-56 shrink-0 flex-col gap-6 border-r border-rc-border bg-rc-surface p-5 md:flex">
-        <Logo />
-        <div className="flex flex-col gap-4">
-          {["w-24", "w-28", "w-20", "w-32", "w-24", "w-16"].map((w, i) => (
-            <span key={i} className="flex items-center gap-3">
-              <span className="h-4 w-4 rounded-sm bg-rc-border" />
-              <Bar className={w} />
-            </span>
-          ))}
-        </div>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 items-center justify-between border-b border-rc-border bg-rc-surface px-5">
-          <Bar className="w-40" />
-          <span className="flex items-center gap-3">
-            <Bar className="hidden w-24 sm:block" />
-            <span className="h-8 w-8 rounded-full bg-rc-border" />
+      <aside className="flex w-44 shrink-0 flex-col border-r border-rc-border bg-rc-surface sm:w-56">
+        <div className="flex h-14 items-center justify-between border-b border-rc-border px-4">
+          <Logo />
+          <span className="hidden h-7 w-7 items-center justify-center rounded-md text-rc-fg-muted sm:inline-flex">
+            <span className="h-3.5 w-3.5 rounded-sm border border-current" />
           </span>
         </div>
-        <div className="flex flex-1 flex-col gap-4 p-5">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col gap-3 rounded-md border border-rc-border bg-rc-surface p-4">
-                <Bar className="w-20" />
-                <Bar className="h-5 w-14" />
+        <nav className="flex flex-1 flex-col gap-5 px-3 py-3">
+          <div className="flex flex-col gap-0.5">
+            {HERO_MAIN.map((item) => (
+              <span
+                key={item.label}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs sm:text-sm",
+                  item.active ? "bg-rc-accent-soft font-semibold text-rc-accent" : "text-rc-fg-muted",
+                )}
+              >
+                <span className={cn("h-4 w-4 shrink-0 rounded-sm", item.active ? "bg-rc-accent/40" : "bg-rc-border")} />
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <div>
+            <p className="px-2.5 pb-1 text-[10px] font-semibold tracking-wide text-rc-fg-subtle uppercase sm:text-xs">Pengaturan</p>
+            <div className="flex flex-col gap-0.5">
+              {HERO_SECONDARY.map((label) => (
+                <span key={label} className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs text-rc-fg-muted sm:text-sm">
+                  <span className="h-4 w-4 shrink-0 rounded-sm bg-rc-border" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </nav>
+        <div className="flex items-center gap-2.5 border-t border-rc-border px-4 py-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-rc-accent text-xs font-semibold text-rc-accent-fg">RI</span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-sm font-medium text-rc-fg">Rina</span>
+            <span className="block truncate text-xs text-rc-fg-muted">Dapur Bu Rina</span>
+          </span>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-14 shrink-0 items-center border-b border-rc-border bg-rc-bg px-5">
+          <p className="text-lg font-semibold tracking-tight text-rc-fg">Beranda</p>
+        </div>
+        <div className="rc-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pb-6 sm:gap-5 sm:p-5 md:p-7">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-base font-semibold text-rc-fg sm:text-xl">Halo, Rina</p>
+              <p className="mt-1 text-xs text-rc-fg-muted sm:text-sm">Ringkasan 7 hari terakhir dari semua kanal.</p>
+            </div>
+            <span className="inline-flex h-9 items-center rounded-md border border-rc-border bg-rc-surface px-3 text-xs font-medium text-rc-fg sm:text-sm">
+              7 hari terakhir
+              <ChevronDown className="ml-2 h-3.5 w-3.5 text-rc-fg-muted" aria-hidden />
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {HERO_STATS.map((s) => (
+              <div key={s.label} className="rounded-xl border border-rc-border bg-rc-surface p-4 sm:p-5">
+                <p className="truncate text-xs font-medium text-rc-fg-muted sm:text-sm">{s.label}</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-rc-fg tabular-nums sm:mt-3 sm:text-3xl">{s.value}</p>
               </div>
             ))}
           </div>
-          <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div className="flex flex-col gap-4 rounded-md border border-rc-border bg-rc-surface p-4">
-              <Bar className="w-32" />
-              <div className="flex-1 rounded-sm bg-rc-bg" />
+
+          <div className="rounded-xl border border-rc-border bg-rc-surface p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-rc-fg sm:text-base">Volume pesan per kanal</p>
+              <p className="text-xs text-rc-fg-muted sm:text-sm">128 pesan</p>
             </div>
-            <div className="hidden flex-col gap-4 rounded-md border border-rc-border bg-rc-surface p-4 lg:flex">
-              <Bar className="w-24" />
-              {[0, 1, 2, 3, 4].map((i) => (
-                <span key={i} className="flex items-center gap-3">
-                  <span className="h-7 w-7 shrink-0 rounded-full bg-rc-border" />
-                  <span className="flex flex-1 flex-col gap-1.5">
-                    <Bar className="w-3/4" />
-                    <Bar className="h-2 w-1/2" />
+            <div className="flex h-28 items-end gap-2 sm:h-36 sm:gap-3">
+              {HERO_VOLUME.map((stack, i) => {
+                const total = stack.reduce((a, b) => a + b, 0);
+                return (
+                  <span key={i} className="flex flex-1 flex-col justify-end" style={{ height: `${(total / 70) * 100}%` }}>
+                    {stack.map((v, j) => (
+                      <span
+                        key={j}
+                        className={cn("w-full", j === stack.length - 1 ? "rounded-t-sm" : "")}
+                        style={{ height: `${(v / total) * 100}%`, backgroundColor: STACK[j] }}
+                      />
+                    ))}
                   </span>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-rc-fg-muted sm:text-xs">
+              {["WhatsApp", "Instagram", "Facebook", "Email"].map((label, i) => (
+                <span key={label} className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: STACK[i] }} />
+                  {label}
                 </span>
               ))}
+            </div>
+          </div>
+
+          <div className="hidden rounded-xl border border-rc-border bg-rc-surface p-5 lg:block">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-base font-semibold text-rc-fg">Potensi closing</p>
+                <p className="text-sm text-rc-fg-muted">Lead baru dibanding lead yang berhasil closing.</p>
+              </div>
+              <dl className="flex gap-6 text-right">
+                {[
+                  ["Lead baru", "24"],
+                  ["Closing", "9"],
+                  ["Konversi", "38%"],
+                  ["Dalam proses", "11"],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="text-xs text-rc-fg-muted">{k}</dt>
+                    <dd className="text-lg font-semibold text-rc-fg tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <svg viewBox="0 0 400 96" className="h-24 w-full" preserveAspectRatio="none">
+              <path d="M0 70 C40 62, 80 55, 120 48 S200 30, 240 34 S320 50, 400 22" fill="none" stroke="#7d9dff" strokeWidth="2" />
+              <path d="M0 82 C40 78, 80 74, 120 68 S200 52, 240 56 S320 64, 400 40" fill="none" stroke="#0144f5" strokeWidth="2.5" />
+            </svg>
+          </div>
+
+          <div className="hidden grid-cols-2 gap-5 lg:grid">
+            <div className="rounded-xl border border-rc-border bg-rc-surface">
+              <div className="flex items-center justify-between px-5 pt-5">
+                <p className="text-base font-semibold text-rc-fg">Perlu dibalas</p>
+                <span className="text-sm font-medium text-rc-accent">Buka workspace</span>
+              </div>
+              <div className="px-2 pb-2 pt-2">
+                {HERO_REPLIES.map((r) => (
+                  <div key={r.name} className="flex items-start gap-3 rounded-lg px-3 py-3">
+                    <span className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-rc-border" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-rc-fg">{r.name}</span>
+                        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", r.score === "Hot" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800")}>
+                          {r.score}
+                        </span>
+                        <span className="ml-auto shrink-0 text-xs text-rc-fg-subtle">{r.ago}</span>
+                      </div>
+                      <p className="mt-0.5 truncate text-sm text-rc-fg-muted">{r.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl border border-rc-border bg-rc-surface">
+              <div className="flex items-center justify-between px-5 pt-5">
+                <p className="text-base font-semibold text-rc-fg">Hasil kerja agen</p>
+                <span className="text-sm font-medium text-rc-accent">Semua log</span>
+              </div>
+              <div className="px-2 pb-2 pt-2">
+                {HERO_LOGS.map((e) => (
+                  <div key={e.event} className="flex items-start gap-3 rounded-lg px-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-rc-fg">{e.event}</span>
+                        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", e.tone === "green" ? "bg-emerald-50 text-emerald-700" : "bg-rc-accent-soft text-rc-accent")}>
+                          {e.tone === "green" ? "Berhasil" : "Disiapkan"}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-sm text-rc-fg-muted">{e.detail}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-rc-fg-subtle">{e.ago}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -230,8 +394,8 @@ export default function Landing() {
         <section id="agen" className={cn(band, "scroll-mt-24")}>
           <div className={container}>
             <SectionHead
-              title="Agen bekerja 24/7, Anda yang memutuskan"
-              sub="Pilih kanal, lalu lihat agen membaca pesan, menilai prioritas, dan menyiapkan balasan dari katalog. Balasan baru terkirim setelah Anda setujui."
+              title="Agen bekerja 24/7"
+              sub="Pilih kanal, lalu lihat agen membaca pesan, menilai prioritas, dan membalas dari katalog yang sudah mendukung beragam kanal."
             />
             <Reveal className="mt-12">
               <HeroStage />

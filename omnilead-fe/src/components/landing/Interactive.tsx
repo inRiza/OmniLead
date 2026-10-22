@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Menu, Pencil, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/Logo";
 import { ChannelMock, type MockScenario } from "@/components/landing/ChannelMocks";
 import { LandingChannelIcon, landingChannelLabel } from "@/components/landing/channels";
@@ -292,64 +292,20 @@ const SCENARIOS: StageScenario[] = [
 ];
 
 const STEP_MS = 1100;
-const REVIEW_MS = 2200;
 const AUTO_NEXT_MS = 4500;
 
-type Review = "pending" | "approved" | null;
-type Frame = { count: number; typing: boolean; review: Review; ms: number };
+type Frame = { count: number; typing: boolean; ms: number };
 
-// Setiap balasan agen melewati kartu persetujuan sebelum tampil di kanal.
+// Mode percaya penuh: agen mengetik lalu mengirim tanpa kartu izin.
 function framesOf(sc: MockScenario): Frame[] {
-  const frames: Frame[] = [{ count: 0, typing: false, review: null, ms: STEP_MS }];
+  const frames: Frame[] = [{ count: 0, typing: false, ms: STEP_MS }];
   sc.thread.forEach((m, i) => {
     if (m.from === "agent") {
-      frames.push({ count: i, typing: true, review: null, ms: STEP_MS });
-      frames.push({ count: i, typing: true, review: "pending", ms: REVIEW_MS });
-      frames.push({ count: i, typing: true, review: "approved", ms: 700 });
+      frames.push({ count: i, typing: true, ms: STEP_MS });
     }
-    frames.push({ count: i + 1, typing: false, review: null, ms: STEP_MS });
+    frames.push({ count: i + 1, typing: false, ms: STEP_MS });
   });
   return frames;
-}
-
-function ReviewCard({ sc, draft, review }: { sc: StageScenario; draft: string; review: "pending" | "approved" }) {
-  const high = sc.priority.level === "Tinggi";
-  return (
-    <div className="rc-enter absolute inset-x-3 bottom-14 z-10 rounded-xl border border-rc-border bg-rc-surface p-4 text-rc-fg shadow-[0_12px_32px_-12px_rgba(11,23,54,0.35)]">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold">Usulan agen</span>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-semibold",
-            high ? "bg-rc-highlight-soft text-[#8a5300]" : "bg-rc-accent-soft text-rc-accent",
-          )}
-        >
-          Prioritas {sc.priority.level.toLowerCase()}, skor {sc.priority.score}
-        </span>
-        <span className="ml-auto text-xs text-rc-fg-muted">Belum terkirim</span>
-      </div>
-      <p className="mt-1 text-xs text-rc-fg-muted">{sc.priority.reason}</p>
-      <p className="mt-3 line-clamp-3 rounded-lg bg-rc-bg px-3 py-2 text-sm whitespace-pre-line">{draft}</p>
-      <div className="mt-3 flex items-center gap-2">
-        <span className="inline-flex h-8 items-center rounded-md border border-rc-border px-3 text-xs font-medium text-rc-fg-muted">
-          Tolak
-        </span>
-        <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rc-border px-3 text-xs font-medium text-rc-fg-muted">
-          <Pencil className="h-3.5 w-3.5" aria-hidden />
-          Edit
-        </span>
-        <span
-          className={cn(
-            "ml-auto inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white transition-[background-color,transform] duration-300",
-            review === "approved" ? "scale-95 bg-[#15803d]" : "bg-rc-hero",
-          )}
-        >
-          {review === "approved" && <Check className="h-3.5 w-3.5" aria-hidden />}
-          {review === "approved" ? "Disetujui" : "Setujui"}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 function lane(i: number, n: number) {
@@ -382,7 +338,7 @@ export function HeroStage() {
   const frame = frames[reduced ? last : Math.min(phase, last)];
   const finished = reduced || phase >= last;
   const replied = sc.thread.slice(0, frame.count).some((m) => m.from === "agent");
-  const status = frame.review === "pending" ? "Menunggu persetujuan" : frame.typing ? "Agen menyusun usulan" : replied ? "Terkirim setelah disetujui" : "Pesan masuk";
+  const status = frame.typing ? "Agen membalas…" : replied ? "Terkirim otomatis" : "Pesan masuk";
 
   useEffect(() => {
     if (reduced || touched || hovering || !finished) return;
@@ -484,7 +440,6 @@ export function HeroStage() {
 
       <div key={`${active}-${run}`} className="rc-enter relative" aria-live="polite">
         <ChannelMock sc={sc} count={frame.count} typing={frame.typing} />
-        {frame.review && <ReviewCard sc={sc} draft={sc.thread[frame.count].text} review={frame.review} />}
       </div>
     </div>
   );
